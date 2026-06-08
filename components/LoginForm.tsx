@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
   initialMessage?: string | null;
@@ -10,7 +9,7 @@ type LoginFormProps = {
 
 export function LoginForm({ initialMessage = null }: LoginFormProps) {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [employeeNumber, setEmployeeNumber] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,62 +22,45 @@ export function LoginForm({ initialMessage = null }: LoginFormProps) {
     setError(null);
     setMessage(null);
 
-    const trimmedUsername = username.trim();
-    if (!trimmedUsername || !password) {
-      setError("ユーザー名とパスワードを入力してください。");
+    const trimmedEmployeeNumber = employeeNumber.trim();
+    if (!trimmedEmployeeNumber || !password) {
+      setError("社員番号とパスワードを入力してください。");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: trimmedUsername,
-        password,
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeNumber: trimmedEmployeeNumber,
+          password,
+          remember,
+        }),
       });
 
-      if (signInError) {
-        setError("ユーザー名またはパスワードが正しくありません。");
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        requiresPasswordChange?: boolean;
+      } | null;
+
+      if (!response.ok) {
+        setError(payload?.message ?? "ログイン処理中にエラーが発生しました。");
         return;
       }
 
-      router.push("/dashboard");
+      if (payload?.requiresPasswordChange) {
+        router.push("/change-password");
+        router.refresh();
+        return;
+      }
+
+      router.push("/learning-time");
       router.refresh();
     } catch {
       setError("ログイン処理中にエラーが発生しました。");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleForgotPassword() {
-    const trimmedUsername = username.trim();
-    if (!trimmedUsername) {
-      setError("パスワード再設定メールを送るには、ユーザー名を入力してください。");
-      return;
-    }
-
-    setError(null);
-    setMessage(null);
-    setIsSubmitting(true);
-
-    try {
-      const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/callback?next=/login`;
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        trimmedUsername,
-        { redirectTo },
-      );
-
-      if (resetError) {
-        setError("パスワード再設定メールの送信に失敗しました。");
-        return;
-      }
-
-      setMessage("パスワード再設定用のメールを送信しました。");
-    } catch {
-      setError("パスワード再設定処理中にエラーが発生しました。");
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +74,7 @@ export function LoginForm({ initialMessage = null }: LoginFormProps) {
         </div>
         <h1 className="loginCardTitle">教員ログイン</h1>
         <p className="loginCardSubtitle">
-          ユーザー名とパスワードでログインしてください
+          社員番号とパスワードでログインしてください
         </p>
       </div>
 
@@ -100,22 +82,22 @@ export function LoginForm({ initialMessage = null }: LoginFormProps) {
       {message ? <p className="loginMessage">{message}</p> : null}
 
       <div className="loginField">
-        <label className="loginLabel" htmlFor="username">
-          ユーザー名
+        <label className="loginLabel" htmlFor="employeeNumber">
+          社員番号
         </label>
         <div className="loginInputRow">
           <span className="loginInputIcon" aria-hidden="true">
             👤
           </span>
           <input
-            id="username"
+            id="employeeNumber"
             className="loginInput"
-            type="email"
-            name="username"
+            type="text"
+            name="employeeNumber"
             autoComplete="username"
-            placeholder="ユーザー名を入力"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            placeholder="社員番号を入力"
+            value={employeeNumber}
+            onChange={(event) => setEmployeeNumber(event.target.value)}
             disabled={isSubmitting}
           />
         </div>
@@ -163,14 +145,7 @@ export function LoginForm({ initialMessage = null }: LoginFormProps) {
           />
           ログインしたままにする
         </label>
-        <button
-          type="button"
-          className="loginForgot"
-          onClick={handleForgotPassword}
-          disabled={isSubmitting}
-        >
-          パスワードを忘れた場合
-        </button>
+        <span className="loginForgotHint">パスワードを忘れた場合は管理者へ連絡</span>
       </div>
 
       <button className="loginSubmit" type="submit" disabled={isSubmitting}>

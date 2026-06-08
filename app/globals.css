@@ -63,7 +63,12 @@ a {
   min-height: 100vh;
   padding: 40px 56px 32px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.78) 28%, rgba(255, 255, 255, 0.55) 100%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(255, 255, 255, 0.45) 18%,
+      rgba(255, 255, 255, 0) 32%
+    ),
     url("/assets/login/login-chara.png") center bottom / contain no-repeat,
     linear-gradient(180deg, #f8fffe 0%, #eef8f7 100%);
 }
@@ -275,16 +280,11 @@ a {
   accent-color: var(--color-primary);
 }
 
-.loginForgot {
-  border: 0;
-  background: transparent;
+.loginForgotHint {
   color: var(--color-primary);
   font-size: 13px;
   font-weight: 600;
-}
-
-.loginForgot:hover {
-  text-decoration: underline;
+  text-align: right;
 }
 
 .loginSubmit {
@@ -354,7 +354,8 @@ a {
   line-height: 1.6;
 }
 
-.dashboardLogout {
+.dashboardLogout,
+.portalLogout {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -366,6 +367,841 @@ a {
   color: var(--color-white);
   font-size: 14px;
   font-weight: 600;
+}
+
+.portalLogout {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.portalShell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #e8ebef;
+}
+
+.portalTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 24px;
+  border-bottom: 1px solid #e2e5e9;
+  background: #ffffff;
+}
+
+.portalTopBarTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.portalTopBarMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portalTopBarUser {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.portalBody {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.portalSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 252px;
+  padding: 22px 18px;
+  background: #323b44;
+}
+
+.portalSidebarTitle {
+  color: #98a8b8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.portalNav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.portalNavSectionLabel {
+  color: #98a8b8;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.portalNavSectionLabelEdit {
+  color: #d97706;
+}
+
+.portalNavDivider {
+  height: 1px;
+  margin: 6px 0;
+  background: #4b5563;
+}
+
+.portalNavItem {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #3b4550;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.portalNavItemEdit {
+  background: #3a424c;
+  border-left: 3px solid #d97706;
+  font-size: 12px;
+}
+
+.portalNavItemActive {
+  background: #00a99d;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.portalNavItemDisabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.portalMain {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learningTimePage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 20px 24px;
+}
+
+.learningTimeHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.learningTimeTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.learningTimeSubtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.learningTimeWorkspace {
+  display: flex;
+  flex: 1;
+  gap: 18px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learningTimeStudentList,
+.learningTimeDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.learningTimeStudentList {
+  width: 320px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.learningTimeDetail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.learningTimeDetailBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learningTimeCardTitle,
+.learningTimeSectionTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.learningTimeCardTitle {
+  font-size: 18px;
+}
+
+.learningTimeSearch,
+.learningTimeSelect {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #334155;
+  font-size: 13px;
+}
+
+.learningTimeSearch {
+  padding: 10px 12px;
+}
+
+.learningTimeSelect {
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.learningTimeFilterRow {
+  display: flex;
+  gap: 12px;
+}
+
+.learningTimeFilterRow .learningTimeSelectWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.learningTimeSelectWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learningTimeSelectLabel {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.learningTimeStudentRows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.learningTimeStudentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #1f2937;
+  text-align: left;
+}
+
+.learningTimeStudentRowSelected {
+  border-color: #99f6e4;
+  background: #e0f7f5;
+}
+
+.learningTimeStudentRowText {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.learningTimeStudentRowBtn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.learningTimeDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.learningTimeDetailName {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.learningTimeDetailMeta {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.learningTimeDetailHeader,
+.learningTimePeriodTabs,
+.learningTimeSummaryRow {
+  flex-shrink: 0;
+}
+
+.learningTimePeriodTabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.learningTimePeriodTab {
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.learningTimePeriodTabActive {
+  border-bottom-color: #00a99d;
+  color: #00a99d;
+  font-weight: 700;
+}
+
+.learningTimeSummaryRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.learningTimeSummaryCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.learningTimeSummaryLabel {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.learningTimeSummaryValue {
+  color: #1f2937;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.learningTimeLogSection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.learningTimeLogSection .learningTimeSectionTitle {
+  flex-shrink: 0;
+}
+
+.learningTimeLogList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.learningTimeLogDay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learningTimeLogDayTitle {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.learningTimeLogItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.learningTimeLogItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.learningTimeLogTime {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.learningTimeSubjectBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.learningTimeLogDuration {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.learningTimeScrollHint,
+.learningTimeEmpty,
+.learningTimeEmptyPanel {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.learningTimeEmptyPanel {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  font-size: 14px;
+}
+
+.learningTimeBottomRow {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px;
+  height: 168px;
+  min-height: 168px;
+}
+
+.learningTimePieSection,
+.learningTimeSubjectTotals {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.learningTimePieSection .learningTimeSectionTitle,
+.learningTimeSubjectTotals .learningTimeSectionTitle {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.learningTimePiePanel {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 0;
+}
+
+.learningTimePiePanel .learningTimePieChart {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.learningTimePieLegendCompact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.learningTimePieLegendCompact li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.learningTimeSubjectTotalsList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.learningTimeDailyChart {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 6px;
+  flex: 1;
+  min-height: 110px;
+  padding: 4px 0;
+}
+
+.learningTimeDailyColumn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.learningTimeDailyStack {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  gap: 1px;
+  width: 100%;
+  height: 88px;
+}
+
+.learningTimeDailySegment {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+}
+
+.learningTimeDailyLabel {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.learningTimeLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.learningTimeLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.learningTimeLegendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.learningTimeSubjectTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.learningTimeSubjectTotalRow strong {
+  color: #1f2937;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.learningTimeRecordCard {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+.learningTimeOverview {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.learningTimeOverview div {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+
+.learningTimeOverview span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.learningTimeOverview strong {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.learningTimeOverviewMain strong {
+  color: #2563eb;
+  font-size: 16px;
+}
+
+.learningTimeBreakdown {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+}
+
+.learningTimePieChart {
+  width: 168px;
+  height: 168px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.learningTimePieLegend {
+  list-style: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learningTimePieLegendItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px 10px;
+  align-items: center;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.learningTimePieLegendLabel {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.learningTimePieLegendMinutes {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.learningTimePieLegendPercent {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.learningTimeBreakdownDot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.learningTimeEmptyText {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.learningTimeCalendarMonth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #2563eb;
+}
+
+.learningTimeCalendarMonth button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #2563eb;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.learningTimeCalendarMonth strong {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.learningTimeCalendarWeekdays,
+.learningTimeCalendarWeek {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.learningTimeCalendarWeekdays span {
+  color: #64748b;
+  font-size: 11px;
+  text-align: center;
+}
+
+.learningTimeCalendarGrid {
+  display: grid;
+  gap: 6px;
+}
+
+.learningTimeCalendarDay {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  color: #1f2937;
+  font-size: 11px;
+}
+
+.learningTimeCalendarDayMuted {
+  color: #cbd5e1;
+}
+
+.learningTimeCalendarDayStudied {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.learningTimeCalendarDayToday {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+@media (max-width: 1200px) {
+  .learningTimeWorkspace {
+    flex-direction: column;
+  }
+
+  .learningTimeStudentList {
+    width: 100%;
+    max-height: 36vh;
+  }
+
+  .learningTimeBottomRow {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .learningTimePieSection {
+    min-height: 168px;
+  }
+}
+
+.loginPageSingle {
+  min-width: 0;
+  justify-content: center;
+}
+
+.loginRightFull {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+}
+
+.loginRightFull .loginCard {
+  margin: 0 auto;
 }
 
 @media (max-width: 1439px) {

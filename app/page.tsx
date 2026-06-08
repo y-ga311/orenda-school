@@ -1,11 +1,7 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getTeacherId } from "@/lib/teacherSession.server";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  redirect(user ? "/dashboard" : "/login");
+  const teacherId = await getTeacherId();
+  redirect(teacherId ? "/learning-time" : "/login");
 }

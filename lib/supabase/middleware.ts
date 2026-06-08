@@ -1,52 +1,43 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  TEACHER_PENDING_COOKIE,
+  TEACHER_SESSION_COOKIE,
+} from "@/lib/teacherSession";
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
+  const teacherSession = request.cookies.get(TEACHER_SESSION_COOKIE)?.value;
+  const pendingSession = request.cookies.get(TEACHER_PENDING_COOKIE)?.value;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isLoginPage = pathname === "/login";
+  const isChangePasswordPage = pathname === "/change-password";
+  const isAuthApi =
+    pathname.startsWith("/api/login") ||
+    pathname.startsWith("/api/logout") ||
+    pathname.startsWith("/api/change-password");
+  const isStudentStudyApi = pathname.startsWith("/api/study-sessions");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return supabaseResponse;
+  if (teacherSession && (isLoginPage || isChangePasswordPage)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/learning-time";
+    return NextResponse.redirect(url);
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
+  if (pendingSession) {
+    if (isChangePasswordPage || isAuthApi || isLoginPage) {
+      return NextResponse.next({ request });
+    }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const url = request.nextUrl.clone();
+    url.pathname = "/change-password";
+    return NextResponse.redirect(url);
+  }
 
-  const pathname = request.nextUrl.pathname;
-  const isLoginPage = pathname === "/login";
-  const isAuthCallback = pathname.startsWith("/auth/");
-
-  if (!user && !isLoginPage && !isAuthCallback) {
+  if (!teacherSession && !isLoginPage && !isChangePasswordPage && !isAuthApi && !isStudentStudyApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isLoginPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
-  return supabaseResponse;
+  return NextResponse.next({ request });
 }
