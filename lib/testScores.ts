@@ -27,7 +27,7 @@ export const TEST_SCORE_SUBJECTS = [
 export type TestScoreSubjectColumn = (typeof TEST_SCORE_SUBJECTS)[number]["column"];
 
 export type TestScoreRow = {
-  student_id: string;
+  student_id: number | string;
   test_name: string;
 } & Partial<Record<TestScoreSubjectColumn, number | string | null>>;
 

@@ -111,11 +111,29 @@ export async function GET(request: Request) {
   }
 
   if (usesTestScoresTable(examType)) {
+    const { data: student, error: studentError } = await supabase
+      .from("students")
+      .select("id")
+      .eq("gakusei_id", gakuseiId)
+      .maybeSingle();
+
+    if (studentError) {
+      console.error("[exam-results] students:", studentError.message);
+      return NextResponse.json(
+        { message: "学生情報の取得中にエラーが発生しました。" },
+        { status: 500 },
+      );
+    }
+
+    if (!student?.id) {
+      return NextResponse.json({ message: "学生が見つかりません。" }, { status: 404 });
+    }
+
     const keyword = getTestNameKeyword(examType);
     const { data, error } = await supabase
       .from("test_scores")
       .select(TEST_SCORES_SELECT)
-      .eq("student_id", gakuseiId)
+      .eq("student_id", student.id)
       .ilike("test_name", `%${keyword}%`)
       .order("test_name", { ascending: true });
 
