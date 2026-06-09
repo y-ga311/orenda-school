@@ -12,6 +12,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="loginPage">
       <section className="loginLeft" aria-label="Orenda School 紹介">
+        <div className="loginIllustration" aria-hidden="true">
+          <img
+            className="loginIllustrationImage"
+            src="/assets/login/login-chara.png"
+            alt=""
+          />
+        </div>
+
         <div className="loginHeadline">
           <h1 className="loginTitle">Orenda School</h1>
           <p className="loginSubtitle">教員ポータルへようこそ</p>

@@ -61,6 +61,8 @@ a {
 }
 
 .loginLeft {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex: 1 1 58%;
   flex-direction: column;
@@ -69,15 +71,42 @@ a {
   min-width: 0;
   min-height: 100vh;
   padding: clamp(24px, 3vw, 40px) clamp(24px, 4vw, 56px) clamp(20px, 3vw, 32px);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.88) 0%,
-      rgba(255, 255, 255, 0.45) 18%,
-      rgba(255, 255, 255, 0) 32%
-    ),
-    url("/assets/login/login-chara.png") center bottom / contain no-repeat,
-    linear-gradient(180deg, #f8fffe 0%, #eef8f7 100%);
+  overflow-x: clip;
+  background: linear-gradient(180deg, #f8fffe 0%, #eef8f7 100%);
+}
+
+.loginIllustration {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.loginIllustrationImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.loginLeft::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.45) 18%,
+    rgba(255, 255, 255, 0) 32%
+  );
+  pointer-events: none;
+}
+
+.loginLeft > :not(.loginIllustration) {
+  position: relative;
+  z-index: 2;
 }
 
 .loginHeadline {
@@ -1266,7 +1295,13 @@ a {
 @media (max-height: 820px) {
   .loginLeft {
     min-height: auto;
-    padding-bottom: clamp(180px, 28vh, 280px);
+  }
+
+  .loginIllustrationImage {
+    max-height: min(62vh, 520px);
+    width: 100%;
+    object-fit: contain;
+    object-position: bottom center;
   }
 
   .learningTimeBottomRow {
@@ -1304,7 +1339,6 @@ a {
     width: 100%;
     max-width: none;
     min-height: auto;
-    padding-bottom: clamp(200px, 40vw, 320px);
   }
 
   .loginRight {
