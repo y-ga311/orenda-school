@@ -311,11 +311,12 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                   <div className="examScoreListWrap">
                     {isLoading ? (
                       <p className="learningTimeEmpty">読み込み中...</p>
-                    ) : data?.tableMissing ? (
-                      <p className="learningTimeEmpty">
-                        試験成績テーブルが未作成です。SQL
-                        マイグレーション後にデータを登録してください。
-                      </p>
+                        ) : data?.tableMissing ? (
+                          <p className="learningTimeEmpty">
+                            {examType === "regular"
+                              ? "試験成績テーブルが未作成です。SQL マイグレーション後にデータを登録してください。"
+                              : "test_scores テーブルが未作成です。データ登録後に表示されます。"}
+                          </p>
                     ) : scores.length === 0 ? (
                       <p className="learningTimeEmpty">
                         この試験の成績データがありません。

@@ -5,6 +5,13 @@ import {
   calculateAverageScore,
   type ExamType,
 } from "@/lib/examResults";
+import {
+  buildTestScoreExamResponse,
+  getTestNameKeyword,
+  TEST_SCORES_SELECT,
+  type TestScoreRow,
+  usesTestScoresTable,
+} from "@/lib/testScores";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
@@ -19,64 +26,17 @@ type ExamResultRow = {
   score: number | string;
 };
 
-export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const teacherId = cookieStore.get(TEACHER_SESSION_COOKIE)?.value?.trim();
+type ExamSessionAccumulator = {
+  sessionKey: string;
+  sessionLabel: string;
+  scores: { subjectName: string; score: number }[];
+};
 
-  if (!teacherId) {
-    return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-  }
-
-  const url = new URL(request.url);
-  const gakuseiId = url.searchParams.get("gakuseiId")?.trim();
-  const requestedExamType = url.searchParams.get("examType")?.trim();
-  const sessionKey = url.searchParams.get("sessionKey")?.trim() ?? null;
-
-  if (!gakuseiId) {
-    return NextResponse.json({ message: "学生が選択されていません。" }, { status: 400 });
-  }
-
-  const examType = EXAM_TYPES.includes(requestedExamType as ExamType)
-    ? (requestedExamType as ExamType)
-    : "regular";
-
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return NextResponse.json(
-      { message: "Supabase接続情報が未設定です。" },
-      { status: 500 },
-    );
-  }
-
-  const { data, error } = await supabase
-    .from("student_exam_results")
-    .select("session_key, session_label, subject_name, score")
-    .eq("gakusei_id", gakuseiId)
-    .eq("exam_type", examType)
-    .order("session_key", { ascending: true })
-    .order("subject_name", { ascending: true });
-
-  if (error) {
-    if (error.code === "42P01" || error.message.includes("student_exam_results")) {
-      return NextResponse.json({
-        examType,
-        sessions: [],
-        selectedSessionKey: null,
-        sectionTitle: null,
-        scores: [],
-        averageScore: null,
-        tableMissing: true,
-      });
-    }
-
-    console.error("[exam-results] student_exam_results:", error.message);
-    return NextResponse.json(
-      { message: "試験成績の取得中にエラーが発生しました。" },
-      { status: 500 },
-    );
-  }
-
-  const rows = (data ?? []) as ExamResultRow[];
+function buildRegularExamResponse(
+  examType: "regular",
+  rows: ExamResultRow[],
+  sessionKey: string | null,
+) {
   const sessionMap = new Map<string, ExamSessionAccumulator>();
 
   rows.forEach((row) => {
@@ -110,7 +70,7 @@ export async function GET(request: Request) {
     ? (sessionMap.get(selectedSession.sessionKey)?.scores ?? [])
     : [];
 
-  return NextResponse.json({
+  return {
     examType,
     sessions,
     selectedSessionKey: selectedSession?.sessionKey ?? null,
@@ -118,11 +78,101 @@ export async function GET(request: Request) {
     scores: selectedScores,
     averageScore: calculateAverageScore(selectedScores),
     tableMissing: false,
-  });
+  };
 }
 
-type ExamSessionAccumulator = {
-  sessionKey: string;
-  sessionLabel: string;
-  scores: { subjectName: string; score: number }[];
-};
+export async function GET(request: Request) {
+  const cookieStore = await cookies();
+  const teacherId = cookieStore.get(TEACHER_SESSION_COOKIE)?.value?.trim();
+
+  if (!teacherId) {
+    return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const gakuseiId = url.searchParams.get("gakuseiId")?.trim();
+  const requestedExamType = url.searchParams.get("examType")?.trim();
+  const sessionKey = url.searchParams.get("sessionKey")?.trim() ?? null;
+
+  if (!gakuseiId) {
+    return NextResponse.json({ message: "学生が選択されていません。" }, { status: 400 });
+  }
+
+  const examType = EXAM_TYPES.includes(requestedExamType as ExamType)
+    ? (requestedExamType as ExamType)
+    : "regular";
+
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { message: "Supabase接続情報が未設定です。" },
+      { status: 500 },
+    );
+  }
+
+  if (usesTestScoresTable(examType)) {
+    const keyword = getTestNameKeyword(examType);
+    const { data, error } = await supabase
+      .from("test_scores")
+      .select(TEST_SCORES_SELECT)
+      .eq("student_id", gakuseiId)
+      .ilike("test_name", `%${keyword}%`)
+      .order("test_name", { ascending: true });
+
+    if (error) {
+      if (error.code === "42P01" || error.message.includes("test_scores")) {
+        return NextResponse.json({
+          examType,
+          sessions: [],
+          selectedSessionKey: null,
+          sectionTitle: null,
+          scores: [],
+          averageScore: null,
+          tableMissing: true,
+        });
+      }
+
+      console.error("[exam-results] test_scores:", error.message);
+      return NextResponse.json(
+        { message: "試験成績の取得中にエラーが発生しました。" },
+        { status: 500 },
+      );
+    }
+
+    const rows = (data ?? []) as unknown as TestScoreRow[];
+
+    return NextResponse.json(buildTestScoreExamResponse(examType, rows, sessionKey));
+  }
+
+  const { data, error } = await supabase
+    .from("student_exam_results")
+    .select("session_key, session_label, subject_name, score")
+    .eq("gakusei_id", gakuseiId)
+    .eq("exam_type", examType)
+    .order("session_key", { ascending: true })
+    .order("subject_name", { ascending: true });
+
+  if (error) {
+    if (error.code === "42P01" || error.message.includes("student_exam_results")) {
+      return NextResponse.json({
+        examType,
+        sessions: [],
+        selectedSessionKey: null,
+        sectionTitle: null,
+        scores: [],
+        averageScore: null,
+        tableMissing: true,
+      });
+    }
+
+    console.error("[exam-results] student_exam_results:", error.message);
+    return NextResponse.json(
+      { message: "試験成績の取得中にエラーが発生しました。" },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json(
+    buildRegularExamResponse("regular", (data ?? []) as ExamResultRow[], sessionKey),
+  );
+}
