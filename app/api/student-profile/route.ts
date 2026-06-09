@@ -16,9 +16,9 @@ type StudentRow = {
   class: string | null;
   nickname: string | null;
   gakusei_password?: string | null;
-  parent_id?: string | null;
-  parent_password?: string | null;
-  parent_email?: string | null;
+  hogosya_id?: string | null;
+  hogosya_pass?: string | null;
+  mail?: string | null;
   pretest_score?: number | string | null;
   support_area?: string | null;
   career_education?: string | null;
@@ -36,10 +36,10 @@ type UpdateBody = {
 };
 
 const CORE_SELECT =
-  "gakusei_id, name, class, nickname, gakusei_password" as const;
+  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail" as const;
 
 const EXTENDED_SELECT =
-  "parent_id, parent_password, parent_email, pretest_score, support_area, career_education, cognitive_scores" as const;
+  "pretest_score, support_area, career_education, cognitive_scores" as const;
 
 function parseCognitiveScores(value: unknown): CognitiveScores {
   if (!value || typeof value !== "object") {
@@ -70,10 +70,10 @@ function mapStudentProfile(
     name: row.name?.trim() || "名前未設定",
     nickname: row.nickname?.trim() || "",
     className: row.class?.trim() || "",
-    parentId: extendedFieldsAvailable ? row.parent_id?.trim() || "" : "",
-    parentEmail: extendedFieldsAvailable ? row.parent_email?.trim() || "" : "",
+    parentId: row.hogosya_id?.trim() || "",
+    parentEmail: row.mail?.trim() || "",
     hasStudentPassword: Boolean(row.gakusei_password),
-    hasParentPassword: extendedFieldsAvailable ? Boolean(row.parent_password) : false,
+    hasParentPassword: Boolean(row.hogosya_pass),
     pretestScore:
       extendedFieldsAvailable && row.pretest_score !== null && row.pretest_score !== undefined
         ? Number(row.pretest_score)
@@ -233,50 +233,16 @@ export async function PUT(request: Request) {
     updates.gakusei_password = studentPassword;
   }
 
-  updates.parent_id = parentId;
-  updates.parent_email = parentEmail;
+  updates.hogosya_id = parentId;
+  updates.mail = parentEmail;
 
   if (parentPassword) {
-    updates.parent_password = parentPassword;
+    updates.hogosya_pass = parentPassword;
   }
 
   const { error } = await supabase.from("students").update(updates).eq("gakusei_id", gakuseiId);
 
   if (error) {
-    if (error.message.includes("parent_")) {
-      const coreUpdates: Record<string, string> = {
-        nickname,
-        class: className,
-      };
-      if (studentPassword) {
-        coreUpdates.gakusei_password = studentPassword;
-      }
-
-      const { error: coreError } = await supabase
-        .from("students")
-        .update(coreUpdates)
-        .eq("gakusei_id", gakuseiId);
-
-      if (coreError) {
-        console.error("[student-profile] update core:", coreError.message);
-        return NextResponse.json(
-          { message: "学生情報の保存中にエラーが発生しました。" },
-          { status: 500 },
-        );
-      }
-
-      const result = await fetchStudentRow(gakuseiId);
-      if (result.error) {
-        return result.error;
-      }
-
-      return NextResponse.json({
-        ...result.profile,
-        warning:
-          "保護者情報のカラムが未作成のため、基本項目のみ保存しました。SQL マイグレーションを実行してください。",
-      });
-    }
-
     console.error("[student-profile] update:", error.message);
     return NextResponse.json(
       { message: "学生情報の保存中にエラーが発生しました。" },
