@@ -6,6 +6,7 @@ import {
   type StudentProfileData,
 } from "@/lib/studentProfile";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { decryptStudentName } from "@/lib/studentNameCrypto.server";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
 export const runtime = "nodejs";
@@ -147,14 +148,14 @@ async function fetchStudentRow(gakuseiId: string) {
     console.warn("[student-profile] extended columns unavailable:", extendedResult.error.message);
   }
 
+  const row = {
+    ...coreResult.data,
+    ...(extendedResult.data ?? {}),
+  } as StudentRow;
+  row.name = await decryptStudentName(row.name);
+
   return {
-    profile: mapStudentProfile(
-      {
-        ...coreResult.data,
-        ...(extendedResult.data ?? {}),
-      } as StudentRow,
-      extendedFieldsAvailable,
-    ),
+    profile: mapStudentProfile(row, extendedFieldsAvailable),
   };
 }
 

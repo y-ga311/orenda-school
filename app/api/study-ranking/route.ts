@@ -4,6 +4,7 @@ import { getStudyPeriodRange } from "@/lib/studyPeriodRange";
 import { buildStudyRanking, type RankingSession } from "@/lib/studyRanking";
 import { STUDY_PERIODS, type StudyPeriod } from "@/lib/studyRecords";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { decryptStudentRows } from "@/lib/studentNameCrypto.server";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
 export const runtime = "nodejs";
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const allStudents = studentsData ?? [];
+  const allStudents = await decryptStudentRows(studentsData ?? []);
   const classOptions = [
     ...new Set(
       allStudents

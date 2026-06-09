@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { decryptStudentRows } from "@/lib/studentNameCrypto.server";
 import { getTeacherId } from "@/lib/teacherSession.server";
 
 export async function loadPortalStudents(): Promise<StudentRow[]> {
@@ -24,5 +25,9 @@ export async function loadPortalStudents(): Promise<StudentRow[]> {
     throw new Error("学生一覧の取得に失敗しました。");
   }
 
-  return (data ?? []) as StudentRow[];
+  const students = await decryptStudentRows((data ?? []) as StudentRow[]);
+
+  return students.sort((a, b) =>
+    (a.name ?? "").localeCompare(b.name ?? "", "ja"),
+  );
 }
