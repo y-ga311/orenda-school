@@ -9,6 +9,8 @@
   --color-border: #e2e8f0;
   --color-panel: #eef2f6;
   --color-white: #ffffff;
+  --portal-sidebar-width: clamp(200px, 17vw, 252px);
+  --learning-student-list-width: clamp(220px, 24vw, 320px);
   --font-sans:
     Inter, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo,
     sans-serif;
@@ -22,6 +24,7 @@ html,
 body {
   min-height: 100%;
   margin: 0;
+  overflow-x: clip;
 }
 
 body {
@@ -51,17 +54,21 @@ a {
 
 .loginPage {
   display: flex;
+  width: 100%;
   min-height: 100vh;
-  min-width: 1440px;
+  min-width: 0;
   background: var(--color-white);
 }
 
 .loginLeft {
   display: flex;
+  flex: 1 1 58%;
   flex-direction: column;
-  width: 945px;
+  width: auto;
+  max-width: 945px;
+  min-width: 0;
   min-height: 100vh;
-  padding: 40px 56px 32px;
+  padding: clamp(24px, 3vw, 40px) clamp(24px, 4vw, 56px) clamp(20px, 3vw, 32px);
   background:
     linear-gradient(
       180deg,
@@ -82,7 +89,7 @@ a {
 
 .loginTitle {
   margin: 0;
-  font-size: 38px;
+  font-size: clamp(28px, 3vw, 38px);
   font-weight: 700;
   line-height: 1.2;
 }
@@ -90,7 +97,7 @@ a {
 .loginSubtitle {
   margin: 0;
   color: var(--color-primary);
-  font-size: 20px;
+  font-size: clamp(16px, 1.6vw, 20px);
   font-weight: 600;
 }
 
@@ -108,8 +115,9 @@ a {
 
 .loginFeatures {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 32px;
+  gap: clamp(16px, 2vw, 32px);
   padding-bottom: 24px;
 }
 
@@ -118,7 +126,7 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 240px;
+  width: min(240px, 100%);
 }
 
 .loginFeatureIcon {
@@ -152,11 +160,12 @@ a {
 
 .loginRight {
   display: flex;
-  flex: 1;
+  flex: 1 1 42%;
   align-items: center;
   justify-content: center;
+  min-width: min(100%, 320px);
   min-height: 100vh;
-  padding: 40px 48px;
+  padding: clamp(24px, 3vw, 40px) clamp(20px, 3vw, 48px);
   background: var(--color-panel);
 }
 
@@ -164,8 +173,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  width: 420px;
-  padding: 40px 44px;
+  width: min(100%, 420px);
+  padding: clamp(24px, 4vw, 40px) clamp(24px, 4vw, 44px);
   border-radius: 20px;
   background: var(--color-white);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
@@ -387,14 +396,16 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   height: 60px;
-  padding: 0 24px;
+  padding: 0 clamp(16px, 2vw, 24px);
   border-bottom: 1px solid #e2e5e9;
   background: #ffffff;
 }
 
 .portalTopBarTitle {
-  font-size: 22px;
+  flex-shrink: 0;
+  font-size: clamp(18px, 2vw, 22px);
   font-weight: 700;
   color: #111827;
 }
@@ -406,9 +417,13 @@ a {
 }
 
 .portalTopBarUser {
+  max-width: min(280px, 32vw);
+  overflow: hidden;
   color: #64748b;
-  font-size: 13px;
+  font-size: clamp(11px, 1.2vw, 13px);
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .portalBody {
@@ -421,8 +436,11 @@ a {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 252px;
-  padding: 22px 18px;
+  width: var(--portal-sidebar-width);
+  flex-shrink: 0;
+  min-height: 0;
+  padding: clamp(16px, 2vw, 22px) clamp(12px, 1.5vw, 18px);
+  overflow-y: auto;
   background: #323b44;
 }
 
@@ -456,12 +474,13 @@ a {
 
 .portalNavItem {
   display: block;
-  padding: 12px 14px;
+  padding: clamp(10px, 1.2vw, 12px) clamp(10px, 1.2vw, 14px);
   border-radius: 8px;
   background: #3b4550;
   color: #e5e7eb;
-  font-size: 14px;
+  font-size: clamp(12px, 1.2vw, 14px);
   font-weight: 500;
+  line-height: 1.4;
 }
 
 .portalNavItemEdit {
@@ -491,11 +510,11 @@ a {
 .learningTimePage {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: clamp(10px, 1.5vw, 14px);
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 20px 24px;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
 }
 
 .learningTimeHeader {
@@ -522,8 +541,9 @@ a {
 .learningTimeWorkspace {
   display: flex;
   flex: 1;
-  gap: 18px;
+  gap: clamp(12px, 1.5vw, 18px);
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -533,15 +553,17 @@ a {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  min-width: 0;
   border: 1px solid #d1d5db;
   border-radius: 14px;
   background: #ffffff;
-  padding: 18px;
+  padding: clamp(14px, 1.8vw, 18px);
 }
 
 .learningTimeStudentList {
-  width: 320px;
+  width: var(--learning-student-list-width);
   flex-shrink: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -643,8 +665,11 @@ a {
 }
 
 .learningTimeStudentRowText {
-  font-size: 14px;
+  overflow: hidden;
+  font-size: clamp(12px, 1.2vw, 14px);
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .learningTimeStudentRowBtn {
@@ -667,8 +692,9 @@ a {
 .learningTimeDetailName {
   margin: 0;
   color: #1f2937;
-  font-size: 22px;
+  font-size: clamp(18px, 2vw, 22px);
   font-weight: 700;
+  word-break: break-word;
 }
 
 .learningTimeDetailMeta {
@@ -686,18 +712,24 @@ a {
 
 .learningTimePeriodTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0;
   border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .learningTimePeriodTab {
-  padding: 10px 14px;
+  flex: 1 1 auto;
+  min-width: fit-content;
+  padding: 10px clamp(10px, 1.2vw, 14px);
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: #64748b;
-  font-size: 13px;
+  font-size: clamp(12px, 1.2vw, 13px);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .learningTimePeriodTabActive {
@@ -709,7 +741,7 @@ a {
 .learningTimeSummaryRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: clamp(8px, 1vw, 12px);
 }
 
 .learningTimeSummaryCard {
@@ -718,8 +750,8 @@ a {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-height: 72px;
-  padding: 12px 16px;
+  min-height: clamp(60px, 8vh, 72px);
+  padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 16px);
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   background: #f8fafc;
@@ -729,12 +761,15 @@ a {
   color: #64748b;
   font-size: 11px;
   font-weight: 600;
+  text-align: center;
 }
 
 .learningTimeSummaryValue {
   color: #1f2937;
-  font-size: 20px;
+  font-size: clamp(16px, 1.8vw, 20px);
   font-weight: 700;
+  text-align: center;
+  word-break: break-word;
 }
 
 .learningTimeLogSection {
@@ -778,9 +813,10 @@ a {
 
 .learningTimeLogItem {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 10px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -789,8 +825,10 @@ a {
 
 .learningTimeLogItemLeft {
   display: flex;
+  flex: 1 1 180px;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   min-width: 0;
 }
 
@@ -836,10 +874,10 @@ a {
 .learningTimeBottomRow {
   display: grid;
   flex-shrink: 0;
-  grid-template-columns: minmax(0, 1fr) 220px;
-  gap: 12px;
-  height: 168px;
-  min-height: 168px;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: clamp(8px, 1vw, 12px);
+  height: clamp(140px, 18vh, 168px);
+  min-height: clamp(140px, 18vh, 168px);
 }
 
 .learningTimePieSection,
@@ -1168,14 +1206,36 @@ a {
   outline-offset: 1px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1366px) {
+  :root {
+    --learning-student-list-width: clamp(200px, 22vw, 280px);
+  }
+
+  .learningTimeStudentList,
+  .learningTimeDetail {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --portal-sidebar-width: 200px;
+    --learning-student-list-width: 240px;
+  }
+
+  .portalNavItemEdit {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 1100px) {
   .learningTimeWorkspace {
     flex-direction: column;
   }
 
   .learningTimeStudentList {
     width: 100%;
-    max-height: 36vh;
+    max-height: min(36vh, 280px);
   }
 
   .learningTimeBottomRow {
@@ -1185,7 +1245,37 @@ a {
   }
 
   .learningTimePieSection {
-    min-height: 168px;
+    min-height: 148px;
+  }
+
+  .learningTimeSubjectTotals {
+    max-height: 180px;
+  }
+}
+
+@media (max-width: 900px) {
+  .learningTimeSummaryRow {
+    grid-template-columns: 1fr;
+  }
+
+  .learningTimeFilterRow {
+    flex-direction: column;
+  }
+}
+
+@media (max-height: 820px) {
+  .loginLeft {
+    min-height: auto;
+    padding-bottom: clamp(180px, 28vh, 280px);
+  }
+
+  .learningTimeBottomRow {
+    height: auto;
+    min-height: 130px;
+  }
+
+  .learningTimeSummaryCard {
+    min-height: 56px;
   }
 }
 
@@ -1204,29 +1294,55 @@ a {
   margin: 0 auto;
 }
 
-@media (max-width: 1439px) {
-  .loginPage {
-    min-width: 0;
-  }
-
-  .loginLeft {
-    width: 58%;
-  }
-}
-
 @media (max-width: 960px) {
   .loginPage {
     flex-direction: column;
   }
 
   .loginLeft {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: auto;
+    padding-bottom: clamp(200px, 40vw, 320px);
+  }
+
+  .loginRight {
+    flex: none;
     width: 100%;
     min-height: auto;
-    padding-bottom: 280px;
+    padding-top: 0;
   }
 
   .loginFeatures {
     flex-direction: column;
     align-items: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .portalBody {
+    flex-direction: column;
+  }
+
+  .portalSidebar {
+    width: 100%;
+    max-height: 220px;
+    flex-shrink: 0;
+  }
+
+  .portalNav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .portalNavDivider,
+  .portalNavSectionLabel {
+    grid-column: 1 / -1;
+  }
+
+  .portalTopBarUser {
+    max-width: 140px;
   }
 }
