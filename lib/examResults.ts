@@ -3,12 +3,15 @@ export type ExamType = "regular" | "mock" | "graduation";
 export type ExamScoreRow = {
   subjectName: string;
   score: number;
+  correctCount?: number;
+  questionCount?: number | null;
 };
 
 export type ExamSessionOption = {
   sessionKey: string;
   sessionLabel: string;
   sectionTitle: string;
+  testDate?: string | null;
 };
 
 export const EXAM_TYPE_CONFIG: Record<
@@ -49,6 +52,22 @@ export function calculateAverageScore(scores: ExamScoreRow[]) {
   return Math.round(total / scores.length);
 }
 
+export function filterRadarChartScores(
+  scores: ExamScoreRow[],
+  { requireQuestionCount = false }: { requireQuestionCount?: boolean } = {},
+) {
+  if (!requireQuestionCount) {
+    return scores;
+  }
+
+  return scores.filter(
+    (row) =>
+      row.questionCount !== null &&
+      row.questionCount !== undefined &&
+      row.questionCount > 0,
+  );
+}
+
 export function getScoreTone(score: number) {
   if (score >= 80) {
     return {
@@ -75,4 +94,17 @@ export function getScoreTone(score: number) {
 
 export function formatScore(score: number) {
   return Number.isInteger(score) ? `${score}点` : `${score.toFixed(1)}点`;
+}
+
+export function formatScoreDetail(row: ExamScoreRow) {
+  if (
+    row.correctCount !== undefined &&
+    row.questionCount !== null &&
+    row.questionCount !== undefined &&
+    row.questionCount > 0
+  ) {
+    return `${row.correctCount}/${row.questionCount}（${formatScore(row.score)}）`;
+  }
+
+  return formatScore(row.score);
 }

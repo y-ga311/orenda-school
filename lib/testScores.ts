@@ -4,27 +4,14 @@ import {
   type ExamScoreRow,
   type ExamType,
 } from "@/lib/examResults";
+import { TEST_SCORE_SUBJECTS, type TestScoreSubjectColumn } from "@/lib/examSubjects";
+import {
+  formatExamTestDate,
+  getQuestionCountForSubject,
+  type QuestionCountRow,
+} from "@/lib/questionCounts";
 
-export const TEST_SCORE_SUBJECTS = [
-  { column: "medical_overview", label: "医療概論" },
-  { column: "public_health", label: "衛生学・公衆衛生学" },
-  { column: "related_laws", label: "関係法規" },
-  { column: "anatomy", label: "解剖学" },
-  { column: "physiology", label: "生理学" },
-  { column: "pathology", label: "病理学" },
-  { column: "clinical_medicine_overview", label: "臨床医学総論" },
-  { column: "clinical_medicine_detail", label: "臨床医学各論" },
-  { column: "clinical_medicine_detail_total", label: "臨床医学各論（総合）" },
-  { column: "rehabilitation", label: "リハビリテーション医学" },
-  { column: "oriental_medicine_overview", label: "東洋医学概論" },
-  { column: "meridian_points", label: "経絡経穴概論" },
-  { column: "oriental_medicine_clinical", label: "東洋医学臨床論" },
-  { column: "oriental_medicine_clinical_general", label: "東洋医学臨床論（総合）" },
-  { column: "acupuncture_theory", label: "はり理論" },
-  { column: "moxibustion_theory", label: "きゅう理論" },
-] as const;
-
-export type TestScoreSubjectColumn = (typeof TEST_SCORE_SUBJECTS)[number]["column"];
+export { TEST_SCORE_SUBJECTS, type TestScoreSubjectColumn } from "@/lib/examSubjects";
 
 export type TestScoreRow = {
   student_id: number | string;
@@ -67,30 +54,63 @@ function parseScoreValue(value: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function buildScoresFromTestScoreRow(row: TestScoreRow): ExamScoreRow[] {
+export function buildScoresFromTestScoreRow(
+  row: TestScoreRow,
+  questionCountRow: QuestionCountRow | null = null,
+): ExamScoreRow[] {
   return TEST_SCORE_SUBJECTS.flatMap(({ column, label }) => {
-    const score = parseScoreValue(row[column]);
-    if (score === null) {
+    const correctCount = parseScoreValue(row[column]);
+    if (correctCount === null) {
       return [];
     }
 
-    return [{ subjectName: label, score }];
+    const questionCount = getQuestionCountForSubject(questionCountRow, column);
+    if (questionCount === 0) {
+      return [
+        {
+          subjectName: label,
+          score: correctCount,
+          correctCount,
+          questionCount: 0,
+        },
+      ];
+    }
+
+    const score =
+      questionCount !== null
+        ? Math.round((correctCount / questionCount) * 100)
+        : correctCount;
+
+    return [
+      {
+        subjectName: label,
+        score,
+        correctCount,
+        questionCount,
+      },
+    ];
   });
 }
 
 export function buildTestScoreExamResponse(
   examType: "mock" | "graduation",
   rows: TestScoreRow[],
+  questionCountByTestName: Map<string, QuestionCountRow>,
   sessionKey: string | null,
 ) {
   const sessions = rows.map((row, index) => {
     const sessionLabel = row.test_name.trim();
     const key = buildTestScoreSessionKey(sessionLabel, index);
+    const questionCountRow = questionCountByTestName.get(sessionLabel) ?? null;
+    const formattedDate = formatExamTestDate(questionCountRow?.test_date);
 
     return {
       sessionKey: key,
       sessionLabel,
-      sectionTitle: buildExamSectionTitle(examType, sessionLabel),
+      sectionTitle: formattedDate
+        ? `${buildExamSectionTitle(examType, sessionLabel)}（${formattedDate}）`
+        : buildExamSectionTitle(examType, sessionLabel),
+      testDate: formattedDate,
     };
   });
 
@@ -101,17 +121,25 @@ export function buildTestScoreExamResponse(
     ? sessions.findIndex((session) => session.sessionKey === selectedSession.sessionKey)
     : -1;
 
-  const selectedScores =
-    selectedRowIndex >= 0 ? buildScoresFromTestScoreRow(rows[selectedRowIndex]) : [];
+  const selectedRow = selectedRowIndex >= 0 ? rows[selectedRowIndex] : null;
+  const selectedQuestionCountRow = selectedRow
+    ? (questionCountByTestName.get(selectedRow.test_name.trim()) ?? null)
+    : null;
+
+  const selectedScores = selectedRow
+    ? buildScoresFromTestScoreRow(selectedRow, selectedQuestionCountRow)
+    : [];
 
   return {
     examType,
     sessions,
     selectedSessionKey: selectedSession?.sessionKey ?? null,
     sectionTitle: selectedSession?.sectionTitle ?? null,
+    testDate: selectedSession?.testDate ?? null,
     scores: selectedScores,
     averageScore: calculateAverageScore(selectedScores),
     tableMissing: false,
+    questionCountsMissing: false,
   };
 }
 

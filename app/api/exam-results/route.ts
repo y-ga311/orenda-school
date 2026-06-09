@@ -12,6 +12,11 @@ import {
   type TestScoreRow,
   usesTestScoresTable,
 } from "@/lib/testScores";
+import {
+  buildQuestionCountMap,
+  QUESTION_COUNTS_SELECT,
+  type QuestionCountRow,
+} from "@/lib/questionCounts";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
@@ -130,12 +135,19 @@ export async function GET(request: Request) {
     }
 
     const keyword = getTestNameKeyword(examType);
-    const { data, error } = await supabase
-      .from("test_scores")
-      .select(TEST_SCORES_SELECT)
-      .eq("student_id", student.id)
-      .ilike("test_name", `%${keyword}%`)
-      .order("test_name", { ascending: true });
+    const [scoresResult, questionCountsResult] = await Promise.all([
+      supabase
+        .from("test_scores")
+        .select(TEST_SCORES_SELECT)
+        .eq("student_id", student.id)
+        .ilike("test_name", `%${keyword}%`)
+        .order("test_name", { ascending: true }),
+      supabase.from("question_counts").select(QUESTION_COUNTS_SELECT).order("test_name", {
+        ascending: true,
+      }),
+    ]);
+
+    const { data, error } = scoresResult;
 
     if (error) {
       if (error.code === "42P01" || error.message.includes("test_scores")) {
@@ -144,9 +156,11 @@ export async function GET(request: Request) {
           sessions: [],
           selectedSessionKey: null,
           sectionTitle: null,
+          testDate: null,
           scores: [],
           averageScore: null,
           tableMissing: true,
+          questionCountsMissing: false,
         });
       }
 
@@ -158,8 +172,32 @@ export async function GET(request: Request) {
     }
 
     const rows = (data ?? []) as unknown as TestScoreRow[];
+    let questionCountByTestName = new Map<string, QuestionCountRow>();
+    let questionCountsMissing = false;
 
-    return NextResponse.json(buildTestScoreExamResponse(examType, rows, sessionKey));
+    if (questionCountsResult.error) {
+      if (
+        questionCountsResult.error.code === "42P01" ||
+        questionCountsResult.error.message.includes("question_counts")
+      ) {
+        questionCountsMissing = true;
+      } else {
+        console.error("[exam-results] question_counts:", questionCountsResult.error.message);
+        return NextResponse.json(
+          { message: "問題数の取得中にエラーが発生しました。" },
+          { status: 500 },
+        );
+      }
+    } else {
+      questionCountByTestName = buildQuestionCountMap(
+        (questionCountsResult.data ?? []) as unknown as QuestionCountRow[],
+      );
+    }
+
+    return NextResponse.json({
+      ...buildTestScoreExamResponse(examType, rows, questionCountByTestName, sessionKey),
+      questionCountsMissing,
+    });
   }
 
   const { data, error } = await supabase
