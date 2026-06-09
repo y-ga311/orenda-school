@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatJapanTime } from "@/lib/japanDate";
 import {
+  addMonths,
   buildStudyPieChartLabel,
   buildStudyPieGradient,
   formatStudyMinutes,
@@ -42,15 +43,15 @@ function formatTimeRange(studiedAt: string, durationMinutes: number) {
   return `${start}–${end}`;
 }
 
-function getLogTitle(period: StudyPeriod) {
-  if (period === "month") {
-    const { year, month } = getJstYearMonth();
-    return `学習ログ（${year}年${month}月）`;
-  }
-
-  const option =
-    recordPeriodOptions.find((item) => item.id === period) ?? recordPeriodOptions[2];
-  return `学習ログ（${option.label}）`;
+function formatDateKeyLabel(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+  }).format(date);
 }
 
 export function LearningTimeView({ students }: LearningTimeViewProps) {
@@ -61,6 +62,8 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
     students[0]?.gakusei_id ?? "",
   );
   const [period, setPeriod] = useState<StudyPeriod>("month");
+  const [calendarMonth, setCalendarMonth] = useState(getJstYearMonth);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [data, setData] = useState<StudyRecordData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,12 +153,11 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
     setIsLoading(true);
     setError(null);
 
-    const { year, month } = getJstYearMonth();
     const params = new URLSearchParams({
       studentId: selectedGakuseiId,
       period,
-      year: String(year),
-      month: String(month),
+      year: String(calendarMonth.year),
+      month: String(calendarMonth.month),
     });
 
     fetch(`/api/study-records?${params.toString()}`)
@@ -192,7 +194,30 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [period, selectedGakuseiId]);
+  }, [calendarMonth.month, calendarMonth.year, period, selectedGakuseiId]);
+
+  const sessionLogByDate = useMemo(() => {
+    const map = new Map<string, StudyRecordData["sessionLog"][number]["sessions"]>();
+    (data?.sessionLog ?? []).forEach((day) => {
+      map.set(day.dateKey, day.sessions);
+    });
+    return map;
+  }, [data?.sessionLog]);
+
+  useEffect(() => {
+    if (!data?.calendar) {
+      setSelectedDateKey(null);
+      return;
+    }
+
+    const days = data.calendar.days;
+    const preferred =
+      days.find((day) => day.isToday && day.isCurrentMonth) ??
+      days.find((day) => day.isCurrentMonth && day.minutes > 0) ??
+      days.find((day) => day.isCurrentMonth);
+
+    setSelectedDateKey(preferred?.date ?? null);
+  }, [data?.calendar, calendarMonth.month, calendarMonth.year]);
 
   const periodSummary = data?.periodSummary ?? {
     averageMinutes: 0,
@@ -201,15 +226,21 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
   };
   const subjectBreakdown = data?.subjectBreakdown ?? [];
   const subjectTotals = data?.subjectTotals ?? [];
-  const sessionLog = data?.sessionLog ?? [];
   const studyPieGradient = buildStudyPieGradient(subjectBreakdown);
-  const logTitle = getLogTitle(period);
+  const calendarWeeks = Array.from({ length: 6 }, (_, weekIndex) => {
+    return data?.calendar.days.slice(weekIndex * 7, weekIndex * 7 + 7) ?? [];
+  });
+  const selectedDay =
+    data?.calendar.days.find((day) => day.date === selectedDateKey) ?? null;
+  const selectedDaySessions = selectedDateKey
+    ? (sessionLogByDate.get(selectedDateKey) ?? [])
+    : [];
 
   return (
     <div className="learningTimePage">
       <header className="learningTimeHeader">
         <div>
-          <h1 className="learningTimeTitle">学習時間</h1>
+          <h1 className="learningTimeTitle">学習時間（個人別）</h1>
           <p className="learningTimeSubtitle">個人別の学習時間を確認できます</p>
         </div>
       </header>
@@ -333,84 +364,50 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
               </div>
 
               <div className="learningTimeDetailBody">
-                <section className="learningTimeLogSection" aria-label="学習ログ">
-                  <h3 className="learningTimeSectionTitle">{logTitle}</h3>
-                  <div className="learningTimeLogList">
-                    {isLoading ? (
-                      <p className="learningTimeEmpty">読み込み中...</p>
-                    ) : sessionLog.length === 0 ? (
-                      <p className="learningTimeEmpty">学習ログがありません。</p>
-                    ) : (
-                      sessionLog.map((day) => (
-                        <div key={day.dateKey} className="learningTimeLogDay">
-                          <div className="learningTimeLogDayTitle">{day.dateLabel}</div>
-                          {day.sessions.map((session, index) => (
-                            <div
-                              key={`${day.dateKey}-${session.studiedAt}-${index}`}
-                              className="learningTimeLogItem"
+                <section className="learningTimePieSection" aria-label="時間配分">
+                  <h3 className="learningTimeSectionTitle">時間配分</h3>
+                  <div className="learningTimePiePanelLarge">
+                    {subjectBreakdown.length ? (
+                      <>
+                        <div
+                          className="learningTimePieChartLarge"
+                          style={{ background: studyPieGradient }}
+                          role="img"
+                          aria-label={`科目別の時間配分: ${buildStudyPieChartLabel(subjectBreakdown)}`}
+                        />
+                        <ul className="learningTimePieLegend" aria-label="科目別の内訳">
+                          {subjectBreakdown.map((subject) => (
+                            <li
+                              className="learningTimePieLegendItem"
+                              key={subject.subjectName}
                             >
-                              <div className="learningTimeLogItemLeft">
-                                <span className="learningTimeLogTime">
-                                  {formatTimeRange(
-                                    session.studiedAt,
-                                    session.durationMinutes,
-                                  )}
-                                </span>
-                                <span
-                                  className="learningTimeSubjectBadge"
-                                  style={{
-                                    backgroundColor: session.tagBackground,
-                                    color: session.tagColor,
-                                  }}
-                                >
-                                  {session.subjectName}
-                                </span>
-                              </div>
-                              <span className="learningTimeLogDuration">
-                                {formatStudyMinutes(session.durationMinutes)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </section>
-
-                <div className="learningTimeBottomRow">
-                  <section className="learningTimePieSection" aria-label="時間配分">
-                    <h3 className="learningTimeSectionTitle">時間配分</h3>
-                    <div className="learningTimePiePanel">
-                      {subjectBreakdown.length ? (
-                        <>
-                          <div
-                            className="learningTimePieChart"
-                            style={{ background: studyPieGradient }}
-                            role="img"
-                            aria-label={`科目別の時間配分: ${buildStudyPieChartLabel(subjectBreakdown)}`}
-                          />
-                          <ul className="learningTimePieLegendCompact" aria-label="科目別の内訳">
-                            {subjectBreakdown.map((subject) => (
-                              <li key={subject.subjectName}>
-                                <span
-                                  className="learningTimeLegendSwatch"
+                              <span className="learningTimePieLegendLabel">
+                                <i
+                                  className="learningTimeBreakdownDot"
                                   style={{ backgroundColor: subject.color }}
+                                  aria-hidden="true"
                                 />
                                 {subject.subjectName}
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : (
-                        <p className="learningTimeEmptyText">
-                          選択期間の学習時間を登録すると配分が表示されます。
-                        </p>
-                      )}
-                    </div>
-                  </section>
+                              </span>
+                              <strong className="learningTimePieLegendMinutes">
+                                {formatStudyMinutes(subject.minutes)}
+                              </strong>
+                              <small className="learningTimePieLegendPercent">
+                                {subject.percentage}%
+                              </small>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <p className="learningTimeEmptyText">
+                        選択期間の学習時間を登録すると配分が表示されます。
+                      </p>
+                    )}
+                  </div>
 
-                  <section className="learningTimeSubjectTotals" aria-label="科目別合計">
-                    <h3 className="learningTimeSectionTitle">科目別合計</h3>
+                  <div className="learningTimeSubjectTotalsInline">
+                    <h4 className="learningTimeSubjectTotalsTitle">科目別合計</h4>
                     <div className="learningTimeSubjectTotalsList">
                       {isLoading ? (
                         <p className="learningTimeEmpty">読み込み中...</p>
@@ -428,8 +425,139 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
                         ))
                       )}
                     </div>
-                  </section>
-                </div>
+                  </div>
+                </section>
+
+                <section className="learningTimeCalendarPanel" aria-label="学習ログ">
+                  <div className="learningTimeCalendarPanelHeader">
+                    <h3 className="learningTimeSectionTitle">学習ログ</h3>
+                    <div className="learningTimeCalendarMonth">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalendarMonth((current) =>
+                            addMonths(current.year, current.month, -1),
+                          )
+                        }
+                        aria-label="前の月を表示"
+                      >
+                        ‹
+                      </button>
+                      <strong>
+                        {data
+                          ? `${data.calendar.year}年${data.calendar.month}月`
+                          : `${calendarMonth.year}年${calendarMonth.month}月`}
+                      </strong>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalendarMonth((current) =>
+                            addMonths(current.year, current.month, 1),
+                          )
+                        }
+                        aria-label="次の月を表示"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="learningTimeCalendarWeekdays" aria-hidden="true">
+                    {["月", "火", "水", "木", "金", "土", "日"].map((day) => (
+                      <span key={day}>{day}</span>
+                    ))}
+                  </div>
+
+                  <div className="learningTimeCalendarGrid">
+                    {calendarWeeks.map((week, weekIndex) => (
+                      <div className="learningTimeCalendarWeek" key={weekIndex}>
+                        {week.map((day) => {
+                          const isSelected = day.date === selectedDateKey;
+                          return (
+                            <button
+                              type="button"
+                              className={[
+                                "learningTimeCalendarDayBtn",
+                                day.isCurrentMonth ? "" : "learningTimeCalendarDayMuted",
+                                day.minutes > 0 ? "learningTimeCalendarDayStudied" : "",
+                                day.isToday ? "learningTimeCalendarDayToday" : "",
+                                isSelected ? "learningTimeCalendarDaySelected" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              key={day.date}
+                              onClick={() => setSelectedDateKey(day.date)}
+                              title={`${day.date}: ${formatStudyMinutes(day.minutes)}`}
+                            >
+                              <span className="learningTimeCalendarDayNumber">
+                                {day.day}
+                              </span>
+                              {day.minutes > 0 ? (
+                                <span className="learningTimeCalendarDayMinutes">
+                                  {formatStudyMinutes(day.minutes)}
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="learningTimeDayDetail">
+                    {selectedDateKey ? (
+                      <>
+                        <h4 className="learningTimeDayDetailTitle">
+                          {formatDateKeyLabel(selectedDateKey)}
+                          {selectedDay && selectedDay.minutes > 0
+                            ? ` · 合計 ${formatStudyMinutes(selectedDay.minutes)}`
+                            : ""}
+                        </h4>
+                        {isLoading ? (
+                          <p className="learningTimeEmpty">読み込み中...</p>
+                        ) : selectedDaySessions.length === 0 ? (
+                          <p className="learningTimeEmpty">
+                            {selectedDay && selectedDay.minutes > 0
+                              ? "この日の詳細セッションは選択中の期間に含まれません。"
+                              : "この日の学習記録はありません。"}
+                          </p>
+                        ) : (
+                          <div className="learningTimeDayDetailList">
+                            {selectedDaySessions.map((session, index) => (
+                              <div
+                                key={`${selectedDateKey}-${session.studiedAt}-${index}`}
+                                className="learningTimeLogItem"
+                              >
+                                <div className="learningTimeLogItemLeft">
+                                  <span className="learningTimeLogTime">
+                                    {formatTimeRange(
+                                      session.studiedAt,
+                                      session.durationMinutes,
+                                    )}
+                                  </span>
+                                  <span
+                                    className="learningTimeSubjectBadge"
+                                    style={{
+                                      backgroundColor: session.tagBackground,
+                                      color: session.tagColor,
+                                    }}
+                                  >
+                                    {session.subjectName}
+                                  </span>
+                                </div>
+                                <span className="learningTimeLogDuration">
+                                  {formatStudyMinutes(session.durationMinutes)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="learningTimeEmpty">日付を選択してください。</p>
+                    )}
+                  </div>
+                </section>
               </div>
             </>
           )}

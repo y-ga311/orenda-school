@@ -603,12 +603,166 @@ a {
 }
 
 .learningTimeDetailBody {
-  display: flex;
+  display: grid;
   flex: 1;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.05fr);
+  gap: 14px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learningTimePieSection,
+.learningTimeCalendarPanel {
+  display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 0;
   overflow: hidden;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.learningTimePieSection {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.learningTimeCalendarPanel {
+  min-width: 0;
+}
+
+.learningTimeCalendarPanelHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.learningTimeCalendarPanelHeader .learningTimeSectionTitle {
+  margin: 0;
+}
+
+.learningTimePiePanelLarge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.learningTimePieChartLarge {
+  width: min(100%, 260px);
+  height: min(100%, 260px);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.learningTimeSubjectTotalsInline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.learningTimeSubjectTotalsTitle {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.learningTimeSubjectTotalsInline .learningTimeSubjectTotalsList {
+  max-height: 160px;
+}
+
+.learningTimeDayDetail {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.learningTimeDayDetailTitle {
+  margin: 0;
+  flex-shrink: 0;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.learningTimeDayDetailList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.learningTimeCalendarDayBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 4px 2px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.learningTimeCalendarDayNumber {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.learningTimeCalendarDayMinutes {
+  max-width: 100%;
+  overflow: hidden;
+  color: #1d4ed8;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learningTimeCalendarDaySelected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.15);
+}
+
+.learningTimeCalendarDayBtn.learningTimeCalendarDayStudied:not(.learningTimeCalendarDaySelected) {
+  background: #dbeafe;
+}
+
+.learningTimeCalendarDayBtn.learningTimeCalendarDayToday {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.learningTimeCalendarDayBtn.learningTimeCalendarDayMuted {
+  color: #cbd5e1;
+}
+
+.learningTimeCalendarDayBtn.learningTimeCalendarDayMuted .learningTimeCalendarDayMinutes {
+  color: #94a3b8;
 }
 
 .learningTimeCardTitle,
@@ -801,45 +955,6 @@ a {
   word-break: break-word;
 }
 
-.learningTimeLogSection {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-  overflow: hidden;
-  padding: 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  background: #f8fafc;
-}
-
-.learningTimeLogSection .learningTimeSectionTitle {
-  flex-shrink: 0;
-}
-
-.learningTimeLogList {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.learningTimeLogDay {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.learningTimeLogDayTitle {
-  color: #475569;
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .learningTimeLogItem {
   display: flex;
   flex-wrap: wrap;
@@ -898,77 +1013,6 @@ a {
   place-items: center;
   flex: 1;
   font-size: 14px;
-}
-
-.learningTimeBottomRow {
-  display: grid;
-  flex-shrink: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
-  gap: clamp(8px, 1vw, 12px);
-  height: clamp(140px, 18vh, 168px);
-  min-height: clamp(140px, 18vh, 168px);
-}
-
-.learningTimePieSection,
-.learningTimeSubjectTotals {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-  overflow: hidden;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  background: #f8fafc;
-}
-
-.learningTimePieSection .learningTimeSectionTitle,
-.learningTimeSubjectTotals .learningTimeSectionTitle {
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.learningTimePiePanel {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 0;
-}
-
-.learningTimePiePanel .learningTimePieChart {
-  width: 96px;
-  height: 96px;
-  flex-shrink: 0;
-}
-
-.learningTimePieLegendCompact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  color: #64748b;
-  font-size: 9px;
-  font-weight: 500;
-}
-
-.learningTimePieLegendCompact li {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.learningTimeSubjectTotalsList {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .learningTimeDailyChart {
@@ -1267,18 +1311,977 @@ a {
     max-height: min(36vh, 280px);
   }
 
-  .learningTimeBottomRow {
+  .learningTimeDetailBody {
     grid-template-columns: 1fr;
-    height: auto;
-    min-height: 0;
+    overflow-y: auto;
   }
 
-  .learningTimePieSection {
-    min-height: 148px;
+  .learningTimePieSection,
+  .learningTimeCalendarPanel {
+    overflow: visible;
   }
 
-  .learningTimeSubjectTotals {
-    max-height: 180px;
+  .learningTimePieChartLarge {
+    width: min(100%, 220px);
+    height: min(100%, 220px);
+  }
+}
+
+/* Study time ranking */
+.rankingPage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.rankingHeader {
+  flex-shrink: 0;
+}
+
+.rankingTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.rankingPanel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.rankingPanelHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rankingPanelSubtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.rankingFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rankingSelectWrap {
+  display: block;
+}
+
+.rankingSelect {
+  min-width: 148px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.rankingPeriodTabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.rankingPeriodTab {
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rankingPeriodTabActive {
+  border-bottom-color: #00a99d;
+  color: #00a99d;
+  font-weight: 700;
+}
+
+.rankingContentRow {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rankingMainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rankingPodium {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.rankingPodiumCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.rankingPodiumCardFirst {
+  padding: 18px 12px;
+  border-color: #fcd34d;
+  background: #fef3c7;
+}
+
+.rankingPodiumCardSecond {
+  background: #f1f5f9;
+}
+
+.rankingPodiumCardThird {
+  border-color: #fdba74;
+  background: #ffedd5;
+}
+
+.rankingPodiumCardEmpty {
+  opacity: 0.55;
+}
+
+.rankingPodiumRank {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rankingPodiumCardFirst .rankingPodiumRank {
+  color: #b45309;
+}
+
+.rankingPodiumCardThird .rankingPodiumRank {
+  color: #b45309;
+}
+
+.rankingPodiumName {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rankingPodiumCardFirst .rankingPodiumName {
+  font-size: 15px;
+}
+
+.rankingPodiumTime {
+  color: #00a99d;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.rankingPodiumCardFirst .rankingPodiumTime {
+  font-size: 22px;
+}
+
+.rankingTableWrap {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rankingTableHeader,
+.rankingTableRow {
+  display: grid;
+  grid-template-columns: 36px minmax(88px, 1.1fr) 140px minmax(72px, 0.9fr) minmax(72px, 0.8fr) 56px 72px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+}
+
+.rankingTableHeader {
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rankingTableRow {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.rankingTableRowTop {
+  border-color: #99f6e4;
+  background: #e0f7f5;
+}
+
+.rankingTableName {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rankingTableTotal {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rankingTableMeta {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.rankingRankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rankingRankBadgeGold {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.rankingRankBadgeSilver {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.rankingRankBadgeBronze {
+  background: #ffedd5;
+  color: #b45309;
+}
+
+.rankingSubjectBar {
+  width: 140px;
+  max-width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #e2e8f0;
+}
+
+.rankingSubjectBarEmpty {
+  opacity: 0.45;
+}
+
+.rankingSubjectBarInner {
+  display: flex;
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+}
+
+.rankingSubjectBarSegment {
+  height: 100%;
+  min-width: 0;
+}
+
+.rankingSubjectPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.rankingSubjectPanelTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rankingSubjectPanelDesc {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.rankingClassSubjectList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rankingClassSubjectItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rankingClassSubjectLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.rankingClassSubjectLabelRow strong {
+  color: #1f2937;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.rankingClassSubjectBar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #e2e8f0;
+}
+
+.rankingClassSubjectBarFill {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.rankingSubjectLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rankingSubjectLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.rankingSubjectLegendItem i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.rankingSubjectLeadersTitle {
+  margin: 4px 0 0;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rankingSubjectLeadersList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rankingSubjectLeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.rankingSubjectLeaderSubject {
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rankingSubjectLeaderStudent {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.rankingEmpty {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Exam results (regular / mock / graduation) */
+.examDetailPanel {
+  gap: 16px;
+}
+
+.examDetailHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.examDetailName {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.examDetailMeta {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.examSessionSelectWrap {
+  flex-shrink: 0;
+}
+
+.examSessionSelect {
+  min-width: 148px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.examDetailBody {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.examScoreSection,
+.examRadarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.examScoreSectionTitle {
+  margin: 0;
+  flex-shrink: 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.examScoreListWrap {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.examScoreList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.examScoreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.examScoreSubject {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.examScoreValue {
+  min-width: 72px;
+  padding: 10px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.examScoreHint {
+  margin: 0;
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.examRadarSection {
+  align-items: center;
+  justify-content: center;
+}
+
+.examRadarChartWrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.examRadarChart {
+  width: min(100%, 340px);
+  height: auto;
+}
+
+.examRadarGridRing {
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-width: 1;
+}
+
+.examRadarAxis,
+.examRadarSpoke {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+}
+
+.examRadarFill {
+  fill: rgba(59, 130, 246, 0.35);
+  stroke: none;
+}
+
+.examRadarStroke {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.examRadarLabel {
+  fill: #475569;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.examRadarAverage {
+  fill: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.examRadarEmpty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .examDetailBody {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .examRadarSection {
+    min-height: 360px;
+  }
+
+  .studentInfoScoreRow {
+    flex-direction: column;
+  }
+
+  .studentInfoScoreCardCognitive .studentInfoCognitiveBadges {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Student basic info */
+.studentInfoDetailPanel {
+  gap: 16px;
+  overflow: hidden;
+}
+
+.studentInfoDetailHeader {
+  flex-shrink: 0;
+}
+
+.studentInfoDetailName {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.studentInfoDetailMeta {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.studentInfoSaveMessage {
+  margin: 0;
+  flex-shrink: 0;
+  color: #047857;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.studentInfoScrollBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.studentInfoSectionTitle {
+  margin: 0 0 10px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.studentInfoScoreSection,
+.studentInfoFormSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.studentInfoScoreBody {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.studentInfoScoreRow {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.studentInfoScoreCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.studentInfoScoreCardCompact {
+  width: 97px;
+  flex-shrink: 0;
+}
+
+.studentInfoScoreCardCareer {
+  width: 181px;
+  flex-shrink: 0;
+}
+
+.studentInfoScoreCardCognitive {
+  flex: 1;
+  min-width: 0;
+}
+
+.studentInfoScoreCardTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.studentInfoScoreCardCareer .studentInfoScoreCardTitle,
+.studentInfoScoreCardCognitive .studentInfoScoreCardTitle {
+  font-size: 16px;
+}
+
+.studentInfoCareerBadges,
+.studentInfoCognitiveBadges {
+  display: flex;
+  gap: 8px;
+}
+
+.studentInfoCognitiveBadges {
+  flex-wrap: wrap;
+}
+
+.studentInfoScoreBadge {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.studentInfoScoreCardCompact .studentInfoScoreBadge {
+  width: 70px;
+  flex: none;
+}
+
+.studentInfoScoreBadgeHighlight {
+  border-color: #bbf7d0;
+  background: #dcfce7;
+}
+
+.studentInfoScoreBadgeHighlight .studentInfoScoreBadgeLabel,
+.studentInfoScoreBadgeHighlight .studentInfoScoreBadgeValue {
+  color: #166534;
+}
+
+.studentInfoScoreBadgeLabel {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.studentInfoScoreBadgeValue {
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.studentInfoScoreHint {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.studentInfoFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.studentInfoField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studentInfoFieldFull {
+  grid-column: 1 / -1;
+}
+
+.studentInfoFieldLabel {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.studentInfoFieldInput {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+}
+
+.studentInfoFieldInputReadonly {
+  color: #374151;
+  background: #ffffff;
+}
+
+.studentInfoFooter {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.studentInfoCancelBtn,
+.studentInfoSaveBtn {
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.studentInfoCancelBtn {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.studentInfoSaveBtn {
+  background: #00a99d;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.studentInfoCancelBtn:disabled,
+.studentInfoSaveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .studentInfoFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .studentInfoScoreCardCompact,
+  .studentInfoScoreCardCareer,
+  .studentInfoScoreCardCognitive {
+    width: 100%;
+  }
+
+  .studentInfoCognitiveBadges {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .rankingContentRow {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .rankingSubjectPanel {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 900px) {
+  .rankingPanelHeader {
+    flex-direction: column;
+  }
+
+  .rankingTableHeader {
+    display: none;
+  }
+
+  .rankingTableRow {
+    grid-template-columns: 36px 1fr;
+    grid-template-areas:
+      "rank name"
+      "rank total"
+      "bar bar"
+      "class class"
+      "days avg";
+    gap: 6px 8px;
+  }
+
+  .rankingTableRow .rankingRankBadge {
+    grid-area: rank;
+  }
+
+  .rankingTableRow .rankingTableName {
+    grid-area: name;
+  }
+
+  .rankingTableRow .rankingTableTotal {
+    grid-area: total;
+  }
+
+  .rankingTableRow .rankingSubjectBar {
+    grid-area: bar;
+    width: 100%;
+  }
+
+  .rankingTableRow .rankingTableMetaClass {
+    grid-area: class;
+  }
+
+  .rankingTableRow .rankingTableMetaDays {
+    grid-area: days;
+  }
+
+  .rankingTableRow .rankingTableMetaAvg {
+    grid-area: avg;
+  }
+
+  .rankingPodium {
+    grid-template-columns: 1fr;
   }
 }
 
