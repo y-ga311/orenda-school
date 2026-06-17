@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import { formatStudyMinutes } from "@/lib/studyRecordDisplay";
 import type { StudyPeriod } from "@/lib/studyRecords";
 import type {
@@ -282,6 +283,7 @@ export function StudyTimeRankingView({ classOptions }: StudyTimeRankingViewProps
         {error ? <p className="loginError">{error}</p> : null}
 
         <div className="rankingContentRow">
+          <PortalLoadingOverlay active={isLoading} />
           <div className="rankingMainColumn">
             <div className="rankingPodium">
               <PodiumCard rank={2} entry={topThree.second} />
@@ -300,9 +302,7 @@ export function StudyTimeRankingView({ classOptions }: StudyTimeRankingViewProps
                 <span>平均/日</span>
               </div>
 
-              {isLoading ? (
-                <p className="rankingEmpty">読み込み中...</p>
-              ) : entries.length === 0 ? (
+              {entries.length === 0 && !isLoading ? (
                 <p className="rankingEmpty">表示できるランキングがありません。</p>
               ) : (
                 entries.map((entry) => (
@@ -337,9 +337,7 @@ export function StudyTimeRankingView({ classOptions }: StudyTimeRankingViewProps
               クラス合計（{periodLabel}）
             </p>
 
-            {isLoading ? (
-              <p className="rankingEmpty">読み込み中...</p>
-            ) : classSubjectTotals.length === 0 ? (
+            {classSubjectTotals.length === 0 && !isLoading ? (
               <p className="rankingEmpty">データがありません。</p>
             ) : (
               <>

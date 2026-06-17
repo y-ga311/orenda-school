@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import { formatJapanTime } from "@/lib/japanDate";
 import {
   addMonths,
@@ -298,9 +299,7 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
                     className={`learningTimeStudentRow${isSelected ? " learningTimeStudentRowSelected" : ""}`}
                     onClick={() => setSelectedGakuseiId(student.gakusei_id)}
                   >
-                    <span className="learningTimeStudentRowText">
-                      {student.name} | {student.class ?? "クラス未設定"}
-                    </span>
+                    <span className="learningTimeStudentRowText">{student.name}</span>
                     <span className="learningTimeStudentRowBtn">詳細</span>
                   </button>
                 );
@@ -310,6 +309,7 @@ export function LearningTimeView({ students }: LearningTimeViewProps) {
         </section>
 
         <section className="learningTimeDetail">
+          <PortalLoadingOverlay active={isLoading} />
           {!selectedStudent ? (
             <div className="learningTimeEmptyPanel">学生を選択してください。</div>
           ) : (

@@ -1,41 +1,59 @@
-import * as openpgp from "openpgp";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 
-function getEncryptionKey() {
-  return process.env.STUDENT_NAME_ENCRYPTION_KEY?.trim() ?? "";
+/** 移行期間中に使われていたプレースホルダーキー（旧暗号化データの復号用） */
+const LEGACY_PLACEHOLDER_KEY = "ここに暗号化キーを設定";
+
+function getEncryptionKeys(): string[] {
+  const keys: string[] = [];
+  const add = (value: string | undefined) => {
+    const trimmed = value?.trim();
+    if (trimmed && !keys.includes(trimmed)) {
+      keys.push(trimmed);
+    }
+  };
+
+  add(process.env.STUDENT_NAME_ENCRYPTION_KEY);
+  add(process.env.STUDENT_NAME_ENCRYPTION_KEY_LEGACY);
+  if (!keys.includes(LEGACY_PLACEHOLDER_KEY)) {
+    add(LEGACY_PLACEHOLDER_KEY);
+  }
+
+  return keys;
 }
 
 /** Supabase 表示などで base64 暗号文に改行が混ざることがある */
-function normalizeEncryptedStudentName(value: string) {
+function normalizeStudentName(value: string) {
   return value.trim().replace(/\s+/g, "");
 }
 
-/** 平文の日本語氏名かどうか */
-function looksLikePlainStudentName(value: string) {
-  return /[\u3040-\u30ff\u4e00-\u9fafA-Za-z]/.test(value) && value.length <= 40;
+/** ひらがな・カタカナ・漢字を含む → DB 上の平文氏名 */
+function containsJapanese(value: string) {
+  return /[\u3040-\u30ff\u4e00-\u9faf]/.test(value);
 }
 
-/** PostgreSQL pgp_sym_encrypt + base64 で保存された氏名かどうか */
+/** pgp_sym_encrypt + base64 の暗号文形式か */
+function isBase64Ciphertext(value: string) {
+  if (!/^[A-Za-z0-9+/]+=*$/.test(value)) {
+    return false;
+  }
+
+  try {
+    return Buffer.from(value, "base64").length >= 8;
+  } catch {
+    return false;
+  }
+}
+
+/** 復号 RPC を呼ぶべきか（平文の日本語氏名は除外） */
 export function looksLikeEncryptedStudentName(value: string) {
-  const trimmed = normalizeEncryptedStudentName(value);
-  if (trimmed.length < 20) {
+  const normalized = normalizeStudentName(value);
+  if (!normalized) {
     return false;
   }
-
-  if (looksLikePlainStudentName(trimmed)) {
+  if (containsJapanese(normalized)) {
     return false;
   }
-
-  if (/^[A-Za-z0-9+/]+=*$/.test(trimmed)) {
-    try {
-      return Buffer.from(trimmed, "base64").length >= 12;
-    } catch {
-      return false;
-    }
-  }
-
-  // base64 以外でも長い ASCII 文字列は暗号文の可能性がある
-  return /^[\x21-\x7e]+$/.test(trimmed);
+  return isBase64Ciphertext(normalized);
 }
 
 async function decryptWithPostgresRpc(
@@ -71,32 +89,18 @@ async function decryptWithPostgresRpc(
   }
 
   const decrypted = data.trim();
-  if (!decrypted || decrypted === encrypted) {
+  if (!decrypted) {
+    return null;
+  }
+
+  if (
+    decrypted === encrypted ||
+    normalizeStudentName(decrypted) === encrypted
+  ) {
     return null;
   }
 
   return decrypted;
-}
-
-async function decryptWithOpenPgp(
-  encrypted: string,
-  encryptionKey: string,
-): Promise<string | null> {
-  try {
-    const message = await openpgp.readMessage({
-      binaryMessage: Buffer.from(encrypted, "base64"),
-    });
-    const { data } = await openpgp.decrypt({
-      message,
-      passwords: [encryptionKey],
-      format: "utf8",
-    });
-
-    const decrypted = typeof data === "string" ? data.trim() : "";
-    return decrypted && decrypted !== encrypted ? decrypted : null;
-  } catch {
-    return null;
-  }
 }
 
 export async function decryptStudentName(
@@ -111,27 +115,43 @@ export async function decryptStudentName(
     return trimmed;
   }
 
-  const encrypted = normalizeEncryptedStudentName(trimmed);
-  if (!looksLikeEncryptedStudentName(encrypted)) {
+  const normalized = normalizeStudentName(trimmed);
+
+  if (!looksLikeEncryptedStudentName(normalized)) {
     return trimmed;
   }
 
-  const encryptionKey = getEncryptionKey();
-  if (!encryptionKey) {
+  const encryptionKeys = getEncryptionKeys();
+  if (encryptionKeys.length === 0) {
     console.warn(
       "[studentNameCrypto] STUDENT_NAME_ENCRYPTION_KEY is not set. Encrypted student names cannot be decrypted.",
     );
     return trimmed;
   }
 
-  const pgDecrypted = await decryptWithPostgresRpc(encrypted, encryptionKey);
-  if (pgDecrypted) {
-    return pgDecrypted;
+  let candidate = normalized;
+  for (let depth = 0; depth < 5; depth++) {
+    if (!looksLikeEncryptedStudentName(candidate)) {
+      return candidate;
+    }
+
+    let decrypted: string | null = null;
+    for (const encryptionKey of encryptionKeys) {
+      decrypted = await decryptWithPostgresRpc(candidate, encryptionKey);
+      if (decrypted) {
+        break;
+      }
+    }
+
+    if (!decrypted) {
+      break;
+    }
+
+    candidate = normalizeStudentName(decrypted);
   }
 
-  const openPgpDecrypted = await decryptWithOpenPgp(encrypted, encryptionKey);
-  if (openPgpDecrypted) {
-    return openPgpDecrypted;
+  if (!looksLikeEncryptedStudentName(candidate)) {
+    return candidate;
   }
 
   console.error(

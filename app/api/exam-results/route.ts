@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   buildExamSectionTitle,
   calculateAverageScore,
+  sortExamSessionsByDate,
   type ExamType,
 } from "@/lib/examResults";
 import {
@@ -58,13 +59,14 @@ function buildRegularExamResponse(
     sessionMap.set(row.session_key, existing);
   });
 
-  const sessions = [...sessionMap.values()]
-    .sort((a, b) => a.sessionKey.localeCompare(b.sessionKey, "ja"))
-    .map((session) => ({
+  const sessions = sortExamSessionsByDate(
+    [...sessionMap.values()].map((session) => ({
       sessionKey: session.sessionKey,
       sessionLabel: session.sessionLabel,
       sectionTitle: buildExamSectionTitle(examType, session.sessionLabel),
-    }));
+      testDateIso: session.sessionKey,
+    })),
+  );
 
   const selectedSession =
     sessions.find((session) => session.sessionKey === sessionKey) ??
@@ -142,7 +144,7 @@ export async function GET(request: Request) {
         .eq("student_id", student.id)
         .ilike("test_name", `%${keyword}%`)
         .order("test_name", { ascending: true }),
-      supabase.from("question_counts").select(QUESTION_COUNTS_SELECT).order("test_name", {
+      supabase.from("question_counts").select(QUESTION_COUNTS_SELECT).ilike("test_name", `%${keyword}%`).order("test_name", {
         ascending: true,
       }),
     ]);

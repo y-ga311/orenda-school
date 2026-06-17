@@ -2,17 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ExamRadarChart } from "@/components/portal/ExamRadarChart";
+import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
   EXAM_TYPE_CONFIG,
   calculateAverageScore,
-  filterRadarChartScores,
-  formatScoreDetail,
-  getScoreTone,
+  calculateExamTrackTotals,
+  formatTestScoreDetail,
+  getNotTakenScoreTone,
+  getPercentScoreTone,
+  isTakenExamScore,
   type ExamScoreRow,
   type ExamSessionOption,
   type ExamType,
 } from "@/lib/examResults";
+import { usesTestScoresTable } from "@/lib/testScores";
 
 type ExamResultsViewProps = {
   examType: ExamType;
@@ -135,8 +139,10 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
     setActiveSessionKey(null);
   }, [selectedGakuseiId, examType]);
 
+  const usesTestScoreFormat = usesTestScoresTable(examType);
+
   useEffect(() => {
-    if (!selectedGakuseiId) {
+    if (!selectedGakuseiId || !usesTestScoreFormat) {
       setData(null);
       setError(null);
       setIsLoading(false);
@@ -191,23 +197,23 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [examType, selectedGakuseiId, activeSessionKey]);
+  }, [examType, selectedGakuseiId, activeSessionKey, usesTestScoreFormat]);
 
   const scores = data?.scores ?? [];
-  const questionCountsMissing = data?.questionCountsMissing ?? false;
-  const usesQuestionCounts = examType === "mock" || examType === "graduation";
   const radarScores = useMemo(
-    () =>
-      filterRadarChartScores(scores, {
-        requireQuestionCount: usesQuestionCounts && !questionCountsMissing,
-      }),
-    [scores, usesQuestionCounts, questionCountsMissing],
+    () => (usesTestScoreFormat ? scores.filter(isTakenExamScore) : scores),
+    [scores, usesTestScoreFormat],
   );
   const radarAverageScore = useMemo(
     () => calculateAverageScore(radarScores),
     [radarScores],
   );
+  const trackTotals = useMemo(
+    () => (usesTestScoreFormat ? calculateExamTrackTotals(scores) : null),
+    [scores, usesTestScoreFormat],
+  );
   const sessions = data?.sessions ?? [];
+  const hasTakenScores = scores.some(isTakenExamScore);
   const sectionTitle = data?.sectionTitle;
   const testDate = data?.testDate;
   const currentSessionKey =
@@ -274,9 +280,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                     className={`learningTimeStudentRow${isSelected ? " learningTimeStudentRowSelected" : ""}`}
                     onClick={() => setSelectedGakuseiId(student.gakusei_id)}
                   >
-                    <span className="learningTimeStudentRowText">
-                      {student.name} | {student.class ?? "クラス未設定"}
-                    </span>
+                    <span className="learningTimeStudentRowText">{student.name}</span>
                     <span className="learningTimeStudentRowBtn">詳細</span>
                   </button>
                 );
@@ -286,6 +290,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
         </section>
 
         <section className="learningTimeDetail examDetailPanel">
+          <PortalLoadingOverlay active={isLoading} />
           {!selectedStudent ? (
             <div className="learningTimeEmptyPanel">学生を選択してください。</div>
           ) : (
@@ -318,6 +323,14 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
 
               {error ? <p className="loginError">{error}</p> : null}
 
+              {!usesTestScoreFormat ? (
+                <div className="learningTimeEmptyPanel examRegularPendingPanel">
+                  <p className="examRegularPendingTitle">定期試験は準備中です</p>
+                  <p className="examRegularPendingText">
+                    模擬試験・卒業試験と同じ構成で表示する予定です。専用テーブルの作成後に実装します。
+                  </p>
+                </div>
+              ) : (
               <div className="examDetailBody">
                 <section className="examScoreSection">
                   <h3 className="examScoreSectionTitle">
@@ -331,9 +344,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                       <p className="learningTimeEmpty">読み込み中...</p>
                         ) : data?.tableMissing ? (
                           <p className="learningTimeEmpty">
-                            {examType === "regular"
-                              ? "試験成績テーブルが未作成です。SQL マイグレーション後にデータを登録してください。"
-                              : "test_scores テーブルが未作成です。データ登録後に表示されます。"}
+                            test_scores テーブルが未作成です。データ登録後に表示されます。
                           </p>
                     ) : scores.length === 0 ? (
                       <p className="learningTimeEmpty">
@@ -341,14 +352,14 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                       </p>
                     ) : (
                       <>
-                        {usesQuestionCounts && questionCountsMissing ? (
-                          <p className="examScoreNotice">
-                            問題数テーブルが未作成のため、正解数をそのまま表示しています。
-                          </p>
-                        ) : null}
                         <div className="examScoreList">
                           {scores.map((row) => {
-                            const tone = getScoreTone(row.score);
+                            const isNotTaken = !isTakenExamScore(row);
+                            const tone = isNotTaken
+                              ? getNotTakenScoreTone()
+                              : getPercentScoreTone(row.score ?? 0);
+                            const label = formatTestScoreDetail(row);
+
                             return (
                               <div key={row.subjectName} className="examScoreRow">
                                 <span className="examScoreSubject">
@@ -362,20 +373,23 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                                     color: tone.textColor,
                                   }}
                                 >
-                                  {formatScoreDetail(row)}
+                                  {label}
                                 </span>
                               </div>
                             );
                           })}
                         </div>
+                        {!hasTakenScores ? (
+                          <p className="examScoreNotice">
+                            実施済みの科目がありません。
+                          </p>
+                        ) : null}
                       </>
                     )}
                   </div>
 
                   <p className="examScoreHint">
-                    {usesQuestionCounts
-                      ? "正解数/問題数と正解率（%）を表示しています。一覧は縦スクロールで閲覧できます。"
-                      : "一覧は縦スクロールで閲覧する想定です。"}
+                    未実施科目は「-」表示。実施科目は正解数/問題数（正解率%）で表示します。40%以下は赤、60%未満は黄、60%以上は緑です。
                   </p>
                 </section>
 
@@ -386,10 +400,12 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                     <ExamRadarChart
                       scores={radarScores}
                       averageScore={radarAverageScore}
+                      trackTotals={trackTotals}
                     />
                   )}
                 </section>
               </div>
+              )}
             </>
           )}
         </section>

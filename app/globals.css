@@ -600,6 +600,47 @@ a {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.portalLoadingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(2px);
+}
+
+.portalLoadingSpinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: portalLoadingSpin 0.75s linear infinite;
+}
+
+.portalLoadingLabel {
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@keyframes portalLoadingSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rankingPanel,
+.rankingContentRow {
+  position: relative;
 }
 
 .learningTimeDetailBody {
@@ -1893,9 +1934,102 @@ a {
   font-weight: 500;
 }
 
-.examRadarSection {
+.examRegularPendingPanel {
+  flex: 1;
   align-items: center;
   justify-content: center;
+  text-align: center;
+}
+
+.examRegularPendingTitle {
+  margin: 0 0 8px;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.examRegularPendingText {
+  margin: 0;
+  max-width: 420px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.examRadarSection {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.examRadarPanel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  gap: 10px;
+}
+
+.examRadarTrackTotals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.examRadarTrackTotalCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 8px 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.examRadarTrackLabel {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.examRadarTrackScoreGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+}
+
+.examRadarTrackFraction {
+  max-width: 100%;
+  font-size: clamp(15px, 3.2vw, 20px);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.examRadarTrackPercent {
+  font-size: clamp(12px, 2.6vw, 16px);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.examRadarTrackValue {
+  font-size: clamp(16px, 3vw, 22px);
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
 }
 
 .examRadarChartWrap {

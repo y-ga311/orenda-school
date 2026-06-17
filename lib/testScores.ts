@@ -1,6 +1,7 @@
 import {
   buildExamSectionTitle,
   calculateAverageScore,
+  sortExamSessionsByDate,
   type ExamScoreRow,
   type ExamType,
 } from "@/lib/examResults";
@@ -37,6 +38,16 @@ export function buildTestScoreSessionKey(testName: string, index: number) {
   return `${index}:${testName}`;
 }
 
+export function parseTestScoreSessionIndex(sessionKey: string) {
+  const separatorIndex = sessionKey.indexOf(":");
+  if (separatorIndex === -1) {
+    return -1;
+  }
+
+  const index = Number(sessionKey.slice(0, separatorIndex));
+  return Number.isFinite(index) ? index : -1;
+}
+
 export function parseTestScoreSessionKey(sessionKey: string) {
   const separatorIndex = sessionKey.indexOf(":");
   if (separatorIndex === -1) {
@@ -58,37 +69,32 @@ export function buildScoresFromTestScoreRow(
   row: TestScoreRow,
   questionCountRow: QuestionCountRow | null = null,
 ): ExamScoreRow[] {
-  return TEST_SCORE_SUBJECTS.flatMap(({ column, label }) => {
+  return TEST_SCORE_SUBJECTS.map(({ column, label }) => {
     const correctCount = parseScoreValue(row[column]);
-    if (correctCount === null) {
-      return [];
-    }
-
     const questionCount = getQuestionCountForSubject(questionCountRow, column);
-    if (questionCount === 0) {
-      return [
-        {
-          subjectName: label,
-          score: correctCount,
-          correctCount,
-          questionCount: 0,
-        },
-      ];
-    }
+    const notTaken =
+      correctCount === null ||
+      questionCount === null ||
+      questionCount === undefined ||
+      questionCount <= 0;
 
-    const score =
-      questionCount !== null
-        ? Math.round((correctCount / questionCount) * 100)
-        : correctCount;
-
-    return [
-      {
+    if (notTaken) {
+      return {
         subjectName: label,
-        score,
+        score: null,
         correctCount,
         questionCount,
-      },
-    ];
+        notTaken: true,
+      };
+    }
+
+    return {
+      subjectName: label,
+      score: Math.round((correctCount / questionCount) * 100),
+      correctCount,
+      questionCount,
+      notTaken: false,
+    };
   });
 }
 
@@ -98,27 +104,31 @@ export function buildTestScoreExamResponse(
   questionCountByTestName: Map<string, QuestionCountRow>,
   sessionKey: string | null,
 ) {
-  const sessions = rows.map((row, index) => {
-    const sessionLabel = row.test_name.trim();
-    const key = buildTestScoreSessionKey(sessionLabel, index);
-    const questionCountRow = questionCountByTestName.get(sessionLabel) ?? null;
-    const formattedDate = formatExamTestDate(questionCountRow?.test_date);
+  const sessions = sortExamSessionsByDate(
+    rows.map((row, index) => {
+      const sessionLabel = row.test_name.trim();
+      const key = buildTestScoreSessionKey(sessionLabel, index);
+      const questionCountRow = questionCountByTestName.get(sessionLabel) ?? null;
+      const testDateIso = questionCountRow?.test_date?.trim() || null;
+      const formattedDate = formatExamTestDate(testDateIso);
 
-    return {
-      sessionKey: key,
-      sessionLabel,
-      sectionTitle: formattedDate
-        ? `${buildExamSectionTitle(examType, sessionLabel)}（${formattedDate}）`
-        : buildExamSectionTitle(examType, sessionLabel),
-      testDate: formattedDate,
-    };
-  });
+      return {
+        sessionKey: key,
+        sessionLabel,
+        sectionTitle: formattedDate
+          ? `${buildExamSectionTitle(examType, sessionLabel)}（${formattedDate}）`
+          : buildExamSectionTitle(examType, sessionLabel),
+        testDate: formattedDate,
+        testDateIso,
+      };
+    }),
+  );
 
   const selectedSession =
     sessions.find((session) => session.sessionKey === sessionKey) ?? sessions[0] ?? null;
 
   const selectedRowIndex = selectedSession
-    ? sessions.findIndex((session) => session.sessionKey === selectedSession.sessionKey)
+    ? parseTestScoreSessionIndex(selectedSession.sessionKey)
     : -1;
 
   const selectedRow = selectedRowIndex >= 0 ? rows[selectedRowIndex] : null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
   buildProfileFormState,
@@ -316,9 +317,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                     className={`learningTimeStudentRow${isSelected ? " learningTimeStudentRowSelected" : ""}`}
                     onClick={() => setSelectedGakuseiId(student.gakusei_id)}
                   >
-                    <span className="learningTimeStudentRowText">
-                      {student.name} | {student.class ?? "クラス未設定"}
-                    </span>
+                    <span className="learningTimeStudentRowText">{student.name}</span>
                     <span className="learningTimeStudentRowBtn">詳細</span>
                   </button>
                 );
@@ -328,6 +327,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
         </section>
 
         <section className="learningTimeDetail studentInfoDetailPanel">
+          <PortalLoadingOverlay active={isLoading} />
           {!selectedGakuseiId || !form ? (
             <div className="learningTimeEmptyPanel">学生を選択してください。</div>
           ) : (
