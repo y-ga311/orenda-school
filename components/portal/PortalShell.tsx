@@ -47,16 +47,20 @@ export function PortalShell({ children, teacherLabel }: PortalShellProps) {
 
             <div className="portalNavDivider" />
             <div className="portalNavSectionLabel portalNavSectionLabelEdit">編集・登録</div>
-            {editItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`portalNavItem portalNavItemEdit${item.href === "#" ? " portalNavItemDisabled" : ""}`}
-                onClick={item.href === "#" ? (event) => event.preventDefault() : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {editItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`portalNavItem portalNavItemEdit${isActive ? " portalNavItemActive" : ""}${item.href === "#" ? " portalNavItemDisabled" : ""}`}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={item.href === "#" ? (event) => event.preventDefault() : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </aside>
 

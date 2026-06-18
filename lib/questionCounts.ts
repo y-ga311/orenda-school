@@ -1,11 +1,13 @@
 import { TEST_SCORE_SUBJECTS, type TestScoreSubjectColumn } from "@/lib/examSubjects";
 
 export type QuestionCountRow = {
+  id?: number | string | null;
   test_name: string;
   test_date: string | null;
 } & Partial<Record<TestScoreSubjectColumn, number | string | null>>;
 
 export const QUESTION_COUNTS_SELECT = [
+  "id",
   "test_name",
   "test_date",
   ...TEST_SCORE_SUBJECTS.map((subject) => subject.column),

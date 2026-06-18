@@ -18760,8 +18760,8 @@
     {
       "type": "frame",
       "id": "r8MPDP",
-      "x": -69,
-      "y": 4409,
+      "x": 7397,
+      "y": 42,
       "name": "exam-question-count",
       "width": 1440,
       "height": 900,
@@ -33803,6 +33803,1655 @@
                                       ]
                                     }
                                   ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "4Squ1S",
+      "x": 8911,
+      "y": 42,
+      "name": "exam-question-count-new",
+      "width": 1440,
+      "height": 900,
+      "fill": "#E8EBEF",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "kYkcvz",
+          "name": "01 · Top bar",
+          "width": "fill_container",
+          "height": 60,
+          "fill": "#FFFFFF",
+          "stroke": "#E2E5E9",
+          "strokeWidth": 1,
+          "strokeAlignment": "inner",
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "b8I8Wh",
+              "name": "Top bar · Title",
+              "fill": "#111827",
+              "content": "Orenda School",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "sSxAVV",
+          "name": "02 · Body (sidebar + main)",
+          "width": "fill_container",
+          "height": "fill_container",
+          "children": [
+            {
+              "type": "frame",
+              "id": "4HmNR3",
+              "name": "02a · Sidebar",
+              "width": 252,
+              "height": "fill_container",
+              "fill": "#323B44",
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                22,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bZ5rtu",
+                  "name": "menuTitle",
+                  "fill": "#98A8B8",
+                  "content": "メニュー",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "0JOdMu",
+                  "name": "Sidebar · Nav",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fJsNvi",
+                      "name": "Nav section · 確認画面",
+                      "fill": "#98A8B8",
+                      "content": "確認画面",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "i7xTYU",
+                      "name": "Nav · Study time",
+                      "width": "fill_container",
+                      "fill": "#3B4550",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lF96nT",
+                          "name": "menu5Text",
+                          "fill": "#E5E7EB",
+                          "content": "学習時間（個人別）",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "8HLEFs",
+                      "name": "Nav · Regular exam",
+                      "width": "fill_container",
+                      "fill": "#3B4550",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LwPmbn",
+                          "name": "menu2Text",
+                          "fill": "#E5E7EB",
+                          "content": "定期試験",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Zs67Su",
+                      "name": "Nav · Mock exam",
+                      "width": "fill_container",
+                      "fill": "#3B4550",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ub0DCs",
+                          "name": "menu3Text",
+                          "fill": "#E5E7EB",
+                          "content": "模擬試験",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kYMJq8",
+                      "name": "Nav · Graduation exam",
+                      "width": "fill_container",
+                      "fill": "#3B4550",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JSXYDr",
+                          "name": "menu4Text",
+                          "fill": "#E5E7EB",
+                          "content": "卒業試験",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YOz4Wb",
+                      "name": "Nav · Subject trend",
+                      "width": "fill_container",
+                      "fill": "#3B4550",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ioHwLS",
+                          "name": "menu6Text",
+                          "fill": "#E5E7EB",
+                          "content": "科目別推移",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lkGCKF",
+                      "name": "Nav spacer",
+                      "width": "fill_container",
+                      "height": 6
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pWHqo1",
+                      "name": "Nav divider",
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "#4B5563"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fOatBn",
+                      "name": "Nav section · 編集・登録",
+                      "fill": "#D97706",
+                      "content": "編集・登録",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UfCJ6k",
+                      "name": "Nav · Student info",
+                      "width": "fill_container",
+                      "fill": "#3A424C",
+                      "cornerRadius": 8,
+                      "stroke": "#D97706",
+                      "strokeWidth": {
+                        "left": 3
+                      },
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "E8HNp0",
+                          "name": "menu1Text",
+                          "fill": "#E5E7EB",
+                          "content": "学生基本情報",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "de7PBA",
+                      "name": "Nav · Individual info",
+                      "width": "fill_container",
+                      "fill": "#00A99D",
+                      "cornerRadius": 8,
+                      "stroke": "#FFFFFF",
+                      "strokeWidth": {
+                        "left": 3
+                      },
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hCG7m4",
+                          "name": "menu7Text",
+                          "fill": "#FFFFFF",
+                          "content": "試験問題数設定",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "RaZ8fc",
+                      "name": "Nav · New student registration",
+                      "width": "fill_container",
+                      "fill": "#3A424C",
+                      "cornerRadius": 8,
+                      "stroke": "#D97706",
+                      "strokeWidth": {
+                        "left": 3
+                      },
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "DYNnPI",
+                          "name": "menu10Text",
+                          "fill": "#E5E7EB",
+                          "content": "新規学生登録",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Bs9yfY",
+                      "name": "Nav · Exam result registration",
+                      "width": "fill_container",
+                      "fill": "#3A424C",
+                      "cornerRadius": 8,
+                      "stroke": "#D97706",
+                      "strokeWidth": {
+                        "left": 3
+                      },
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "31X9AT",
+                          "name": "menu11Text",
+                          "fill": "#E5E7EB",
+                          "content": "試験結果登録",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QoHV4e",
+                      "name": "Nav · Orenda edit",
+                      "width": "fill_container",
+                      "fill": "#3A424C",
+                      "cornerRadius": 8,
+                      "stroke": "#D97706",
+                      "strokeWidth": {
+                        "left": 3
+                      },
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lRdxPi",
+                          "name": "menu8Text",
+                          "fill": "#E5E7EB",
+                          "content": "Orenda編集",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "2girC3",
+                      "name": "Nav · Tsunagaru portal edit",
+                      "width": "fill_container",
+                      "fill": "#3A424C",
+                      "cornerRadius": 8,
+                      "stroke": "#D97706",
+                      "strokeWidth": {
+                        "left": 3
+                      },
+                      "strokeAlignment": "inner",
+                      "padding": [
+                        12,
+                        14
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "U9h7v8",
+                          "name": "menu9Text",
+                          "fill": "#E5E7EB",
+                          "content": "つながるポータル保護者連絡",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BTAvyl",
+              "name": "02b · Main column",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#E8EBEF",
+              "layout": "vertical",
+              "gap": 18,
+              "padding": [
+                26,
+                32
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "l9WdS6",
+                  "name": "Main · Page intro",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SZzHP1",
+                      "name": "pageTitle",
+                      "fill": "#1F2937",
+                      "content": "新規試験登録",
+                      "fontFamily": "Inter",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CsFsKA",
+                      "name": "pageSubtitle",
+                      "fill": "#64748B",
+                      "content": "新しい試験の問題数を登録します",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fQa3ub",
+                  "name": "Main · Master detail row",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "gap": 18,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "UjawCl",
+                      "name": "Exam edit panel",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 14,
+                      "stroke": "#D1D5DB",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": 18,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "jXHkNy",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "qJ3ak0",
+                              "fill": "#1F2937",
+                              "content": "新規試験登録",
+                              "fontFamily": "Inter",
+                              "fontSize": 15,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "2WWgnK",
+                              "fill": "#94A3B8",
+                              "content": "",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "9xjncI",
+                          "fill": "#64748B",
+                          "content": "試験名・実施日と科目別問題数を入力してください。",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "idrK5p",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "#F8FAFC",
+                          "cornerRadius": 12,
+                          "stroke": "#CBD5E1",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "padding": 16,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "PjnM7I",
+                              "fill": "#374151",
+                              "content": "基本情報",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "vWxfdL",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "kh1hWQ",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "Qy1OGM",
+                                      "fill": "#374151",
+                                      "content": "試験名",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "NS6n8c",
+                                      "width": "fill_container",
+                                      "fill": "#FFFFFF",
+                                      "cornerRadius": 8,
+                                      "stroke": "#CBD5E1",
+                                      "strokeWidth": 1,
+                                      "strokeAlignment": "inner",
+                                      "padding": [
+                                        10,
+                                        12
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "D8SrXD",
+                                          "fill": "#94A3B8",
+                                          "content": "例：第1回模擬試験（25期生3年次）",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "500"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "D7TKft",
+                                  "width": 200,
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "selsIi",
+                                      "fill": "#374151",
+                                      "content": "実施日",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "gRAOwS",
+                                      "width": "fill_container",
+                                      "fill": "#FFFFFF",
+                                      "cornerRadius": 8,
+                                      "stroke": "#CBD5E1",
+                                      "strokeWidth": 1,
+                                      "strokeAlignment": "inner",
+                                      "padding": [
+                                        10,
+                                        12
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "1TMxy1",
+                                          "fill": "#94A3B8",
+                                          "content": "年 / 月 / 日 ▼",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "500"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "MpuMli",
+                                  "width": 120,
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "y4BG0T",
+                                      "fill": "#374151",
+                                      "content": "試験種別",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "In6ZLv",
+                                      "width": "fill_container",
+                                      "fill": "#FFFFFF",
+                                      "cornerRadius": 8,
+                                      "stroke": "#CBD5E1",
+                                      "strokeWidth": 1,
+                                      "strokeAlignment": "inner",
+                                      "padding": [
+                                        10,
+                                        12
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "klB4LN",
+                                          "fill": "#0F172A",
+                                          "content": "模擬試験 ▼",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "500"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "CDQH7K",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "X82yZg",
+                                  "width": "fill_container",
+                                  "fill": "#DBEAFE",
+                                  "cornerRadius": 6,
+                                  "padding": [
+                                    8,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "8IOs57",
+                                      "fill": "#1D4ED8",
+                                      "content": "基礎医学系",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "TfMUbG",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "d6mzxI",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "fSaOWB",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "mXo2FC",
+                                              "fill": "#374151",
+                                              "content": "医療概論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "L3CKrE",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "Nm6ldw",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "cIsvLL",
+                                              "fill": "#374151",
+                                              "content": "衛生・公衆衛生学",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "gsFKQi",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "6Amy7U",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "05gcQ7",
+                                              "fill": "#374151",
+                                              "content": "関係法規",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "un5FsS",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "nwphgq",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "VFVt0g",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "FE1eUL",
+                                              "fill": "#374151",
+                                              "content": "解剖学",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "5zCNIg",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "7QODdq",
+                                                  "fill": "#111827",
+                                                  "content": "50",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "lOI7kG",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "07OyFa",
+                                              "fill": "#374151",
+                                              "content": "生理学",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "7qUnhw",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "qK44ig",
+                                                  "fill": "#111827",
+                                                  "content": "50",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "ESKJqt",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "wfdsev",
+                                              "fill": "#374151",
+                                              "content": "病理学",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "1tLs6k",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "tY4IVy",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "AtYaZc",
+                                  "width": "fill_container",
+                                  "fill": "#DCFCE7",
+                                  "cornerRadius": 6,
+                                  "padding": [
+                                    8,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "vsgZvr",
+                                      "fill": "#166534",
+                                      "content": "臨床医学系",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "TA0F62",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "gCC5e3",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "igadpu",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "cUoPyR",
+                                              "fill": "#374151",
+                                              "content": "臨床医学総論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "IBqfpy",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "ks0mYi",
+                                                  "fill": "#111827",
+                                                  "content": "30",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "N5TEOC",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "X1mKoj",
+                                              "fill": "#374151",
+                                              "content": "臨床医学各論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "F57Fxq",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "HSgPAp",
+                                                  "fill": "#111827",
+                                                  "content": "30",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "0Zx6ar",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "I88ro0",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "J014Jd",
+                                              "fill": "#374151",
+                                              "content": "臨床医学各論（総合）",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "WG7if7",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "T2cN0X",
+                                                  "fill": "#111827",
+                                                  "content": "30",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "Dr5lun",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "Yv8DVQ",
+                                              "fill": "#374151",
+                                              "content": "リハビリテーション医学",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "JObPBT",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "qtHKE8",
+                                                  "fill": "#111827",
+                                                  "content": "30",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "5f8MKQ",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "29j7vU",
+                                  "width": "fill_container",
+                                  "fill": "#EDE9FE",
+                                  "cornerRadius": 6,
+                                  "padding": [
+                                    8,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "vItz7F",
+                                      "fill": "#6D28D9",
+                                      "content": "東洋医学系",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Xd6Xd6",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "jWzJS9",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "TxFKnk",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "SbYBUu",
+                                              "fill": "#374151",
+                                              "content": "東洋医学概論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "eP0Olf",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "9PiVhj",
+                                                  "fill": "#111827",
+                                                  "content": "20",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "0HzxuO",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "T5g00F",
+                                              "fill": "#374151",
+                                              "content": "経絡経穴概論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "5y7VXa",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "awsvNw",
+                                                  "fill": "#111827",
+                                                  "content": "20",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "vt2mU0",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "IsJxC1",
+                                              "fill": "#374151",
+                                              "content": "東洋医学臨床論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "vrQBEY",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "qixW6i",
+                                                  "fill": "#111827",
+                                                  "content": "20",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "5qzFAA",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "xbxYXI",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "mnFEUa",
+                                              "fill": "#374151",
+                                              "content": "東洋医学臨床論（総合）",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "mEissj",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "65ad8t",
+                                                  "fill": "#111827",
+                                                  "content": "20",
+                                                  "fontFamily": "Inter",
+                                                  "fontSize": 13,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Sh2eZC",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 8,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "FqXbSS",
+                                  "width": "fill_container",
+                                  "fill": "#FFEDD5",
+                                  "cornerRadius": 6,
+                                  "padding": [
+                                    8,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "w1W8vB",
+                                      "fill": "#C2410C",
+                                      "content": "専門系",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "NALgCS",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "rvUoCF",
+                                      "width": "fill_container",
+                                      "gap": 10,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "5HnFem",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "XpN1fE",
+                                              "fill": "#374151",
+                                              "content": "はり理論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "fhVhHi",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "HGu9TP",
+                                          "width": "fill_container",
+                                          "layout": "vertical",
+                                          "gap": 4,
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "Do3MqY",
+                                              "fill": "#374151",
+                                              "content": "きゅう理論",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "600"
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "Mes2kq",
+                                              "width": "fill_container",
+                                              "height": 36,
+                                              "fill": "#FFFFFF",
+                                              "cornerRadius": 6,
+                                              "stroke": "#CBD5E1",
+                                              "strokeWidth": 1,
+                                              "strokeAlignment": "inner",
+                                              "padding": [
+                                                8,
+                                                10
+                                              ],
+                                              "justifyContent": "center"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "PctNoc",
+                              "width": "fill_container",
+                              "fill": "#E0F7F5",
+                              "cornerRadius": 8,
+                              "stroke": "#99F6E4",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "5chrEW",
+                                  "fill": "#0F766E",
+                                  "content": "合計問題数",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "548UIp",
+                                  "fill": "#0F766E",
+                                  "content": "200問",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Y3medH",
+                          "width": "fill_container",
+                          "gap": 10,
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "5osw2M",
+                              "fill": "#FFFFFF",
+                              "cornerRadius": 8,
+                              "stroke": "#CBD5E1",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "padding": [
+                                10,
+                                24
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "6pnjwM",
+                                  "fill": "#374151",
+                                  "content": "キャンセル",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "DC6cfS",
+                              "fill": "#2563EB",
+                              "cornerRadius": 8,
+                              "padding": [
+                                10,
+                                24
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "vBsXul",
+                                  "fill": "#FFFFFF",
+                                  "content": "登録",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "700"
                                 }
                               ]
                             }
