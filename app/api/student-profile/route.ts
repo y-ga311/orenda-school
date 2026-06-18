@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
-  COGNITIVE_SCORE_ITEMS,
+  COGNITIVE_SCORE_COLUMNS,
+  parseCognitiveScoresFromRow,
   type CognitiveScores,
   type StudentProfileData,
 } from "@/lib/studentProfile";
@@ -24,6 +25,12 @@ type StudentRow = {
   support_area?: string | null;
   career_education?: string | null;
   cognitive_scores?: CognitiveScores | null;
+  cognitive_camera?: number | string | null;
+  cognitive_3d?: number | string | null;
+  cognitive_fantasy?: number | string | null;
+  cognitive_reading?: number | string | null;
+  cognitive_sound?: number | string | null;
+  cognitive_radio?: number | string | null;
 };
 
 type UpdateBody = {
@@ -39,27 +46,27 @@ type UpdateBody = {
 const CORE_SELECT =
   "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail" as const;
 
-const EXTENDED_SELECT =
+const EXTENDED_SELECT = [
+  "pretest_score",
+  "support_area",
+  "career_education",
+  "cognitive_scores",
+  ...COGNITIVE_SCORE_COLUMNS,
+].join(", ");
+
+const LEGACY_EXTENDED_SELECT =
   "pretest_score, support_area, career_education, cognitive_scores" as const;
 
-function parseCognitiveScores(value: unknown): CognitiveScores {
-  if (!value || typeof value !== "object") {
-    return {};
-  }
+function isMissingColumnError(message: string) {
+  return (
+    message.includes("does not exist") ||
+    message.includes("42703") ||
+    message.includes("cognitive_camera")
+  );
+}
 
-  const scores: CognitiveScores = {};
-  COGNITIVE_SCORE_ITEMS.forEach(({ key }) => {
-    const raw = (value as Record<string, unknown>)[key];
-    if (raw === null || raw === undefined || raw === "") {
-      scores[key] = null;
-      return;
-    }
-
-    const parsed = typeof raw === "number" ? raw : Number(raw);
-    scores[key] = Number.isFinite(parsed) ? parsed : null;
-  });
-
-  return scores;
+function parseCognitiveScores(row: StudentRow): CognitiveScores {
+  return parseCognitiveScoresFromRow(row, row.cognitive_scores);
 }
 
 function mapStudentProfile(
@@ -88,7 +95,7 @@ function mapStudentProfile(
         ? row.career_education.trim()
         : null,
     cognitiveScores: extendedFieldsAvailable
-      ? parseCognitiveScores(row.cognitive_scores)
+      ? parseCognitiveScores(row)
       : {},
     extendedFieldsAvailable,
   };
@@ -136,11 +143,19 @@ async function fetchStudentRow(gakuseiId: string) {
     };
   }
 
-  const extendedResult = await supabase
+  let extendedResult = await supabase
     .from("students")
     .select(EXTENDED_SELECT)
     .eq("gakusei_id", gakuseiId)
     .maybeSingle();
+
+  if (extendedResult.error && isMissingColumnError(extendedResult.error.message)) {
+    extendedResult = await supabase
+      .from("students")
+      .select(LEGACY_EXTENDED_SELECT)
+      .eq("gakusei_id", gakuseiId)
+      .maybeSingle();
+  }
 
   const extendedFieldsAvailable = !extendedResult.error;
 
@@ -150,7 +165,7 @@ async function fetchStudentRow(gakuseiId: string) {
 
   const row = {
     ...coreResult.data,
-    ...(extendedResult.data ?? {}),
+    ...((extendedResult.data ?? {}) as Record<string, unknown>),
   } as StudentRow;
   row.name = await decryptStudentName(row.name);
 

@@ -11,14 +11,57 @@ export type CognitiveScores = Partial<Record<CognitiveScoreKey, number | null>>;
 export const COGNITIVE_SCORE_ITEMS: {
   key: CognitiveScoreKey;
   label: string;
+  column: string;
 }[] = [
-  { key: "camera", label: "カメラ" },
-  { key: "3d", label: "3D" },
-  { key: "fantasy", label: "ファンタジー" },
-  { key: "reading", label: "読書" },
-  { key: "sound", label: "サウンド" },
-  { key: "radio", label: "ラジオ" },
+  { key: "camera", label: "カメラ", column: "cognitive_camera" },
+  { key: "3d", label: "3D", column: "cognitive_3d" },
+  { key: "fantasy", label: "ファンタジー", column: "cognitive_fantasy" },
+  { key: "reading", label: "読書", column: "cognitive_reading" },
+  { key: "sound", label: "サウンド", column: "cognitive_sound" },
+  { key: "radio", label: "ラジオ", column: "cognitive_radio" },
 ];
+
+export const COGNITIVE_SCORE_COLUMNS = COGNITIVE_SCORE_ITEMS.map((item) => item.column);
+
+export function parseIntegerScore(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseCognitiveScoresFromRow(
+  row: Record<string, unknown>,
+  jsonValue: unknown,
+): CognitiveScores {
+  const usesIntColumns = COGNITIVE_SCORE_ITEMS.some(({ column }) => column in row);
+
+  if (usesIntColumns) {
+    const scores: CognitiveScores = {};
+    COGNITIVE_SCORE_ITEMS.forEach(({ key, column }) => {
+      scores[key] = parseIntegerScore(row[column]);
+    });
+    return scores;
+  }
+
+  return parseCognitiveScoresFromJson(jsonValue);
+}
+
+export function parseCognitiveScoresFromJson(value: unknown): CognitiveScores {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const scores: CognitiveScores = {};
+  COGNITIVE_SCORE_ITEMS.forEach(({ key }) => {
+    const raw = (value as Record<string, unknown>)[key];
+    scores[key] = parseIntegerScore(raw);
+  });
+
+  return scores;
+}
 
 export type StudentProfileData = {
   gakuseiId: string;

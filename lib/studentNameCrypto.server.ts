@@ -21,9 +21,28 @@ function getEncryptionKeys(): string[] {
   return keys;
 }
 
-/** Supabase 表示などで base64 暗号文に改行が混ざることがある */
+/** URL/form 経由で base64 の「+」がスペースに化けるケースを補正 */
 function normalizeStudentName(value: string) {
-  return value.trim().replace(/\s+/g, "");
+  const trimmed = value.trim();
+  if (/^[A-Za-z0-9+/=\s]+$/.test(trimmed) && trimmed.length >= 16) {
+    return trimmed.replace(/ /g, "+").replace(/[\r\n\t]/g, "");
+  }
+
+  return trimmed.replace(/\s+/g, "");
+}
+
+function base64DecodedLength(value: string) {
+  try {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(value, "base64").length;
+    }
+
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(normalized);
+    return binary.length;
+  } catch {
+    return 0;
+  }
 }
 
 /** ひらがな・カタカナ・漢字を含む → DB 上の平文氏名 */
@@ -37,11 +56,7 @@ function isBase64Ciphertext(value: string) {
     return false;
   }
 
-  try {
-    return Buffer.from(value, "base64").length >= 8;
-  } catch {
-    return false;
-  }
+  return base64DecodedLength(value) >= 8;
 }
 
 /** 復号 RPC を呼ぶべきか（平文の日本語氏名は除外） */
@@ -58,7 +73,7 @@ export function looksLikeEncryptedStudentName(value: string) {
 
 async function decryptWithPostgresRpc(
   encrypted: string,
-  encryptionKey: string,
+  encryptionKey?: string,
 ): Promise<string | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) {
@@ -67,7 +82,7 @@ async function decryptWithPostgresRpc(
 
   const { data, error } = await supabase.rpc("decrypt_student_name", {
     encrypted_name: encrypted,
-    secret_key: encryptionKey,
+    secret_key: encryptionKey?.trim() || "",
   });
 
   if (error) {
@@ -122,11 +137,13 @@ export async function decryptStudentName(
   }
 
   const encryptionKeys = getEncryptionKeys();
-  if (encryptionKeys.length === 0) {
+  if (
+    encryptionKeys.length === 0 &&
+    !process.env.STUDENT_NAME_ENCRYPTION_KEY?.trim()
+  ) {
     console.warn(
-      "[studentNameCrypto] STUDENT_NAME_ENCRYPTION_KEY is not set. Encrypted student names cannot be decrypted.",
+      "[studentNameCrypto] STUDENT_NAME_ENCRYPTION_KEY is not set. Trying Supabase DB key settings via decrypt_student_name RPC.",
     );
-    return trimmed;
   }
 
   let candidate = normalized;
@@ -144,6 +161,10 @@ export async function decryptStudentName(
     }
 
     if (!decrypted) {
+      decrypted = await decryptWithPostgresRpc(candidate);
+    }
+
+    if (!decrypted) {
       break;
     }
 
@@ -155,7 +176,7 @@ export async function decryptStudentName(
   }
 
   console.error(
-    "[studentNameCrypto] Failed to decrypt student name. Check STUDENT_NAME_ENCRYPTION_KEY and decrypt_student_name RPC.",
+    "[studentNameCrypto] Failed to decrypt student name. Set STUDENT_NAME_ENCRYPTION_KEY on Vercel and/or run docs/sql/set-student-name-encryption-key.sql in Supabase.",
   );
   return trimmed;
 }
