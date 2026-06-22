@@ -2,7 +2,12 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   COGNITIVE_SCORE_COLUMNS,
+  COGNITIVE_SCORE_ITEMS,
+  buildCognitiveColumnUpdates,
+  buildCognitiveJsonUpdate,
   parseCognitiveScoresFromRow,
+  parseIntegerScore,
+  parsePretestScoreFormValue,
   type CognitiveScores,
   type StudentProfileData,
 } from "@/lib/studentProfile";
@@ -41,7 +46,15 @@ type UpdateBody = {
   parentId?: unknown;
   parentPassword?: unknown;
   parentEmail?: unknown;
+  pretestScore?: unknown;
+  supportArea?: unknown;
+  careerEducation?: unknown;
+  cognitiveScores?: unknown;
 };
+
+const MAX_TEXT_FIELD_LENGTH = 200;
+const MAX_PRETEST_SCORE = 9999.9;
+const MAX_COGNITIVE_SCORE = 999;
 
 const CORE_SELECT =
   "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail" as const;
@@ -99,6 +112,173 @@ function mapStudentProfile(
       : {},
     extendedFieldsAvailable,
   };
+}
+
+function parseCognitiveScoresInput(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return { error: "認知特性スコアの形式が正しくありません。" };
+  }
+
+  const scores: CognitiveScores = {};
+  for (const { key } of COGNITIVE_SCORE_ITEMS) {
+    const raw = (value as Record<string, unknown>)[key];
+    if (raw === null || raw === undefined || raw === "") {
+      scores[key] = null;
+      continue;
+    }
+
+    const parsed = parseIntegerScore(raw);
+    if (parsed === null) {
+      return { error: `認知特性スコア（${key}）は0〜${MAX_COGNITIVE_SCORE}の整数で入力してください。` };
+    }
+    if (parsed < 0 || parsed > MAX_COGNITIVE_SCORE) {
+      return {
+        error: `認知特性スコア（${key}）は0〜${MAX_COGNITIVE_SCORE}の範囲で入力してください。`,
+      };
+    }
+    scores[key] = parsed;
+  }
+
+  return { scores };
+}
+
+function parseExtendedProfileInput(body: UpdateBody) {
+  const extended: Record<string, unknown> = {};
+
+  if (body.pretestScore !== undefined) {
+    const raw =
+      typeof body.pretestScore === "number"
+        ? String(body.pretestScore)
+        : typeof body.pretestScore === "string"
+          ? body.pretestScore
+          : "";
+    const parsed = parsePretestScoreFormValue(raw);
+    if (raw.trim() && parsed === null) {
+      return { error: "入学前プレのスコアは数値で入力してください。" };
+    }
+    if (parsed !== null && (parsed < 0 || parsed > MAX_PRETEST_SCORE)) {
+      return {
+        error: `入学前プレのスコアは0〜${MAX_PRETEST_SCORE}の範囲で入力してください。`,
+      };
+    }
+    extended.pretest_score = parsed;
+  }
+
+  if (body.supportArea !== undefined) {
+    if (typeof body.supportArea !== "string") {
+      return { error: "サポート領域の形式が正しくありません。" };
+    }
+    const trimmed = body.supportArea.trim();
+    if (trimmed.length > MAX_TEXT_FIELD_LENGTH) {
+      return { error: `サポート領域は${MAX_TEXT_FIELD_LENGTH}文字以内で入力してください。` };
+    }
+    extended.support_area = trimmed || null;
+  }
+
+  if (body.careerEducation !== undefined) {
+    if (typeof body.careerEducation !== "string") {
+      return { error: "キャリア教育の形式が正しくありません。" };
+    }
+    const trimmed = body.careerEducation.trim();
+    if (trimmed.length > MAX_TEXT_FIELD_LENGTH) {
+      return { error: `キャリア教育は${MAX_TEXT_FIELD_LENGTH}文字以内で入力してください。` };
+    }
+    extended.career_education = trimmed || null;
+  }
+
+  let cognitiveScores: CognitiveScores | undefined;
+  if (body.cognitiveScores !== undefined) {
+    const parsed = parseCognitiveScoresInput(body.cognitiveScores);
+    if ("error" in parsed) {
+      return { error: parsed.error };
+    }
+    cognitiveScores = parsed.scores;
+  }
+
+  return { extended, cognitiveScores };
+}
+
+async function updateStudentProfile(
+  gakuseiId: string,
+  updates: Record<string, unknown>,
+  cognitiveScores?: CognitiveScores,
+) {
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return {
+      error: NextResponse.json(
+        { message: "Supabase接続情報が未設定です。" },
+        { status: 500 },
+      ),
+    };
+  }
+
+  const payload = { ...updates };
+  if (cognitiveScores) {
+    Object.assign(payload, buildCognitiveColumnUpdates(cognitiveScores));
+  }
+
+  let { error } = await supabase.from("students").update(payload).eq("gakusei_id", gakuseiId);
+
+  if (error && cognitiveScores && isMissingColumnError(error.message)) {
+    const fallbackPayload: Record<string, unknown> = {
+      ...updates,
+      cognitive_scores: buildCognitiveJsonUpdate(cognitiveScores),
+    };
+    COGNITIVE_SCORE_COLUMNS.forEach((column) => {
+      delete fallbackPayload[column];
+    });
+
+    ({ error } = await supabase
+      .from("students")
+      .update(fallbackPayload)
+      .eq("gakusei_id", gakuseiId));
+  }
+
+  if (error && isMissingColumnError(error.message)) {
+    const coreOnly = { ...updates };
+    COGNITIVE_SCORE_COLUMNS.forEach((column) => {
+      delete coreOnly[column];
+    });
+    delete coreOnly.pretest_score;
+    delete coreOnly.support_area;
+    delete coreOnly.career_education;
+    delete coreOnly.cognitive_scores;
+
+    ({ error } = await supabase
+      .from("students")
+      .update(coreOnly)
+      .eq("gakusei_id", gakuseiId));
+
+    if (!error) {
+      const result = await fetchStudentRow(gakuseiId);
+      if (result.error) {
+        return result;
+      }
+      return {
+        profile: result.profile,
+        warning:
+          "基本情報は保存しましたが、スコア項目のカラムが未作成のためスコアは保存されませんでした。",
+      };
+    }
+  }
+
+  if (error) {
+    console.error("[student-profile] update:", error.message);
+    return {
+      error: NextResponse.json(
+        { message: "学生情報の保存中にエラーが発生しました。" },
+        { status: 500 },
+      ),
+    };
+  }
+
+  const result = await fetchStudentRow(gakuseiId);
+  if (result.error) {
+    return result;
+  }
+
+  return { profile: result.profile };
 }
 
 async function requireTeacher() {
@@ -214,9 +394,9 @@ export async function PUT(request: Request) {
     return NextResponse.json({ message: "学生が選択されていません。" }, { status: 400 });
   }
 
-  if (nickname.length < 1 || nickname.length > 12) {
+  if (nickname.length > 12) {
     return NextResponse.json(
-      { message: "ニックネームは1文字以上12文字以内で入力してください。" },
+      { message: "ニックネームは12文字以内で入力してください。" },
       { status: 400 },
     );
   }
@@ -240,35 +420,37 @@ export async function PUT(request: Request) {
     );
   }
 
-  const updates: Record<string, string> = {
-    nickname,
+  const updates: Record<string, string | null> = {
+    nickname: nickname || null,
     class: className,
+    hogosya_id: parentId || null,
+    mail: parentEmail || null,
   };
-
   if (studentPassword) {
     updates.gakusei_password = studentPassword;
   }
-
-  updates.hogosya_id = parentId;
-  updates.mail = parentEmail;
 
   if (parentPassword) {
     updates.hogosya_pass = parentPassword;
   }
 
-  const { error } = await supabase.from("students").update(updates).eq("gakusei_id", gakuseiId);
-
-  if (error) {
-    console.error("[student-profile] update:", error.message);
-    return NextResponse.json(
-      { message: "学生情報の保存中にエラーが発生しました。" },
-      { status: 500 },
-    );
+  const extendedInput = parseExtendedProfileInput(body ?? {});
+  if ("error" in extendedInput) {
+    return NextResponse.json({ message: extendedInput.error }, { status: 400 });
   }
 
-  const result = await fetchStudentRow(gakuseiId);
-  if (result.error) {
+  const result = await updateStudentProfile(
+    gakuseiId,
+    { ...updates, ...extendedInput.extended },
+    extendedInput.cognitiveScores,
+  );
+
+  if ("error" in result && result.error) {
     return result.error;
+  }
+
+  if ("warning" in result && result.warning) {
+    return NextResponse.json({ ...result.profile, warning: result.warning });
   }
 
   return NextResponse.json(result.profile);

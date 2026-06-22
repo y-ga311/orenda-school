@@ -1,13 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
   buildProfileFormState,
   COGNITIVE_SCORE_ITEMS,
-  formatScoreBadgeValue,
-  getHighlightedCognitiveKey,
+  getHighlightedCognitiveKeys,
+  parseCognitiveScoresFormState,
+  type CognitiveScoreKey,
   type StudentProfileData,
   type StudentProfileFormState,
 } from "@/lib/studentProfile";
@@ -32,19 +34,37 @@ function getProfileErrorMessage(status: number, message?: string) {
   return message ?? "学生情報の取得に失敗しました。";
 }
 
-function ScoreBadge({
+function ScoreBadgeInput({
   label,
   value,
+  onChange,
   highlighted = false,
+  inputMode = "text",
+  placeholder = "—",
+  disabled = false,
 }: {
   label: string;
   value: string;
+  onChange: (value: string) => void;
   highlighted?: boolean;
+  inputMode?: "numeric" | "decimal" | "text";
+  placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
-    <div className={`studentInfoScoreBadge${highlighted ? " studentInfoScoreBadgeHighlight" : ""}`}>
+    <div
+      className={`studentInfoScoreBadge${highlighted ? " studentInfoScoreBadgeHighlight" : ""}`}
+    >
       <span className="studentInfoScoreBadgeLabel">{label}</span>
-      <strong className="studentInfoScoreBadgeValue">{value}</strong>
+      <input
+        className="studentInfoScoreInput"
+        type="text"
+        inputMode={inputMode}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+      />
     </div>
   );
 }
@@ -192,15 +212,37 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
     };
   }, [selectedGakuseiId]);
 
-  const highlightedCognitiveKey = profile
-    ? getHighlightedCognitiveKey(profile.cognitiveScores)
-    : null;
+  const scoreFieldsDisabled = isLoading || isSaving || !profile?.extendedFieldsAvailable;
+
+  const highlightedCognitiveKeys = useMemo(() => {
+    if (!form) {
+      return new Set<CognitiveScoreKey>();
+    }
+    return new Set(
+      getHighlightedCognitiveKeys(parseCognitiveScoresFormState(form.cognitiveScores)),
+    );
+  }, [form]);
 
   function updateFormField<K extends keyof StudentProfileFormState>(
     key: K,
     value: StudentProfileFormState[K],
   ) {
     setForm((current) => (current ? { ...current, [key]: value } : current));
+    setSaveMessage(null);
+  }
+
+  function updateCognitiveScore(key: CognitiveScoreKey, value: string) {
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            cognitiveScores: {
+              ...current.cognitiveScores,
+              [key]: value,
+            },
+          }
+        : current,
+    );
     setSaveMessage(null);
   }
 
@@ -233,6 +275,10 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
           parentId: form.parentId,
           parentPassword: form.parentPassword,
           parentEmail: form.parentEmail,
+          pretestScore: form.pretestScore,
+          supportArea: form.supportArea,
+          careerEducation: form.careerEducation,
+          cognitiveScores: form.cognitiveScores,
         }),
       });
 
@@ -262,6 +308,9 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
         <div>
           <h1 className="learningTimeTitle">学生基本情報</h1>
         </div>
+        <Link href="/student-info/bulk" className="studentInfoBulkEditBtn">
+          一括編集
+        </Link>
       </header>
 
       <div className="learningTimeWorkspace">
@@ -353,23 +402,33 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                     <div className="studentInfoScoreRow">
                       <article className="studentInfoScoreCard studentInfoScoreCardCompact">
                         <h4 className="studentInfoScoreCardTitle">入学前プレ</h4>
-                        <ScoreBadge
+                        <ScoreBadgeInput
                           label="スコア"
-                          value={formatScoreBadgeValue(profile?.pretestScore)}
-                          highlighted={profile?.pretestScore != null}
+                          inputMode="decimal"
+                          value={form.pretestScore}
+                          placeholder="—"
+                          highlighted={Boolean(form.pretestScore.trim())}
+                          onChange={(value) => updateFormField("pretestScore", value)}
+                          disabled={scoreFieldsDisabled}
                         />
                       </article>
 
                       <article className="studentInfoScoreCard studentInfoScoreCardCareer">
                         <h4 className="studentInfoScoreCardTitle">キャリアサポート</h4>
                         <div className="studentInfoCareerBadges">
-                          <ScoreBadge
+                          <ScoreBadgeInput
                             label="サポート領域"
-                            value={profile?.supportArea ?? "—"}
+                            value={form.supportArea}
+                            placeholder="—"
+                            onChange={(value) => updateFormField("supportArea", value)}
+                            disabled={scoreFieldsDisabled}
                           />
-                          <ScoreBadge
+                          <ScoreBadgeInput
                             label="キャリア教育"
-                            value={profile?.careerEducation ?? "—"}
+                            value={form.careerEducation}
+                            placeholder="—"
+                            onChange={(value) => updateFormField("careerEducation", value)}
+                            disabled={scoreFieldsDisabled}
                           />
                         </div>
                       </article>
@@ -378,11 +437,15 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         <h4 className="studentInfoScoreCardTitle">認知特性スコア</h4>
                         <div className="studentInfoCognitiveBadges">
                           {COGNITIVE_SCORE_ITEMS.map(({ key, label }) => (
-                            <ScoreBadge
+                            <ScoreBadgeInput
                               key={key}
                               label={label}
-                              value={formatScoreBadgeValue(profile?.cognitiveScores[key])}
-                              highlighted={highlightedCognitiveKey === key}
+                              inputMode="numeric"
+                              value={form.cognitiveScores[key]}
+                              placeholder="—"
+                              highlighted={highlightedCognitiveKeys.has(key)}
+                              onChange={(value) => updateCognitiveScore(key, value)}
+                              disabled={scoreFieldsDisabled}
                             />
                           ))}
                         </div>
@@ -391,7 +454,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
 
                     {!profile?.extendedFieldsAvailable ? (
                       <p className="studentInfoScoreHint">
-                        スコア項目のカラムが未作成です。SQL マイグレーション後に表示されます。
+                        スコア項目のカラムが未作成です。SQL マイグレーション後に編集できます。
                       </p>
                     ) : null}
                   </div>
@@ -407,6 +470,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         type="text"
                         value={form.nickname}
                         maxLength={12}
+                        placeholder="未設定"
                         onChange={(event) => updateFormField("nickname", event.target.value)}
                         disabled={isLoading || isSaving}
                       />
@@ -472,6 +536,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         className="studentInfoFieldInput"
                         type="email"
                         value={form.parentEmail}
+                        placeholder="未設定"
                         onChange={(event) => updateFormField("parentEmail", event.target.value)}
                         disabled={isLoading || isSaving}
                       />

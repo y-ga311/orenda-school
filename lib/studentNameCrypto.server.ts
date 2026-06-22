@@ -21,6 +21,10 @@ function getEncryptionKeys(): string[] {
   return keys;
 }
 
+function getPrimaryEncryptionKey(): string | undefined {
+  return process.env.STUDENT_NAME_ENCRYPTION_KEY?.trim() || undefined;
+}
+
 /** URL/form 経由で base64 の「+」がスペースに化けるケースを補正 */
 function normalizeStudentName(value: string) {
   const trimmed = value.trim();
@@ -116,6 +120,104 @@ async function decryptWithPostgresRpc(
   }
 
   return decrypted;
+}
+
+async function encryptWithPostgresRpc(
+  plainName: string,
+  encryptionKey: string,
+): Promise<string | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase.rpc("encrypt_student_name", {
+    plain_name: plainName,
+    secret_key: encryptionKey,
+  });
+
+  if (error) {
+    if (
+      error.message.includes("encrypt_student_name") ||
+      error.code === "PGRST202"
+    ) {
+      console.warn(
+        "[studentNameCrypto] encrypt_student_name RPC is missing. Run docs/sql/create-encrypt-student-name-function.sql in Supabase.",
+      );
+    } else {
+      console.error("[studentNameCrypto] rpc encrypt failed:", error.message);
+    }
+    return null;
+  }
+
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  const encrypted = normalizeStudentName(data);
+  if (!encrypted || !looksLikeEncryptedStudentName(encrypted)) {
+    return null;
+  }
+
+  return encrypted;
+}
+
+/** 平文氏名を DB 保存用に暗号化（既に暗号化済みならそのまま返す） */
+export async function encryptStudentNameForStorage(
+  value: string | null | undefined,
+): Promise<string | null> {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const normalized = normalizeStudentName(trimmed);
+  if (looksLikeEncryptedStudentName(normalized)) {
+    return normalized;
+  }
+
+  const encryptionKey = getPrimaryEncryptionKey();
+  if (!encryptionKey) {
+    console.error(
+      "[studentNameCrypto] STUDENT_NAME_ENCRYPTION_KEY is not set. Cannot encrypt student name for storage.",
+    );
+    return null;
+  }
+
+  return encryptWithPostgresRpc(trimmed, encryptionKey);
+}
+
+/**
+ * 登録・更新用: 入力値を一度平文化してから暗号化する。
+ * 編集フォームに暗号文が残っていても二重暗号化しない。
+ */
+export async function prepareStudentNameForStorage(
+  value: string | null | undefined,
+): Promise<string | null> {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const plaintext = (await decryptStudentName(trimmed)) ?? trimmed;
+  const normalizedPlain = normalizeStudentName(plaintext);
+
+  if (looksLikeEncryptedStudentName(normalizedPlain)) {
+    console.error(
+      "[studentNameCrypto] Could not normalize student name to plaintext before encryption.",
+    );
+    return null;
+  }
+
+  return encryptStudentNameForStorage(plaintext);
 }
 
 export async function decryptStudentName(

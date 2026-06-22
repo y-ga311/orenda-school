@@ -15,6 +15,13 @@ export function PortalShell({ children, teacherLabel }: PortalShellProps) {
   const confirmItems = portalNavItems.filter((item) => item.section === "confirm");
   const editItems = portalNavItems.filter((item) => item.section === "edit");
 
+  function isNavActive(href: string) {
+    if (href === "#") {
+      return false;
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
   return (
     <div className="portalShell">
       <header className="portalTopBar">
@@ -31,7 +38,7 @@ export function PortalShell({ children, teacherLabel }: PortalShellProps) {
           <nav className="portalNav">
             <div className="portalNavSectionLabel">確認画面</div>
             {confirmItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = isNavActive(item.href);
               return (
                 <Link
                   key={item.label}
@@ -48,7 +55,7 @@ export function PortalShell({ children, teacherLabel }: PortalShellProps) {
             <div className="portalNavDivider" />
             <div className="portalNavSectionLabel portalNavSectionLabelEdit">編集・登録</div>
             {editItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = isNavActive(item.href);
               return (
                 <Link
                   key={item.label}

@@ -2165,10 +2165,26 @@ a {
   font-weight: 700;
 }
 
-.studentInfoScoreSection,
+.studentInfoScoreSection {
+  display: flex;
+  flex-direction: column;
+}
+
 .studentInfoFormSection {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.studentInfoSubsectionTitle {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.studentInfoFormGridTriple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .studentInfoScoreBody {
@@ -2250,6 +2266,48 @@ a {
 .studentInfoScoreCardCompact .studentInfoScoreBadge {
   width: 70px;
   flex: none;
+}
+
+.studentInfoScoreInput {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  appearance: textfield;
+}
+
+.studentInfoScoreInput::-webkit-outer-spin-button,
+.studentInfoScoreInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.studentInfoScoreInput:focus {
+  outline: none;
+}
+
+.studentInfoScoreInput::placeholder {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.studentInfoScoreInput:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.studentInfoScoreBadgeHighlight .studentInfoScoreInput {
+  color: #166534;
+}
+
+.studentInfoScoreBadgeHighlight .studentInfoScoreInput::placeholder {
+  color: #86efac;
 }
 
 .studentInfoScoreBadgeHighlight {
@@ -2356,6 +2414,10 @@ a {
 
 @media (max-width: 900px) {
   .studentInfoFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .studentInfoFormGridTriple {
     grid-template-columns: 1fr;
   }
 
@@ -2952,5 +3014,957 @@ a {
   .examQuestionCountFormFields,
   .examQuestionCountSubjectGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+.studentInfoBulkEditBtn,
+.studentBulkSecondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.studentInfoBulkEditBtn:hover,
+.studentBulkSecondaryBtn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.studentBulkSecondaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.studentBulkPage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.studentBulkHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.studentBulkTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.studentBulkSubtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.studentBulkHeaderActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.studentBulkSaveBtn {
+  border: none;
+  border-radius: 10px;
+  background: #00a99d;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+
+.studentBulkSaveBtn:hover:not(:disabled) {
+  background: #008f86;
+}
+
+.studentBulkSaveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.studentBulkWorkspace {
+  display: flex;
+  flex: 1;
+  gap: clamp(12px, 1.5vw, 18px);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.studentBulkFieldList,
+.studentBulkTablePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: clamp(14px, 1.8vw, 18px);
+  overflow: hidden;
+}
+
+.studentBulkFieldList {
+  width: min(100%, 280px);
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.studentBulkTablePanel {
+  flex: 1;
+  position: relative;
+}
+
+.studentBulkPanelTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.studentBulkFieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studentBulkFieldGroupTitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.studentBulkFieldButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.studentBulkFieldBtn {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studentBulkFieldBtn:hover:not(:disabled) {
+  border-color: #99f6e4;
+  background: #ecfeff;
+}
+
+.studentBulkFieldBtnActive {
+  border-color: #00a99d;
+  background: #e0f7f5;
+  color: #0f766e;
+}
+
+.studentBulkFieldBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.studentBulkTableHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.studentBulkTableHint {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.studentBulkTableWrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.studentBulkTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.studentBulkTable th,
+.studentBulkTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.studentBulkTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.studentBulkTable td {
+  color: #1f2937;
+}
+
+.studentBulkTableRowDirty {
+  background: #fffbeb;
+}
+
+.studentBulkTableEmpty {
+  text-align: center;
+  color: #64748b;
+  padding: 24px 12px !important;
+}
+
+.studentBulkTableInput {
+  width: 100%;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+}
+
+.studentBulkTableInput:focus {
+  outline: 2px solid #99f6e4;
+  outline-offset: 0;
+}
+
+.studentBulkTableInput:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+@media (max-width: 1100px) {
+  .studentBulkWorkspace {
+    flex-direction: column;
+  }
+
+  .studentBulkFieldList {
+    width: 100%;
+    max-height: 220px;
+  }
+}
+
+.newStudentRegPage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.newStudentRegHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.newStudentRegTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.newStudentRegSubtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.newStudentRegCsvActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.newStudentRegCsvBtn {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.newStudentRegCsvBtn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.newStudentRegCsvBtn:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.newStudentRegCsvBtnPrimary {
+  border-color: #00a99d;
+  color: #007a72;
+}
+
+.newStudentRegFileInput {
+  display: none;
+}
+
+.newStudentRegImportDetail {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.newStudentRegCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: clamp(14px, 1.8vw, 18px);
+  position: relative;
+}
+
+.newStudentRegCardHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.newStudentRegSectionTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.newStudentRegCsvHint {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.newStudentRegFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.newStudentRegFooter {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.newStudentRegError,
+.newStudentRegMessage {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.newStudentRegError {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.newStudentRegMessage {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.newStudentRegFieldError {
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.newStudentRegInputError {
+  border-color: #f87171;
+}
+
+.newStudentRegFootnote {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.newStudentRegFootnoteLink {
+  margin: 0 4px;
+  color: #00a99d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.newStudentRegFootnoteLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .newStudentRegHeader {
+    flex-direction: column;
+  }
+
+  .newStudentRegFormGrid,
+  .newStudentRegFooter {
+    grid-template-columns: 1fr;
+  }
+}
+
+.examResultRegPage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.examResultRegHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.examResultRegTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.examResultRegSubtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.examResultRegHeaderActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.examResultRegActionBtn {
+  padding: 10px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.examResultRegActionBtn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.examResultRegActionBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.examResultRegHeaderHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.examResultRegImportCard {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  background: #fffbeb;
+  padding: 16px 18px;
+}
+
+.examResultRegImportCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.examResultRegImportCardTitle {
+  margin: 0;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.examResultRegImportCardHint {
+  margin: 0;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.examResultRegImportFields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.examResultRegField {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.examResultRegFieldDate {
+  flex: 0 0 160px;
+  min-width: 160px;
+}
+
+.examResultRegFieldType {
+  flex: 0 0 140px;
+  min-width: 140px;
+}
+
+.examResultRegFieldLabel {
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.examResultRegFieldInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+}
+
+.examResultRegFieldInputReadonly {
+  color: #374151;
+  background: #f8fafc;
+}
+
+.examResultRegFileInput {
+  display: none;
+}
+
+.examResultRegFileBtn,
+.examResultRegImportBtn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.examResultRegFileBtn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #374151;
+}
+
+.examResultRegImportBtn {
+  border: none;
+  background: #00a99d;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.examResultRegFileBtn:disabled,
+.examResultRegImportBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.examResultRegError,
+.examResultRegMessage,
+.examResultRegImportDetail {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.examResultRegError {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.examResultRegMessage {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.examResultRegImportDetail {
+  background: #f8fafc;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.examResultRegWorkspace {
+  display: flex;
+  flex: 1;
+  gap: 18px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.examResultRegListPanel,
+.examResultRegEditPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.examResultRegListPanel {
+  width: min(100%, 340px);
+  flex-shrink: 0;
+}
+
+.examResultRegEditPanel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.examResultRegListHeader,
+.examResultRegEditHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.examResultRegPanelTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.examResultRegCountBadge {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.examResultRegSearch {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 11px;
+}
+
+.examResultRegListBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.examResultRegListItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.examResultRegListItem:hover {
+  background: #f8fafc;
+}
+
+.examResultRegListItemActive {
+  border-color: #99f6e4;
+  background: #e0f7f5;
+}
+
+.examResultRegListItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.examResultRegListItemName {
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.examResultRegListItemMeta {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.examResultRegBadge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.examResultRegBadgeMock,
+.examResultRegBadgeGraduation,
+.examResultRegBadgeRegular {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.examResultRegEmpty,
+.examResultRegEditEmpty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.examResultRegEditHint {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.examResultRegEditBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.examResultRegSectionTitle {
+  margin: 0;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.examResultRegBasicRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.examResultRegWarning {
+  margin: 0;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.examResultRegTableToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.examResultRegSubjectFilter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.examResultRegSubjectFilter select {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.examResultRegTableWrap {
+  overflow: auto;
+}
+
+.examResultRegTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.examResultRegTable th {
+  padding: 6px 12px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.examResultRegTable td {
+  padding: 8px 12px;
+  border-top: 1px solid #e2e8f0;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.examResultRegScoreInput {
+  width: 64px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.examResultRegRateCell {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.examResultRegEditFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.examResultRegCancelBtn,
+.examResultRegSaveBtn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.examResultRegCancelBtn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #374151;
+}
+
+.examResultRegSaveBtn {
+  border: none;
+  background: #00a99d;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.examResultRegCancelBtn:disabled,
+.examResultRegSaveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .examResultRegWorkspace {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .examResultRegListPanel {
+    width: 100%;
+    max-height: 280px;
+  }
+
+  .examResultRegHeader {
+    flex-direction: column;
+  }
+
+  .examResultRegHeaderActions {
+    align-items: stretch;
+    width: 100%;
   }
 }
