@@ -53,60 +53,41 @@ a {
 }
 
 .loginPage {
+  position: relative;
+  isolation: isolate;
   display: flex;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   min-width: 0;
-  background: var(--color-white);
+  overflow-x: clip;
+  background: #eef8f7;
+}
+
+.loginPageBackground {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #eef8f7;
+  background-image: url("/assets/login/login-chara.png");
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: contain;
 }
 
 .loginLeft {
   position: relative;
-  isolation: isolate;
+  z-index: 1;
   display: flex;
   flex: 1 1 58%;
   flex-direction: column;
   width: auto;
   max-width: 945px;
   min-width: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: clamp(24px, 3vw, 40px) clamp(24px, 4vw, 56px) clamp(20px, 3vw, 32px);
   overflow-x: clip;
-  background: linear-gradient(180deg, #f8fffe 0%, #eef8f7 100%);
-}
-
-.loginIllustration {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.loginIllustrationImage {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.loginLeft::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(255, 255, 255, 0.45) 18%,
-    rgba(255, 255, 255, 0) 32%
-  );
-  pointer-events: none;
-}
-
-.loginLeft > :not(.loginIllustration) {
-  position: relative;
-  z-index: 2;
+  background: transparent;
 }
 
 .loginHeadline {
@@ -188,14 +169,16 @@ a {
 }
 
 .loginRight {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex: 1 1 42%;
   align-items: center;
   justify-content: center;
   min-width: min(100%, 320px);
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: clamp(24px, 3vw, 40px) clamp(20px, 3vw, 48px);
-  background: var(--color-panel);
+  background: transparent;
 }
 
 .loginCard {
@@ -2509,15 +2492,9 @@ a {
 }
 
 @media (max-height: 820px) {
-  .loginLeft {
+  .loginLeft,
+  .loginRight {
     min-height: auto;
-  }
-
-  .loginIllustrationImage {
-    max-height: min(62vh, 520px);
-    width: 100%;
-    object-fit: contain;
-    object-position: bottom center;
   }
 
   .learningTimeBottomRow {
@@ -2548,6 +2525,11 @@ a {
 @media (max-width: 960px) {
   .loginPage {
     flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  .loginPageBackground {
+    background-position: center bottom;
   }
 
   .loginLeft {
