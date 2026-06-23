@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
+import {
+  formatBulkScoreImportRowErrors,
+  downloadStudentBulkScoreTemplate,
+  STUDENT_BULK_SCORE_IMPORT_GROUPS,
+  type BulkScoreImportRowError,
+  type StudentBulkScoreImportGroup,
+} from "@/lib/studentBulkScoreImport";
 import {
   STUDENT_BULK_SECTION_LABELS,
   countDirtyRows,
@@ -43,6 +50,7 @@ function getPasswordPlaceholder(
 }
 
 export function StudentBulkEditView() {
+  const csvImportInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<StudentBulkRow[]>([]);
   const [extendedFieldsAvailable, setExtendedFieldsAvailable] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<StudentBulkGroupKey>("nickname");
@@ -53,10 +61,16 @@ export function StudentBulkEditView() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [importDetail, setImportDetail] = useState<string | null>(null);
 
   const selectedGroupDef = getStudentBulkGroup(selectedGroup);
+  const supportsCsvImport = STUDENT_BULK_SCORE_IMPORT_GROUPS.has(
+    selectedGroup as StudentBulkScoreImportGroup,
+  );
+  const isBusy = isLoading || isSaving || isImporting;
 
   const loadRows = useCallback(async () => {
     setIsLoading(true);
@@ -180,9 +194,57 @@ export function StudentBulkEditView() {
   }, [baselineValues, editValues, rows, selectedGroupDef]);
 
   const fieldDisabled =
-    isLoading ||
-    isSaving ||
+    isBusy ||
     Boolean(selectedGroupDef?.requiresExtended && !extendedFieldsAvailable);
+
+  async function handleCsvImport(file: File) {
+    if (!supportsCsvImport) {
+      return;
+    }
+
+    setIsImporting(true);
+    setError(null);
+    setSaveMessage(null);
+    setImportDetail(null);
+
+    try {
+      const csvText = await file.text();
+      const response = await fetch("/api/student-profiles-bulk/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          group: selectedGroup,
+          csvText,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        rows?: StudentBulkRow[];
+        extendedFieldsAvailable?: boolean;
+        message?: string;
+        rowErrors?: BulkScoreImportRowError[];
+      } | null;
+
+      if (!response.ok) {
+        if (payload?.rowErrors?.length) {
+          setImportDetail(formatBulkScoreImportRowErrors(payload.rowErrors));
+        }
+        throw new Error(getApiErrorMessage(response.status, payload?.message));
+      }
+
+      const nextRows = payload?.rows ?? [];
+      setRows(nextRows);
+      setExtendedFieldsAvailable(Boolean(payload?.extendedFieldsAvailable));
+      applyGroupValues(nextRows, selectedGroup);
+      setSaveMessage(payload?.message ?? "インポートしました。");
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "CSVインポートに失敗しました。");
+    } finally {
+      setIsImporting(false);
+      if (csvImportInputRef.current) {
+        csvImportInputRef.current.value = "";
+      }
+    }
+  }
 
   function handleGroupSelect(groupKey: StudentBulkGroupKey) {
     if (groupKey === selectedGroup) {
@@ -198,6 +260,7 @@ export function StudentBulkEditView() {
 
     setSelectedGroup(groupKey);
     setSaveMessage(null);
+    setImportDetail(null);
     setError(null);
   }
 
@@ -325,7 +388,7 @@ export function StudentBulkEditView() {
                       type="button"
                       className={`studentBulkFieldBtn${isActive ? " studentBulkFieldBtnActive" : ""}`}
                       onClick={() => handleGroupSelect(group.key)}
-                      disabled={isSaving}
+                      disabled={isBusy}
                     >
                       {group.label}
                       {isUnavailable ? "（未設定）" : ""}
@@ -338,7 +401,10 @@ export function StudentBulkEditView() {
         </aside>
 
         <section className="studentBulkTablePanel">
-          <PortalLoadingOverlay active={isLoading || isSaving} label={isSaving ? "保存中..." : undefined} />
+          <PortalLoadingOverlay
+            active={isBusy}
+            label={isImporting ? "インポート中..." : isSaving ? "保存中..." : undefined}
+          />
 
           <div className="studentBulkTableHeader">
             <div>
@@ -348,18 +414,74 @@ export function StudentBulkEditView() {
                 {dirtyCount > 0 ? ` 未保存 ${dirtyCount}件` : ""}
               </p>
             </div>
-            <button
-              type="button"
-              className="studentBulkSecondaryBtn"
-              onClick={handleCancel}
-              disabled={isLoading || isSaving || dirtyCount === 0}
-            >
-              変更を戻す
-            </button>
+            <div className="studentBulkTableHeaderActions">
+              <button
+                type="button"
+                className="studentBulkSecondaryBtn"
+                onClick={handleCancel}
+                disabled={isBusy || dirtyCount === 0}
+              >
+                変更を戻す
+              </button>
+            </div>
           </div>
+
+          {supportsCsvImport ? (
+            <section className="studentBulkImportCard">
+              <div className="studentBulkImportCardHeader">
+                <h3 className="studentBulkImportCardTitle">CSVインポート</h3>
+                <p className="studentBulkImportCardHint">
+                  テンプレートを記入して学籍番号ごとに一括インポートできます
+                </p>
+              </div>
+              <div className="studentBulkImportFields">
+                <button
+                  type="button"
+                  className="studentBulkImportActionBtn"
+                  onClick={() =>
+                    downloadStudentBulkScoreTemplate(
+                      selectedGroup as StudentBulkScoreImportGroup,
+                    )
+                  }
+                  disabled={isBusy || fieldDisabled}
+                >
+                  ↓ テンプレートダウンロード
+                </button>
+                <input
+                  ref={csvImportInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="studentBulkFileInput"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void handleCsvImport(file);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="studentBulkImportFileBtn"
+                  onClick={() => csvImportInputRef.current?.click()}
+                  disabled={isBusy || fieldDisabled}
+                >
+                  ファイルを選択
+                </button>
+                <button
+                  type="button"
+                  className="studentBulkImportExecuteBtn"
+                  onClick={() => csvImportInputRef.current?.click()}
+                  disabled={isBusy || fieldDisabled}
+                >
+                  {isImporting ? "インポート中..." : "インポート実行"}
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           {error ? <p className="loginError">{error}</p> : null}
           {saveMessage ? <p className="studentInfoSaveMessage">{saveMessage}</p> : null}
+          {importDetail ? <pre className="studentBulkImportDetail">{importDetail}</pre> : null}
 
           {selectedGroupDef?.requiresExtended && !extendedFieldsAvailable ? (
             <p className="studentInfoScoreHint">

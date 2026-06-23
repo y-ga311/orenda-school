@@ -25,14 +25,12 @@ function getPrimaryEncryptionKey(): string | undefined {
   return process.env.STUDENT_NAME_ENCRYPTION_KEY?.trim() || undefined;
 }
 
-/** URL/form 経由で base64 の「+」がスペースに化けるケースを補正 */
-function normalizeStudentName(value: string) {
-  const trimmed = value.trim();
-  if (/^[A-Za-z0-9+/=\s]+$/.test(trimmed) && trimmed.length >= 16) {
-    return trimmed.replace(/ /g, "+").replace(/[\r\n\t]/g, "");
-  }
-
-  return trimmed.replace(/\s+/g, "");
+/**
+ * 暗号文の正規化（Supabase Table Editor 表示で base64 に改行が混入するケースあり）
+ * 平文氏名には適用しないこと（スペースが「+」に化ける）
+ */
+function normalizeEncryptedName(value: string) {
+  return value.trim().replace(/ /g, "+").replace(/\s+/g, "");
 }
 
 function base64DecodedLength(value: string) {
@@ -65,7 +63,7 @@ function isBase64Ciphertext(value: string) {
 
 /** 復号 RPC を呼ぶべきか（平文の日本語氏名は除外） */
 export function looksLikeEncryptedStudentName(value: string) {
-  const normalized = normalizeStudentName(value);
+  const normalized = normalizeEncryptedName(value);
   if (!normalized) {
     return false;
   }
@@ -73,6 +71,20 @@ export function looksLikeEncryptedStudentName(value: string) {
     return false;
   }
   return isBase64Ciphertext(normalized);
+}
+
+/** 表示用: 暗号化正規化の副産物で氏名中に入った「+」をスペースに戻す */
+export function formatStudentNameForDisplay(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || looksLikeEncryptedStudentName(trimmed)) {
+    return trimmed;
+  }
+
+  if (containsJapanese(trimmed) || /^[A-Za-z]/.test(trimmed)) {
+    return trimmed.replace(/\+/g, " ");
+  }
+
+  return trimmed;
 }
 
 async function decryptWithPostgresRpc(
@@ -114,7 +126,7 @@ async function decryptWithPostgresRpc(
 
   if (
     decrypted === encrypted ||
-    normalizeStudentName(decrypted) === encrypted
+    normalizeEncryptedName(decrypted) === encrypted
   ) {
     return null;
   }
@@ -154,7 +166,7 @@ async function encryptWithPostgresRpc(
     return null;
   }
 
-  const encrypted = normalizeStudentName(data);
+  const encrypted = normalizeEncryptedName(data);
   if (!encrypted || !looksLikeEncryptedStudentName(encrypted)) {
     return null;
   }
@@ -175,9 +187,8 @@ export async function encryptStudentNameForStorage(
     return trimmed;
   }
 
-  const normalized = normalizeStudentName(trimmed);
-  if (looksLikeEncryptedStudentName(normalized)) {
-    return normalized;
+  if (looksLikeEncryptedStudentName(trimmed)) {
+    return normalizeEncryptedName(trimmed);
   }
 
   const encryptionKey = getPrimaryEncryptionKey();
@@ -208,9 +219,8 @@ export async function prepareStudentNameForStorage(
   }
 
   const plaintext = (await decryptStudentName(trimmed)) ?? trimmed;
-  const normalizedPlain = normalizeStudentName(plaintext);
 
-  if (looksLikeEncryptedStudentName(normalizedPlain)) {
+  if (looksLikeEncryptedStudentName(plaintext)) {
     console.error(
       "[studentNameCrypto] Could not normalize student name to plaintext before encryption.",
     );
@@ -232,10 +242,10 @@ export async function decryptStudentName(
     return trimmed;
   }
 
-  const normalized = normalizeStudentName(trimmed);
+  const normalized = normalizeEncryptedName(trimmed);
 
   if (!looksLikeEncryptedStudentName(normalized)) {
-    return trimmed;
+    return formatStudentNameForDisplay(trimmed);
   }
 
   const encryptionKeys = getEncryptionKeys();
@@ -251,7 +261,7 @@ export async function decryptStudentName(
   let candidate = normalized;
   for (let depth = 0; depth < 5; depth++) {
     if (!looksLikeEncryptedStudentName(candidate)) {
-      return candidate;
+      return formatStudentNameForDisplay(candidate);
     }
 
     let decrypted: string | null = null;
@@ -270,11 +280,11 @@ export async function decryptStudentName(
       break;
     }
 
-    candidate = normalizeStudentName(decrypted);
+    candidate = decrypted.trim();
   }
 
   if (!looksLikeEncryptedStudentName(candidate)) {
-    return candidate;
+    return formatStudentNameForDisplay(candidate);
   }
 
   console.error(

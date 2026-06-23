@@ -49,8 +49,8 @@ BEGIN
     keys := array_append(keys, 'ここに暗号化キーを設定');
   END IF;
 
-  normalized_name := regexp_replace(btrim(encrypted_name), '[\r\n\t]', '', 'g');
-  normalized_name := replace(normalized_name, ' ', '+');
+  normalized_name := replace(btrim(encrypted_name), ' ', '+');
+  normalized_name := regexp_replace(normalized_name, '\s+', '', 'g');
 
   IF normalized_name ~ '[ぁ-んァ-ン一-龥]' THEN
     RETURN btrim(encrypted_name);
@@ -62,6 +62,21 @@ BEGIN
         decrypted := pgp_sym_decrypt(
           decode(normalized_name, 'base64'),
           candidate_key
+        );
+        IF decrypted IS NOT NULL
+           AND btrim(decrypted) <> ''
+           AND btrim(decrypted) <> normalized_name THEN
+          RETURN btrim(decrypted);
+        END IF;
+      EXCEPTION
+        WHEN OTHERS THEN
+          NULL;
+      END;
+      BEGIN
+        decrypted := pgp_sym_decrypt(
+          decode(normalized_name, 'base64'),
+          candidate_key,
+          'cipher-algo=aes256'
         );
         IF decrypted IS NOT NULL
            AND btrim(decrypted) <> ''

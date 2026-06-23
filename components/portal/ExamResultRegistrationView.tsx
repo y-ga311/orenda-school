@@ -81,7 +81,6 @@ function getExamTypeBadgeClass(examType: ExamRegistrationListItem["examType"]) {
 
 export function ExamResultRegistrationView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const headerFileInputRef = useRef<HTMLInputElement>(null);
 
   const [items, setItems] = useState<ExamRegistrationListItem[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -355,19 +354,6 @@ export function ExamResultRegistrationView() {
           </p>
         </div>
         <div className="examResultRegHeaderActions">
-          <input
-            ref={headerFileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="examResultRegFileInput"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) {
-                void handleImport(file);
-              }
-            }}
-          />
           <button
             type="button"
             className="examResultRegActionBtn"
@@ -376,22 +362,13 @@ export function ExamResultRegistrationView() {
           >
             ↓ テンプレートダウンロード
           </button>
-          <button
-            type="button"
-            className="examResultRegActionBtn"
-            onClick={() => headerFileInputRef.current?.click()}
-            disabled={isBusy}
-          >
-            ↑ CSVインポート
-          </button>
-          <p className="examResultRegHeaderHint">CSVインポート時は試験名と実施日を入力してください</p>
         </div>
       </header>
 
       <section className="examResultRegImportCard">
         <div className="examResultRegImportCardHeader">
           <h2 className="examResultRegImportCardTitle">CSVインポート</h2>
-          <p className="examResultRegImportCardHint">インポート前に試験名・実施日を入力</p>
+          <p className="examResultRegImportCardHint">インポート前に試験名・実施日を入力してください</p>
         </div>
         <div className="examResultRegImportFields">
           <label className="examResultRegField">
