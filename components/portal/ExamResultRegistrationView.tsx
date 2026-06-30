@@ -6,12 +6,16 @@ import { TEST_SCORE_SUBJECTS, type TestScoreSubjectColumn } from "@/lib/examSubj
 import {
   buildExamResultListKey,
   downloadExamResultTemplate,
+  downloadRegularExamTemplate,
   formatCorrectRate,
+  getRegularExamTermOptions,
   parseExamResultCsv,
+  parseRegularExamResultCsv,
+  validateImportMeta,
+  validateRegularImportMeta,
   type ExamRegistrationDetail,
   type ExamRegistrationListItem,
   type ExamRegistrationRowError,
-  validateImportMeta,
 } from "@/lib/examResultRegistration";
 import { toDateInputValue } from "@/lib/questionCountSettings";
 
@@ -81,6 +85,7 @@ function getExamTypeBadgeClass(examType: ExamRegistrationListItem["examType"]) {
 
 export function ExamResultRegistrationView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const regularFileInputRef = useRef<HTMLInputElement>(null);
 
   const [items, setItems] = useState<ExamRegistrationListItem[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -89,8 +94,12 @@ export function ExamResultRegistrationView() {
   const [editTestDate, setEditTestDate] = useState("");
   const [editRows, setEditRows] = useState<EditableRow[]>([]);
   const [search, setSearch] = useState("");
+  const [importMode, setImportMode] = useState<"mock" | "regular">("mock");
   const [importTestName, setImportTestName] = useState("");
   const [importTestDate, setImportTestDate] = useState("");
+  const [importSessionKey, setImportSessionKey] = useState(
+    getRegularExamTermOptions()[0]?.sessionKey ?? "1-1",
+  );
   const [selectedSubject, setSelectedSubject] = useState<string>("summary");
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -148,7 +157,11 @@ export function ExamResultRegistrationView() {
 
       setDetail(payload.detail);
       setEditTestName(payload.detail.testName);
-      setEditTestDate(toDateInputValue(payload.detail.testDate));
+      setEditTestDate(
+        payload.detail.examType === "regular" && payload.detail.sessionKey
+          ? payload.detail.sessionKey
+          : toDateInputValue(payload.detail.testDate),
+      );
       setEditRows(detailToEditableRows(payload.detail));
       setSelectedSubject("summary");
     } catch (loadError) {
@@ -256,13 +269,89 @@ export function ExamResultRegistrationView() {
     }
   };
 
+  const handleRegularImport = async (file: File) => {
+    const metaError = validateRegularImportMeta(importSessionKey);
+    if (metaError) {
+      setError(metaError);
+      setMessage(null);
+      setImportDetail(null);
+      return;
+    }
+
+    setIsImporting(true);
+    setError(null);
+    setMessage(null);
+    setImportDetail(null);
+
+    try {
+      const text = await file.text();
+      const parsed = parseRegularExamResultCsv(text, importSessionKey);
+      if (!parsed.ok) {
+        if (parsed.rowErrors?.length) {
+          setImportDetail(formatRowErrors(parsed.rowErrors));
+        }
+        throw new Error(parsed.message);
+      }
+
+      const response = await fetch("/api/exam-result-registration/import-regular", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionKey: importSessionKey,
+          rows: parsed.rows,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        sessionKey?: string;
+        sessionLabel?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(response.status, payload?.message));
+      }
+
+      const termLabel =
+        payload?.sessionLabel ??
+        getRegularExamTermOptions().find((term) => term.sessionKey === importSessionKey)
+          ?.sessionLabel ??
+        importSessionKey;
+      const nextKey = buildExamResultListKey(
+        "student_exam_results",
+        termLabel,
+        payload?.sessionKey ?? importSessionKey,
+        "regular",
+      );
+      await loadList();
+      setSelectedKey(nextKey);
+      setMessage(payload?.message ?? "定期試験結果をインポートしました。");
+
+      const skippedNotes: string[] = [];
+      if (parsed.skippedEmptyRows > 0) {
+        skippedNotes.push(`空行 ${parsed.skippedEmptyRows}行をスキップ`);
+      }
+      if (skippedNotes.length > 0) {
+        setImportDetail(skippedNotes.join(" / "));
+      }
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "CSVインポートに失敗しました。");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedKey || !detail) {
       return;
     }
 
-    if (!editTestName.trim() || !editTestDate.trim()) {
-      setError("試験名と実施日を入力してください。");
+    const isRegularDetail =
+      detail.source === "student_exam_results" && detail.examType === "regular";
+    const sessionKeyForSave = detail.sessionKey ?? editTestDate.trim();
+
+    if (!editTestName.trim() || (!isRegularDetail && !editTestDate.trim())) {
+      setError(isRegularDetail ? "学期名を入力してください。" : "試験名と実施日を入力してください。");
       return;
     }
 
@@ -277,7 +366,7 @@ export function ExamResultRegistrationView() {
         body: JSON.stringify({
           key: selectedKey,
           testName: editTestName.trim(),
-          testDate: editTestDate.trim(),
+          testDate: isRegularDetail ? sessionKeyForSave : editTestDate.trim(),
           rows: editRows.map((row) => ({
             recordId: row.recordId,
             studentId: row.studentId,
@@ -357,7 +446,13 @@ export function ExamResultRegistrationView() {
           <button
             type="button"
             className="examResultRegActionBtn"
-            onClick={() => downloadExamResultTemplate()}
+            onClick={() => {
+              if (importMode === "regular") {
+                downloadRegularExamTemplate(importSessionKey);
+              } else {
+                downloadExamResultTemplate();
+              }
+            }}
             disabled={isBusy}
           >
             ↓ テンプレートダウンロード
@@ -368,30 +463,68 @@ export function ExamResultRegistrationView() {
       <section className="examResultRegImportCard">
         <div className="examResultRegImportCardHeader">
           <h2 className="examResultRegImportCardTitle">CSVインポート</h2>
-          <p className="examResultRegImportCardHint">インポート前に試験名・実施日を入力してください</p>
+          <p className="examResultRegImportCardHint">
+            {importMode === "regular"
+              ? "学期を選択してからCSVをインポートしてください（100点満点）"
+              : "インポート前に試験名・実施日を入力してください"}
+          </p>
+        </div>
+        <div className="examResultRegImportModeRow">
+          <label className="examResultRegField examResultRegFieldType">
+            <span className="examResultRegFieldLabel">インポート種別</span>
+            <select
+              className="examResultRegFieldInput"
+              value={importMode}
+              onChange={(event) => setImportMode(event.target.value as "mock" | "regular")}
+              disabled={isBusy}
+            >
+              <option value="mock">模擬・卒業試験</option>
+              <option value="regular">定期試験</option>
+            </select>
+          </label>
         </div>
         <div className="examResultRegImportFields">
-          <label className="examResultRegField">
-            <span className="examResultRegFieldLabel">試験名</span>
-            <input
-              className="examResultRegFieldInput"
-              type="text"
-              value={importTestName}
-              placeholder="例：第1回模擬試験（25期生3年次）"
-              onChange={(event) => setImportTestName(event.target.value)}
-              disabled={isBusy}
-            />
-          </label>
-          <label className="examResultRegField examResultRegFieldDate">
-            <span className="examResultRegFieldLabel">実施日</span>
-            <input
-              className="examResultRegFieldInput"
-              type="date"
-              value={importTestDate}
-              onChange={(event) => setImportTestDate(event.target.value)}
-              disabled={isBusy}
-            />
-          </label>
+          {importMode === "regular" ? (
+            <label className="examResultRegField">
+              <span className="examResultRegFieldLabel">学期</span>
+              <select
+                className="examResultRegFieldInput"
+                value={importSessionKey}
+                onChange={(event) => setImportSessionKey(event.target.value)}
+                disabled={isBusy}
+              >
+                {getRegularExamTermOptions().map((term) => (
+                  <option key={term.sessionKey} value={term.sessionKey}>
+                    {term.sessionLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <>
+              <label className="examResultRegField">
+                <span className="examResultRegFieldLabel">試験名</span>
+                <input
+                  className="examResultRegFieldInput"
+                  type="text"
+                  value={importTestName}
+                  placeholder="例：第1回模擬試験（25期生3年次）"
+                  onChange={(event) => setImportTestName(event.target.value)}
+                  disabled={isBusy}
+                />
+              </label>
+              <label className="examResultRegField examResultRegFieldDate">
+                <span className="examResultRegFieldLabel">実施日</span>
+                <input
+                  className="examResultRegFieldInput"
+                  type="date"
+                  value={importTestDate}
+                  onChange={(event) => setImportTestDate(event.target.value)}
+                  disabled={isBusy}
+                />
+              </label>
+            </>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -405,10 +538,29 @@ export function ExamResultRegistrationView() {
               }
             }}
           />
+          <input
+            ref={regularFileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="examResultRegFileInput"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) {
+                void handleRegularImport(file);
+              }
+            }}
+          />
           <button
             type="button"
             className="examResultRegFileBtn"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (importMode === "regular") {
+                regularFileInputRef.current?.click();
+              } else {
+                fileInputRef.current?.click();
+              }
+            }}
             disabled={isBusy}
           >
             ファイルを選択
@@ -416,7 +568,13 @@ export function ExamResultRegistrationView() {
           <button
             type="button"
             className="examResultRegImportBtn"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (importMode === "regular") {
+                regularFileInputRef.current?.click();
+              } else {
+                fileInputRef.current?.click();
+              }
+            }}
             disabled={isBusy}
           >
             {isImporting ? "インポート中..." : "インポート実行"}
@@ -486,7 +644,11 @@ export function ExamResultRegistrationView() {
                 <h3 className="examResultRegSectionTitle">基本情報</h3>
                 <div className="examResultRegBasicRow">
                   <label className="examResultRegField">
-                    <span className="examResultRegFieldLabel">試験名</span>
+                    <span className="examResultRegFieldLabel">
+                      {detail.source === "student_exam_results" && detail.examType === "regular"
+                        ? "学期"
+                        : "試験名"}
+                    </span>
                     <input
                       className="examResultRegFieldInput"
                       type="text"
@@ -495,16 +657,28 @@ export function ExamResultRegistrationView() {
                       disabled={isBusy}
                     />
                   </label>
-                  <label className="examResultRegField examResultRegFieldDate">
-                    <span className="examResultRegFieldLabel">実施日</span>
-                    <input
-                      className="examResultRegFieldInput"
-                      type="date"
-                      value={editTestDate}
-                      onChange={(event) => setEditTestDate(event.target.value)}
-                      disabled={isBusy}
-                    />
-                  </label>
+                  {detail.source === "student_exam_results" && detail.examType === "regular" ? (
+                    <label className="examResultRegField examResultRegFieldType">
+                      <span className="examResultRegFieldLabel">学期キー</span>
+                      <input
+                        className="examResultRegFieldInput examResultRegFieldInputReadonly"
+                        type="text"
+                        value={detail.sessionKey ?? editTestDate}
+                        readOnly
+                      />
+                    </label>
+                  ) : (
+                    <label className="examResultRegField examResultRegFieldDate">
+                      <span className="examResultRegFieldLabel">実施日</span>
+                      <input
+                        className="examResultRegFieldInput"
+                        type="date"
+                        value={editTestDate}
+                        onChange={(event) => setEditTestDate(event.target.value)}
+                        disabled={isBusy}
+                      />
+                    </label>
+                  )}
                   <label className="examResultRegField examResultRegFieldType">
                     <span className="examResultRegFieldLabel">試験種別</span>
                     <input
@@ -567,7 +741,11 @@ export function ExamResultRegistrationView() {
                             ))
                           : null}
                         {detail.source === "test_scores" ? <th>総得点</th> : null}
-                        <th>正解率</th>
+                        <th>
+                          {detail.source === "student_exam_results" && detail.examType === "regular"
+                            ? "平均得点"
+                            : "正解率"}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -610,7 +788,13 @@ export function ExamResultRegistrationView() {
                               ))
                             : null}
                           {detail.source === "test_scores" ? <td>{row.totalCorrect ?? "—"}</td> : null}
-                          <td className="examResultRegRateCell">{formatCorrectRate(row.correctRate)}</td>
+                          <td className="examResultRegRateCell">
+                            {detail.source === "student_exam_results" && detail.examType === "regular"
+                              ? row.correctRate === null || row.correctRate === undefined
+                                ? "—"
+                                : `${row.correctRate}点`
+                              : formatCorrectRate(row.correctRate)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

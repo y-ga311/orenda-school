@@ -14,6 +14,11 @@ import {
   type ExamRegistrationScoreRow,
 } from "@/lib/examResultRegistration";
 import { decryptStudentName } from "@/lib/studentNameCrypto.server";
+import {
+  getRegularExamSubjectsForSession,
+  loadRegularExamTerms,
+} from "@/lib/regularExam.server";
+import { getRegularExamTerm } from "@/lib/regularExam";
 import { TEST_SCORES_SELECT, type TestScoreRow } from "@/lib/testScores";
 import {
   QUESTION_COUNTS_SELECT,
@@ -158,7 +163,7 @@ export async function listRegisteredExams(supabase: SupabaseClient) {
         source: "student_exam_results",
         testName: value.testName,
         testDate: value.sessionKey,
-        testDateLabel: formatListTestDateLabel(value.sessionKey),
+        testDateLabel: value.testName,
         examType: value.examType,
         examTypeLabel: getExamRegistrationTypeLabel(value.examType),
         registeredCount: value.students.size,
@@ -297,9 +302,15 @@ export async function getExamRegistrationDetail(
   }
 
   const { byGakuseiId } = await loadStudentsById(supabase);
-  const subjectNames = [...new Set((data ?? []).map((row) => String(row.subject_name).trim()))].filter(
-    Boolean,
-  );
+  const { terms } = await loadRegularExamTerms(supabase);
+  const masterSubjects = getRegularExamSubjectsForSession(terms, parsedKey.sessionKey);
+  const subjectNamesFromData = [
+    ...new Set((data ?? []).map((row) => String(row.subject_name).trim())),
+  ].filter(Boolean);
+  const subjectNames =
+    masterSubjects.length > 0
+      ? masterSubjects
+      : subjectNamesFromData.sort((a, b) => a.localeCompare(b, "ja"));
 
   const grouped = new Map<string, ExamRegistrationScoreRow>();
   (data ?? []).forEach((row: DbExamResultRow) => {
@@ -562,5 +573,104 @@ export async function importTestScoreResults(
     inserted,
     updated,
     registeredCount: input.rows.length,
+  };
+}
+
+export async function importRegularExamResults(
+  supabase: SupabaseClient,
+  input: {
+    sessionKey: string;
+    rows: Array<{
+      studentId: number;
+      scores: Record<string, number | null>;
+    }>;
+  },
+) {
+  const term = getRegularExamTerm(input.sessionKey);
+  if (!term) {
+    return { ok: false as const, message: "学期が選択されていません。" };
+  }
+
+  const { byId } = await loadStudentsById(supabase);
+  const missingStudents: number[] = [];
+
+  input.rows.forEach((row) => {
+    if (!byId.has(row.studentId)) {
+      missingStudents.push(row.studentId);
+    }
+  });
+
+  if (missingStudents.length > 0) {
+    return {
+      ok: false as const,
+      message: `存在しない学籍番号があります: ${missingStudents.slice(0, 5).join(", ")}`,
+    };
+  }
+
+  let inserted = 0;
+  let updated = 0;
+
+  for (const row of input.rows) {
+    const student = byId.get(row.studentId);
+    if (!student?.gakusei_id) {
+      continue;
+    }
+
+    for (const subjectName of term.subjects) {
+      const score = row.scores[subjectName];
+      if (score === null || score === undefined) {
+        continue;
+      }
+
+      const { data: existing } = await supabase
+        .from("student_exam_results")
+        .select("id")
+        .eq("gakusei_id", student.gakusei_id)
+        .eq("exam_type", "regular")
+        .eq("session_key", term.sessionKey)
+        .eq("subject_name", subjectName)
+        .maybeSingle();
+
+      const payload = {
+        gakusei_id: student.gakusei_id,
+        exam_type: "regular",
+        session_key: term.sessionKey,
+        session_label: term.sessionLabel,
+        subject_name: subjectName,
+        score,
+      };
+
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("student_exam_results")
+          .update(payload)
+          .eq("id", existing.id);
+        if (error) {
+          return {
+            ok: false as const,
+            message: `学籍番号 ${row.studentId} の更新に失敗しました。`,
+          };
+        }
+        updated += 1;
+      } else {
+        const { error } = await supabase.from("student_exam_results").insert(payload);
+        if (error) {
+          return {
+            ok: false as const,
+            message: `学籍番号 ${row.studentId} の登録に失敗しました。`,
+          };
+        }
+        inserted += 1;
+      }
+    }
+  }
+
+  return {
+    ok: true as const,
+    inserted,
+    updated,
+    registeredCount: input.rows.length,
+    sessionKey: term.sessionKey,
+    sessionLabel: term.sessionLabel,
   };
 }

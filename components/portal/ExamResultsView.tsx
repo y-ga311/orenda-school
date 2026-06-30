@@ -8,9 +8,11 @@ import {
   EXAM_TYPE_CONFIG,
   calculateAverageScore,
   calculateExamTrackTotals,
+  formatScoreDetail,
   formatTestScoreDetail,
   getNotTakenScoreTone,
   getPercentScoreTone,
+  getScoreTone,
   isTakenExamScore,
   type ExamScoreRow,
   type ExamSessionOption,
@@ -25,6 +27,7 @@ type ExamResultsViewProps = {
 
 type ExamResultsData = {
   examType: ExamType;
+  scoreFormat?: "points" | "percent";
   sessions: ExamSessionOption[];
   selectedSessionKey: string | null;
   sectionTitle: string | null;
@@ -32,6 +35,7 @@ type ExamResultsData = {
   scores: ExamScoreRow[];
   averageScore: number | null;
   tableMissing?: boolean;
+  masterTableMissing?: boolean;
   questionCountsMissing?: boolean;
 };
 
@@ -140,9 +144,10 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
   }, [selectedGakuseiId, examType]);
 
   const usesTestScoreFormat = usesTestScoresTable(examType);
+  const usesPointScoreFormat = !usesTestScoreFormat;
 
   useEffect(() => {
-    if (!selectedGakuseiId || !usesTestScoreFormat) {
+    if (!selectedGakuseiId) {
       setData(null);
       setError(null);
       setIsLoading(false);
@@ -197,7 +202,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [examType, selectedGakuseiId, activeSessionKey, usesTestScoreFormat]);
+  }, [examType, selectedGakuseiId, activeSessionKey]);
 
   const scores = data?.scores ?? [];
   const radarScores = useMemo(
@@ -323,14 +328,13 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
 
               {error ? <p className="loginError">{error}</p> : null}
 
-              {!usesTestScoreFormat ? (
-                <div className="learningTimeEmptyPanel examRegularPendingPanel">
-                  <p className="examRegularPendingTitle">定期試験は準備中です</p>
-                  <p className="examRegularPendingText">
-                    模擬試験・卒業試験と同じ構成で表示する予定です。専用テーブルの作成後に実装します。
-                  </p>
-                </div>
-              ) : (
+              {data?.masterTableMissing ? (
+                <p className="examScoreNotice">
+                  定期試験マスタが未作成です。docs/sql/create-regular-exam-tables.sql と
+                  seed-regular-exam-subjects.sql を実行してください。
+                </p>
+              ) : null}
+
               <div className="examDetailBody">
                 <section className="examScoreSection">
                   <h3 className="examScoreSectionTitle">
@@ -342,10 +346,12 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                   <div className="examScoreListWrap">
                     {isLoading ? (
                       <p className="learningTimeEmpty">読み込み中...</p>
-                        ) : data?.tableMissing ? (
-                          <p className="learningTimeEmpty">
-                            test_scores テーブルが未作成です。データ登録後に表示されます。
-                          </p>
+                    ) : data?.tableMissing ? (
+                      <p className="learningTimeEmpty">
+                        {usesPointScoreFormat
+                          ? "student_exam_results テーブルが未作成です。データ登録後に表示されます。"
+                          : "test_scores テーブルが未作成です。データ登録後に表示されます。"}
+                      </p>
                     ) : scores.length === 0 ? (
                       <p className="learningTimeEmpty">
                         この試験の成績データがありません。
@@ -357,8 +363,12 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                             const isNotTaken = !isTakenExamScore(row);
                             const tone = isNotTaken
                               ? getNotTakenScoreTone()
-                              : getPercentScoreTone(row.score ?? 0);
-                            const label = formatTestScoreDetail(row);
+                              : usesPointScoreFormat
+                                ? getScoreTone(row.score ?? 0)
+                                : getPercentScoreTone(row.score ?? 0);
+                            const label = usesPointScoreFormat
+                              ? formatScoreDetail(row)
+                              : formatTestScoreDetail(row);
 
                             return (
                               <div key={row.subjectName} className="examScoreRow">
@@ -389,7 +399,9 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                   </div>
 
                   <p className="examScoreHint">
-                    未実施科目は「-」表示。実施科目は正解数/問題数（正解率%）で表示します。40%以下は赤、60%未満は黄、60%以上は緑です。
+                    {usesPointScoreFormat
+                      ? "未実施科目は「-」表示。実施科目は100点満点の得点で表示します。80点以上は緑、60点以上は黄、60点未満は赤です。"
+                      : "未実施科目は「-」表示。実施科目は正解数/問題数（正解率%）で表示します。40%以下は赤、60%未満は黄、60%以上は緑です。"}
                   </p>
                 </section>
 
@@ -401,11 +413,11 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                       scores={radarScores}
                       averageScore={radarAverageScore}
                       trackTotals={trackTotals}
+                      scoreUnit={usesPointScoreFormat ? "点" : "%"}
                     />
                   )}
                 </section>
               </div>
-              )}
             </>
           )}
         </section>

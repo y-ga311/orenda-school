@@ -4544,6 +4544,12 @@ a {
   font-weight: 500;
 }
 
+.examResultRegImportModeRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
 .examResultRegImportFields {
   display: flex;
   flex-wrap: wrap;
@@ -5225,6 +5231,128 @@ a {
   }
 
   .tpcEditFooter {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subjectTrendPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.subjectTrendHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.subjectTrendFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subjectTrendSummaryRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.subjectTrendSummaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.subjectTrendSummaryLabel {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.subjectTrendSummaryValue {
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.subjectTrendChartSection,
+.subjectTrendTableSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.subjectTrendChartSubject {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.subjectTrendChartWrap {
+  overflow-x: auto;
+}
+
+.subjectTrendChart {
+  width: 100%;
+  min-width: 640px;
+}
+
+.subjectTrendChartScale,
+.subjectTrendChartAxisLabel {
+  fill: #64748b;
+}
+
+.subjectTrendChartEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.subjectTrendTableWrap {
+  overflow-x: auto;
+}
+
+.subjectTrendTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.subjectTrendTable th,
+.subjectTrendTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.subjectTrendTable th {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .subjectTrendHeader {
+    flex-direction: column;
+  }
+
+  .subjectTrendSummaryRow {
     grid-template-columns: 1fr;
   }
 }

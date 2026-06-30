@@ -8,6 +8,7 @@ type ExamRadarChartProps = {
     acupuncturist: ExamTrackTotal;
     moxibustionist: ExamTrackTotal;
   } | null;
+  scoreUnit?: "点" | "%";
 };
 
 function polarToCartesian(
@@ -78,6 +79,7 @@ export function ExamRadarChart({
   scores,
   averageScore,
   trackTotals = null,
+  scoreUnit = "%",
 }: ExamRadarChartProps) {
   const size = 340;
   const center = size / 2;
@@ -126,8 +128,8 @@ export function ExamRadarChart({
             role="img"
             aria-label={
               averageScore === null
-                ? "科目別正解率レーダーチャート"
-                : `科目別正解率レーダーチャート。平均 ${averageScore}%`
+                ? `科目別成績レーダーチャート`
+                : `科目別成績レーダーチャート。平均 ${averageScore}${scoreUnit}`
             }
           >
             {gridLevels.map((level) => (
@@ -232,7 +234,7 @@ export function ExamRadarChart({
                 textAnchor="middle"
                 dominantBaseline="middle"
               >
-                {`平均 ${averageScore}%`}
+                {`平均 ${averageScore}${scoreUnit}`}
               </text>
             ) : null}
           </svg>

@@ -2,6 +2,12 @@ import { TEST_SCORE_SUBJECTS, type TestScoreSubjectColumn } from "@/lib/examSubj
 import { formatExamTestDate } from "@/lib/questionCounts";
 import { getExamTypeFromTestName } from "@/lib/questionCountSettings";
 import { parseCsvText } from "@/lib/newStudentRegistration";
+import {
+  getRegularExamTerm,
+  parseRegularExamPointScore,
+  REGULAR_EXAM_TERMS,
+  REGULAR_EXAM_MAX_SCORE,
+} from "@/lib/regularExam";
 
 export type ExamRegistrationSource = "test_scores" | "student_exam_results";
 
@@ -408,6 +414,205 @@ export function validateImportMeta(testName: string, testDate: string) {
     return "実施日を入力してください。";
   }
   return null;
+}
+
+export function validateRegularImportMeta(sessionKey: string) {
+  if (!sessionKey.trim()) {
+    return "学期を選択してください。";
+  }
+  if (!getRegularExamTerm(sessionKey)) {
+    return "選択した学期が不正です。";
+  }
+  return null;
+}
+
+export function buildRegularExamCsvTemplate(sessionKey: string) {
+  const term = getRegularExamTerm(sessionKey);
+  if (!term) {
+    return null;
+  }
+
+  const headers = ["学籍番号", ...term.subjects];
+  const sampleRow = [
+    "1001",
+    ...term.subjects.map((_, index) => String(Math.max(60, 88 - index * 3))),
+  ];
+  const lines = [headers.join(","), sampleRow.map(escapeCsvCell).join(",")];
+  return `${CSV_UTF8_BOM}${lines.join("\r\n")}\r\n`;
+}
+
+export function downloadRegularExamTemplate(sessionKey: string) {
+  const csv = buildRegularExamCsvTemplate(sessionKey);
+  if (!csv) {
+    return;
+  }
+
+  const term = getRegularExamTerm(sessionKey);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `regular-exam-${sessionKey}-${term?.sessionLabel.replace(/\//g, "") ?? "template"}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export type ParseRegularExamResultCsvResult =
+  | {
+      ok: true;
+      rows: Array<{
+        studentId: number;
+        scores: Record<string, number | null>;
+      }>;
+      rowNumbers: number[];
+      skippedSampleRows: number;
+      skippedEmptyRows: number;
+    }
+  | {
+      ok: false;
+      message: string;
+      rowErrors?: ExamRegistrationRowError[];
+    };
+
+function buildRegularSubjectIndexes(headers: string[], expectedSubjects: string[]) {
+  const normalizedHeaders = headers.map(normalizeCsvHeader);
+  const studentIdIndex = normalizedHeaders.findIndex(
+    (header) => header === "学籍番号" || header === "student_id" || header === "ID",
+  );
+
+  if (studentIdIndex === -1) {
+    return { ok: false as const, message: "CSVのヘッダーに「学籍番号」列がありません。" };
+  }
+
+  const subjectIndexes: Record<string, number> = {};
+  const missingSubjects: string[] = [];
+
+  expectedSubjects.forEach((label) => {
+    const index = normalizedHeaders.indexOf(normalizeCsvHeader(label));
+    if (index === -1) {
+      missingSubjects.push(label);
+      return;
+    }
+    subjectIndexes[label] = index;
+  });
+
+  if (missingSubjects.length > 0) {
+    return {
+      ok: false as const,
+      message: `CSVのヘッダーに次の科目列がありません: ${missingSubjects.join("、")}`,
+    };
+  }
+
+  return { ok: true as const, studentIdIndex, subjectIndexes };
+}
+
+export function parseRegularExamResultCsv(
+  text: string,
+  sessionKey: string,
+): ParseRegularExamResultCsvResult {
+  const term = getRegularExamTerm(sessionKey);
+  if (!term) {
+    return { ok: false, message: "学期が選択されていません。" };
+  }
+
+  const parsedRows = parseCsvText(text).filter((row) => !isRowEmpty(row));
+  if (parsedRows.length === 0) {
+    return { ok: false, message: "CSVファイルが空です。" };
+  }
+
+  const headerRow = parsedRows[0].map((cell) => cell.trim());
+  const columnResult = buildRegularSubjectIndexes(headerRow, term.subjects);
+  if (!columnResult.ok) {
+    return { ok: false, message: columnResult.message };
+  }
+
+  const rowErrors: ExamRegistrationRowError[] = [];
+  const validRows: Array<{
+    studentId: number;
+    scores: Record<string, number | null>;
+  }> = [];
+  const rowNumbers: number[] = [];
+  let skippedSampleRows = 0;
+  let skippedEmptyRows = 0;
+
+  parsedRows.slice(1).forEach((cells, index) => {
+    const rowNumber = index + 2;
+
+    if (isRowEmpty(cells)) {
+      skippedEmptyRows += 1;
+      return;
+    }
+
+    const studentIdRaw = cells[columnResult.studentIdIndex]?.trim() ?? "";
+    if (!/^\d+$/.test(studentIdRaw)) {
+      rowErrors.push({ rowNumber, message: "学籍番号は半角数字で入力してください。" });
+      return;
+    }
+
+    const studentId = Number(studentIdRaw);
+    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
+      rowErrors.push({ rowNumber, message: "学籍番号が不正です。" });
+      return;
+    }
+
+    const scores: Record<string, number | null> = {};
+    let hasInvalidScore = false;
+
+    term.subjects.forEach((subjectName) => {
+      const cellValue = cells[columnResult.subjectIndexes[subjectName]] ?? "";
+      const parsed = parseRegularExamPointScore(cellValue);
+      if (cellValue.trim() && parsed === null) {
+        hasInvalidScore = true;
+      }
+      scores[subjectName] = parsed;
+    });
+
+    if (hasInvalidScore) {
+      rowErrors.push({
+        rowNumber,
+        message: `得点は0〜${REGULAR_EXAM_MAX_SCORE}の数値で入力してください。`,
+      });
+      return;
+    }
+
+    validRows.push({ studentId, scores });
+    rowNumbers.push(rowNumber);
+  });
+
+  if (rowErrors.length > 0) {
+    return { ok: false, message: "CSVの入力内容に誤りがあります。", rowErrors };
+  }
+
+  if (validRows.length === 0) {
+    return {
+      ok: false,
+      message: "登録するデータ行がありません。記入例行を削除するか、得点データを入力してください。",
+    };
+  }
+
+  if (validRows.length > MAX_EXAM_RESULT_IMPORT_ROWS) {
+    return {
+      ok: false,
+      message: `一度に登録できるのは${MAX_EXAM_RESULT_IMPORT_ROWS}件までです。`,
+    };
+  }
+
+  return {
+    ok: true,
+    rows: validRows,
+    rowNumbers,
+    skippedSampleRows,
+    skippedEmptyRows,
+  };
+}
+
+export function getRegularExamTermOptions() {
+  return REGULAR_EXAM_TERMS.map((term) => ({
+    sessionKey: term.sessionKey,
+    sessionLabel: term.sessionLabel,
+  }));
 }
 
 export function formatListTestDateLabel(testDate: string | null | undefined) {
