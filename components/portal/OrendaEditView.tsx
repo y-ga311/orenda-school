@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { MedalSettingsView } from "@/components/portal/MedalSettingsView";
 import { MultipleChoiceQuestionsView } from "@/components/portal/MultipleChoiceQuestionsView";
+import { NationalExamScheduleView } from "@/components/portal/NationalExamScheduleView";
 import { TeacherQuestView } from "@/components/portal/TeacherQuestView";
 import {
   DEFAULT_ORENDA_EDIT_TAB,
@@ -59,6 +61,10 @@ export function OrendaEditView() {
             <MultipleChoiceQuestionsView />
           ) : activeTab === "teacherQuest" ? (
             <TeacherQuestView />
+          ) : activeTab === "medalSettings" ? (
+            <MedalSettingsView />
+          ) : activeTab === "nationalExamSchedule" ? (
+            <NationalExamScheduleView />
           ) : (
             <OrendaEditTabPlaceholder tabLabel={activeTabDef?.label ?? "Orenda編集"} />
           )}

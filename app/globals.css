@@ -4127,6 +4127,325 @@ a {
   gap: 8px;
 }
 
+.medalTab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.medalBody {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.medalStudentPanel,
+.medalGrantPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.medalGrantPanel {
+  position: relative;
+  padding: 16px;
+}
+
+.medalModeSwitch {
+  display: flex;
+  gap: 6px;
+}
+
+.medalModeBtn {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 12px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.medalModeBtnActive {
+  border-color: #00a99d;
+  background: #00a99d;
+  color: #ffffff;
+}
+
+.medalModeBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.medalBulkHint,
+.medalSelectAllRow {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.medalBulkHint {
+  padding: 8px 10px;
+  background: #e0f2f1;
+  color: #0f766e;
+}
+
+.medalSelectAllRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #99f6e4;
+  background: #e0f7f5;
+  padding: 8px 10px;
+  color: #0f766e;
+  cursor: pointer;
+}
+
+.medalSelectAllRowActive {
+  background: #ccfbf1;
+}
+
+.medalSelectAllRow:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.medalStudentList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.medalStudentItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.medalStudentItemActive {
+  border-color: #99f6e4;
+  background: #e0f7f5;
+}
+
+.medalStudentItem:disabled {
+  cursor: default;
+}
+
+.medalStudentName {
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.medalStudentMeta {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.medalGrantHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.medalTargetBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: #e0f2f1;
+  padding: 10px 12px;
+  color: #0f766e;
+  font-size: 12px;
+}
+
+.medalTargetLabel {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.medalAchievementSection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.medalAchievementSectionTitle {
+  margin: 0;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.medalAchievementList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.medalAchievementRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px 12px;
+}
+
+.medalAchievementCheck {
+  display: flex;
+  align-items: center;
+}
+
+.medalAchievementText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.medalAchievementTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.medalAchievementDescription {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.medalGrantBadge {
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.medalGrantBadgeGranted {
+  border: 1px solid #00a99d;
+  background: #00a99d;
+  color: #ffffff;
+}
+
+.medalGrantBadgePartial {
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.medalGrantBadgeNotGranted {
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.medalGrantBadge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.medalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.medalBulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nesTab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.nesStatusBadge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.nesStatusBadgeActive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.nesStatusBadgeInactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.nesActiveField {
+  justify-content: flex-end;
+}
+
+.nesActiveToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .medalBody {
+    grid-template-columns: 1fr;
+  }
+
+  .medalStudentPanel {
+    max-height: 320px;
+  }
+}
+
 .examResultRegPage {
   display: flex;
   flex-direction: column;
@@ -4623,5 +4942,289 @@ a {
   .examResultRegHeaderActions {
     align-items: stretch;
     width: 100%;
+  }
+}
+
+.tpcPage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.tpcHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tpcTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.tpcSubtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tpcWorkspace {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.tpcSectionIntro {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpcSectionTitle {
+  margin: 0;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tpcSectionHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tpcListFilters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tpcSearch {
+  grid-column: auto;
+}
+
+.tpcFilterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tpcFilterChip {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tpcFilterChip:hover {
+  border-color: #99f6e4;
+  color: #0f766e;
+}
+
+.tpcFilterChipActive {
+  border-color: #99f6e4;
+  background: #e0f7f5;
+  color: #0f766e;
+}
+
+.tpcListItem {
+  gap: 4px;
+}
+
+.tpcListItemTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.tpcStatusBadge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.tpcBadgePublished {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tpcBadgeEnded {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.tpcBadgeDraft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tpcAttachmentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tpcAttachmentHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.tpcAttachmentDropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.tpcAttachmentDropzone:hover:not(:disabled) {
+  border-color: #00a99d;
+  background: #f8fffe;
+}
+
+.tpcAttachmentDropzone:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tpcAttachmentFileInput {
+  display: none;
+}
+
+.tpcAttachmentDropzoneLabel {
+  color: #00a99d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tpcAttachmentDropzoneMeta {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.tpcAttachmentNote {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.tpcAttachmentFile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.tpcAttachmentFileMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tpcAttachmentBadge {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.tpcAttachmentBadgeImage {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.tpcAttachmentBadgePdf {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.tpcAttachmentFileName {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpcAttachmentRemoveBtn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tpcAttachmentRemoveBtn:hover:not(:disabled) {
+  color: #dc2626;
+}
+
+.tpcAttachmentRemoveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tpcEditFooter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.tpcPublishBtn {
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .tpcWorkspace {
+    overflow: auto;
+  }
+
+  .tpcEditFooter {
+    grid-template-columns: 1fr;
   }
 }

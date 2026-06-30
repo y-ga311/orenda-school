@@ -34,6 +34,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!teacherSession && !isLoginPage && !isChangePasswordPage && !isAuthApi && !isStudentStudyApi) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

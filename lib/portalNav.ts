@@ -16,5 +16,5 @@ export const portalNavItems: PortalNavItem[] = [
   { label: "新規学生登録", href: "/new-student-registration", section: "edit" },
   { label: "試験結果登録", href: "/exam-result-registration", section: "edit" },
   { label: "Orenda編集", href: "/orenda-edit", section: "edit" },
-  { label: "つながるポータル保護者連絡", href: "#", section: "edit" },
+  { label: "つながるポータル保護者連絡", href: "/tsunagaru-parent-contact", section: "edit" },
 ];

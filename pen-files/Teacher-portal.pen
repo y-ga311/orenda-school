@@ -1,5 +1,5 @@
 {
-  "version": "2.13",
+  "version": "2.14",
   "children": [
     {
       "type": "frame",
@@ -34318,7 +34318,6 @@
                               "type": "text",
                               "id": "2WWgnK",
                               "fill": "#94A3B8",
-                              "content": "",
                               "fontFamily": "Inter",
                               "fontSize": 10,
                               "fontWeight": "normal"
@@ -35467,5 +35466,6 @@
         }
       ]
     }
-  ]
+  ],
+  "fileToken": "d740cd61-621c-4170-9ea8-a255451d5030"
 }
