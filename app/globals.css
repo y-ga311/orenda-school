@@ -1951,7 +1951,42 @@ a {
   width: 100%;
   height: 100%;
   min-height: 0;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
+}
+
+.examRadarLegend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.examRadarLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.examRadarLegendSwatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.examRadarLegendSwatchStudent {
+  background: rgba(59, 130, 246, 0.35);
+  border: 1.5px solid #2563eb;
+}
+
+.examRadarLegendSwatchCohort {
+  background: rgba(134, 239, 172, 0.35);
+  border: 1.5px dashed #86efac;
 }
 
 .examRadarTrackTotals {
@@ -2090,11 +2125,16 @@ a {
     min-height: 360px;
   }
 
-  .studentInfoScoreRow {
-    flex-direction: column;
+  .studentInfoScoreRowPrimary,
+  .studentInfoScoreRowSecondary {
+    grid-template-columns: 1fr;
   }
 
   .studentInfoScoreCardCognitive .studentInfoCognitiveBadges {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .studentInfoScoreCardLearning .studentInfoLearningBadges {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -2177,10 +2217,24 @@ a {
   background: #f8fafc;
 }
 
-.studentInfoScoreRow {
+.studentInfoScoreGrid {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studentInfoScoreRow {
+  display: grid;
   gap: 12px;
   align-items: stretch;
+}
+
+.studentInfoScoreRowPrimary {
+  grid-template-columns: minmax(120px, 0.85fr) minmax(220px, 1.5fr) minmax(150px, 0.95fr);
+}
+
+.studentInfoScoreRowSecondary {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
 }
 
 .studentInfoScoreCard {
@@ -2191,21 +2245,24 @@ a {
   padding: 12px;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .studentInfoScoreCardCompact {
-  width: 97px;
-  flex-shrink: 0;
+  min-width: 0;
+}
+
+.studentInfoScoreCardMedical .studentInfoScoreCardTitle {
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .studentInfoScoreCardCareer {
-  width: 181px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
-.studentInfoScoreCardCognitive {
-  flex: 1;
+.studentInfoScoreCardCognitive,
+.studentInfoScoreCardLearning {
   min-width: 0;
 }
 
@@ -2217,18 +2274,27 @@ a {
 }
 
 .studentInfoScoreCardCareer .studentInfoScoreCardTitle,
-.studentInfoScoreCardCognitive .studentInfoScoreCardTitle {
-  font-size: 16px;
+.studentInfoScoreCardCognitive .studentInfoScoreCardTitle,
+.studentInfoScoreCardLearning .studentInfoScoreCardTitle {
+  font-size: 15px;
 }
 
-.studentInfoCareerBadges,
-.studentInfoCognitiveBadges {
-  display: flex;
+.studentInfoCareerBadges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .studentInfoCognitiveBadges {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.studentInfoLearningBadges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .studentInfoScoreBadge {
@@ -2247,7 +2313,9 @@ a {
 }
 
 .studentInfoScoreCardCompact .studentInfoScoreBadge {
-  width: 70px;
+  width: 100%;
+  max-width: 120px;
+  margin: 0 auto;
   flex: none;
 }
 
@@ -2285,6 +2353,11 @@ a {
   cursor: not-allowed;
 }
 
+.studentInfoScoreBadgeHighlight {
+  border-color: #bbf7d0;
+  background: #dcfce7;
+}
+
 .studentInfoScoreBadgeHighlight .studentInfoScoreInput {
   color: #166534;
 }
@@ -2293,14 +2366,27 @@ a {
   color: #86efac;
 }
 
-.studentInfoScoreBadgeHighlight {
-  border-color: #bbf7d0;
-  background: #dcfce7;
-}
-
 .studentInfoScoreBadgeHighlight .studentInfoScoreBadgeLabel,
 .studentInfoScoreBadgeHighlight .studentInfoScoreBadgeValue {
   color: #166534;
+}
+
+.studentInfoScoreBadgeHighlightBelow {
+  border-color: #fecaca;
+  background: #fee2e2;
+}
+
+.studentInfoScoreBadgeHighlightBelow .studentInfoScoreInput {
+  color: #991b1b;
+}
+
+.studentInfoScoreBadgeHighlightBelow .studentInfoScoreInput::placeholder {
+  color: #fca5a5;
+}
+
+.studentInfoScoreBadgeHighlightBelow .studentInfoScoreBadgeLabel,
+.studentInfoScoreBadgeHighlightBelow .studentInfoScoreBadgeValue {
+  color: #991b1b;
 }
 
 .studentInfoScoreBadgeLabel {
@@ -2404,13 +2490,24 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .studentInfoScoreRowPrimary {
+    grid-template-columns: 1fr;
+  }
+
+  .studentInfoScoreRowSecondary {
+    grid-template-columns: 1fr;
+  }
+
   .studentInfoScoreCardCompact,
   .studentInfoScoreCardCareer,
-  .studentInfoScoreCardCognitive {
+  .studentInfoScoreCardCognitive,
+  .studentInfoScoreCardLearning {
     width: 100%;
   }
 
-  .studentInfoCognitiveBadges {
+  .studentInfoCareerBadges,
+  .studentInfoCognitiveBadges,
+  .studentInfoLearningBadges {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2587,6 +2684,119 @@ a {
   min-height: 0;
   overflow: hidden;
   padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.examQuestionCountPageEmbedded {
+  padding: 0;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.examSettingsPage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2vw, 20px) clamp(16px, 2.5vw, 24px);
+}
+
+.examSettingsTabRow {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 2px;
+}
+
+.examSettingsTab {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.examSettingsTab:hover {
+  color: #1f2937;
+}
+
+.examSettingsTabActive {
+  color: #0f766e;
+  border-bottom-color: #0f766e;
+}
+
+.regularExamTermSettings {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.regularExamTermSettingsIntro {
+  flex-shrink: 0;
+}
+
+.regularExamTermCohortRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  flex-shrink: 0;
+}
+
+.regularExamTermCohortLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.regularExamTermCohortSelect {
+  min-width: 160px;
+}
+
+.regularExamTermTableWrap {
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.regularExamTermTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.regularExamTermTable th,
+.regularExamTermTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.regularExamTermTable th {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.regularExamTermDateInput {
+  min-width: 160px;
+}
+
+.regularExamTermActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .examQuestionCountHeader {
@@ -5237,8 +5447,12 @@ a {
 
 .subjectTrendPanel {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .subjectTrendHeader {
@@ -5287,6 +5501,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
   padding: 16px;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -5305,13 +5520,62 @@ a {
 }
 
 .subjectTrendChart {
+  display: block;
   width: 100%;
   min-width: 640px;
+  height: auto;
 }
 
 .subjectTrendChartScale,
 .subjectTrendChartAxisLabel {
   fill: #64748b;
+}
+
+.subjectTrendChartAxisSubLabel {
+  fill: #94a3b8;
+}
+
+.subjectTrendChartPassLineLabel {
+  fill: #dc2626;
+  font-weight: 600;
+}
+
+.subjectTrendLegend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.subjectTrendLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.subjectTrendLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.subjectTrendLegendLine {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+}
+
+.subjectTrendLegendLineStudent {
+  border-top-color: #94a3b8;
+}
+
+.subjectTrendLegendLineCohort {
+  border-top-color: #86efac;
+  border-top-style: dashed;
 }
 
 .subjectTrendChartEmpty {

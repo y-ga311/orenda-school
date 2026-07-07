@@ -12,7 +12,7 @@ export const portalNavItems: PortalNavItem[] = [
   { label: "卒業試験", href: "/graduation-exam", section: "confirm" },
   { label: "科目別推移", href: "/subject-trend", section: "confirm" },
   { label: "学生基本情報", href: "/student-info", section: "edit" },
-  { label: "試験問題数設定", href: "/exam-question-count", section: "edit" },
+  { label: "試験設定", href: "/exam-question-count", section: "edit" },
   { label: "新規学生登録", href: "/new-student-registration", section: "edit" },
   { label: "試験結果登録", href: "/exam-result-registration", section: "edit" },
   { label: "Orenda編集", href: "/orenda-edit", section: "edit" },

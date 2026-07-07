@@ -21,6 +21,10 @@ type QuestionCountDetail = QuestionCountListItem & {
 
 type FormMode = "edit" | "new";
 
+type ExamQuestionCountViewProps = {
+  embedded?: boolean;
+};
+
 type FormState = {
   testName: string;
   testDate: string;
@@ -69,7 +73,7 @@ function getApiErrorMessage(status: number, message?: string) {
   return message ?? "処理中にエラーが発生しました。";
 }
 
-export function ExamQuestionCountView() {
+export function ExamQuestionCountView({ embedded = false }: ExamQuestionCountViewProps) {
   const [items, setItems] = useState<QuestionCountListItem[]>([]);
   const [selectedTestName, setSelectedTestName] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
@@ -272,15 +276,17 @@ export function ExamQuestionCountView() {
   const isFormBusy = isSaving || isDeleting;
 
   return (
-    <div className="examQuestionCountPage">
-      <header className="examQuestionCountHeader">
-        <div>
-          <h1 className="examQuestionCountTitle">試験問題数設定</h1>
-          <p className="examQuestionCountSubtitle">
-            模擬試験・卒業試験ごとの科目別問題数を登録・編集します
-          </p>
-        </div>
-      </header>
+    <div className={`examQuestionCountPage${embedded ? " examQuestionCountPageEmbedded" : ""}`}>
+      {!embedded ? (
+        <header className="examQuestionCountHeader">
+          <div>
+            <h1 className="examQuestionCountTitle">試験設定</h1>
+            <p className="examQuestionCountSubtitle">
+              模擬試験・卒業試験ごとの科目別問題数を登録・編集します
+            </p>
+          </div>
+        </header>
+      ) : null}
 
       <div className="examQuestionCountWorkspace">
         <aside className="examQuestionCountList">

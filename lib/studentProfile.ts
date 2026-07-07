@@ -23,6 +23,52 @@ export const COGNITIVE_SCORE_ITEMS: {
 
 export const COGNITIVE_SCORE_COLUMNS = COGNITIVE_SCORE_ITEMS.map((item) => item.column);
 
+export type LearningAbilityScoreKey =
+  | "readingComprehension"
+  | "calculation"
+  | "dataComprehension";
+
+export type LearningAbilityScores = Partial<
+  Record<LearningAbilityScoreKey, number | null>
+>;
+
+export const LEARNING_ABILITY_SCORE_ITEMS: {
+  key: LearningAbilityScoreKey;
+  label: string;
+  column: string;
+}[] = [
+  {
+    key: "readingComprehension",
+    label: "文章読解力",
+    column: "learning_ability_reading",
+  },
+  {
+    key: "calculation",
+    label: "計算力",
+    column: "learning_ability_calculation",
+  },
+  {
+    key: "dataComprehension",
+    label: "資料読解力",
+    column: "learning_ability_data_reading",
+  },
+];
+
+export const LEARNING_ABILITY_SCORE_COLUMNS = LEARNING_ABILITY_SCORE_ITEMS.map(
+  (item) => item.column,
+);
+
+export const MEDICAL_FOUNDATION_TEST_COLUMN = "medical_foundation_test_score";
+
+export const EXTENDED_PROFILE_SCORE_COLUMNS = [
+  "pretest_score",
+  "support_area",
+  "career_education",
+  ...COGNITIVE_SCORE_COLUMNS,
+  ...LEARNING_ABILITY_SCORE_COLUMNS,
+  MEDICAL_FOUNDATION_TEST_COLUMN,
+] as const;
+
 export function parseIntegerScore(value: unknown): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -63,6 +109,44 @@ export function parseCognitiveScoresFromJson(value: unknown): CognitiveScores {
   return scores;
 }
 
+export function parseLearningAbilityScoresFromRow(
+  row: Record<string, unknown>,
+): LearningAbilityScores {
+  const scores: LearningAbilityScores = {};
+  LEARNING_ABILITY_SCORE_ITEMS.forEach(({ key, column }) => {
+    scores[key] = parseIntegerScore(row[column]);
+  });
+  return scores;
+}
+
+export type StudentProfileScoreCohortAverages = {
+  cohortKey: string | null;
+  cohortAverageLabel: string | null;
+  pretestScore: number | null;
+  medicalFoundationTestScore: number | null;
+  learningAbilityScores: LearningAbilityScores;
+};
+
+export type ScoreCohortHighlight = "above" | "below";
+
+export function getScoreCohortHighlight(
+  value: number | null | undefined,
+  average: number | null | undefined,
+): ScoreCohortHighlight | null {
+  if (
+    value === null ||
+    value === undefined ||
+    average === null ||
+    average === undefined ||
+    !Number.isFinite(value) ||
+    !Number.isFinite(average)
+  ) {
+    return null;
+  }
+
+  return value < average ? "below" : "above";
+}
+
 export type StudentProfileData = {
   gakuseiId: string;
   name: string;
@@ -76,7 +160,10 @@ export type StudentProfileData = {
   supportArea: string | null;
   careerEducation: string | null;
   cognitiveScores: CognitiveScores;
+  learningAbilityScores: LearningAbilityScores;
+  medicalFoundationTestScore: number | null;
   extendedFieldsAvailable: boolean;
+  scoreCohortAverages: StudentProfileScoreCohortAverages;
 };
 
 export type StudentProfileFormState = {
@@ -90,7 +177,15 @@ export type StudentProfileFormState = {
   supportArea: string;
   careerEducation: string;
   cognitiveScores: Record<CognitiveScoreKey, string>;
+  learningAbilityScores: Record<LearningAbilityScoreKey, string>;
+  medicalFoundationTestScore: string;
 };
+
+function buildEmptyLearningAbilityFormState(): Record<LearningAbilityScoreKey, string> {
+  return Object.fromEntries(
+    LEARNING_ABILITY_SCORE_ITEMS.map(({ key }) => [key, ""]),
+  ) as Record<LearningAbilityScoreKey, string>;
+}
 
 function buildEmptyCognitiveFormState(): Record<CognitiveScoreKey, string> {
   return Object.fromEntries(
@@ -103,6 +198,13 @@ export function buildProfileFormState(profile: StudentProfileData): StudentProfi
   COGNITIVE_SCORE_ITEMS.forEach(({ key }) => {
     const value = profile.cognitiveScores[key];
     cognitiveScores[key] =
+      value === null || value === undefined ? "" : String(value);
+  });
+
+  const learningAbilityScores = buildEmptyLearningAbilityFormState();
+  LEARNING_ABILITY_SCORE_ITEMS.forEach(({ key }) => {
+    const value = profile.learningAbilityScores[key];
+    learningAbilityScores[key] =
       value === null || value === undefined ? "" : String(value);
   });
 
@@ -120,6 +222,12 @@ export function buildProfileFormState(profile: StudentProfileData): StudentProfi
     supportArea: profile.supportArea ?? "",
     careerEducation: profile.careerEducation ?? "",
     cognitiveScores,
+    learningAbilityScores,
+    medicalFoundationTestScore:
+      profile.medicalFoundationTestScore === null ||
+      profile.medicalFoundationTestScore === undefined
+        ? ""
+        : String(profile.medicalFoundationTestScore),
   };
 }
 
@@ -158,6 +266,25 @@ export function buildCognitiveJsonUpdate(scores: CognitiveScores) {
     payload[key] = scores[key] ?? null;
   });
   return payload;
+}
+
+export function parseLearningAbilityScoresFormState(
+  values: Record<LearningAbilityScoreKey, string>,
+): LearningAbilityScores {
+  const scores: LearningAbilityScores = {};
+  LEARNING_ABILITY_SCORE_ITEMS.forEach(({ key }) => {
+    const trimmed = values[key]?.trim() ?? "";
+    scores[key] = trimmed ? parseIntegerScore(trimmed) : null;
+  });
+  return scores;
+}
+
+export function buildLearningAbilityColumnUpdates(scores: LearningAbilityScores) {
+  const updates: Record<string, number | null> = {};
+  LEARNING_ABILITY_SCORE_ITEMS.forEach(({ key, column }) => {
+    updates[column] = scores[key] ?? null;
+  });
+  return updates;
 }
 
 export function getHighlightedCognitiveKeys(scores: CognitiveScores): CognitiveScoreKey[] {

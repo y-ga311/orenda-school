@@ -2,7 +2,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   COGNITIVE_SCORE_COLUMNS,
+  LEARNING_ABILITY_SCORE_COLUMNS,
+  MEDICAL_FOUNDATION_TEST_COLUMN,
   parseCognitiveScoresFromRow,
+  parseLearningAbilityScoresFromRow,
   type CognitiveScores,
 } from "@/lib/studentProfile";
 import {
@@ -38,6 +41,10 @@ type DbStudentRow = {
   cognitive_reading?: number | string | null;
   cognitive_sound?: number | string | null;
   cognitive_radio?: number | string | null;
+  learning_ability_reading?: number | string | null;
+  learning_ability_calculation?: number | string | null;
+  learning_ability_data_reading?: number | string | null;
+  medical_foundation_test_score?: number | string | null;
 };
 
 type BulkUpdateBody = {
@@ -50,6 +57,8 @@ const BULK_GROUP_KEYS = new Set<string>([
   "className",
   "scoreSummary",
   "cognitive",
+  "learningAbility",
+  "medicalFoundationTest",
   "parentAccount",
   "studentAccount",
 ]);
@@ -64,6 +73,8 @@ const EXTENDED_BULK_SELECT = [
   "career_education",
   "cognitive_scores",
   ...COGNITIVE_SCORE_COLUMNS,
+  ...LEARNING_ABILITY_SCORE_COLUMNS,
+  MEDICAL_FOUNDATION_TEST_COLUMN,
 ].join(", ");
 
 const LEGACY_EXTENDED_BULK_SELECT =
@@ -73,7 +84,8 @@ function isMissingColumnError(message: string) {
   return (
     message.includes("does not exist") ||
     message.includes("42703") ||
-    message.includes("cognitive_camera")
+    message.includes("cognitive_camera") ||
+    message.includes("learning_ability_reading")
   );
 }
 
@@ -97,6 +109,9 @@ function mapBulkRow(row: DbStudentRow, extendedFieldsAvailable: boolean): Studen
   const cognitiveScores = extendedFieldsAvailable
     ? parseCognitiveScoresFromRow(row, row.cognitive_scores)
     : {};
+  const learningAbilityScores = extendedFieldsAvailable
+    ? parseLearningAbilityScoresFromRow(row)
+    : {};
 
   const values = {
     nickname: row.nickname?.trim() ?? "",
@@ -117,6 +132,15 @@ function mapBulkRow(row: DbStudentRow, extendedFieldsAvailable: boolean): Studen
     reading: formatBulkValue(cognitiveScores.reading),
     sound: formatBulkValue(cognitiveScores.sound),
     radio: formatBulkValue(cognitiveScores.radio),
+    readingComprehension: formatBulkValue(learningAbilityScores.readingComprehension),
+    calculation: formatBulkValue(learningAbilityScores.calculation),
+    dataComprehension: formatBulkValue(learningAbilityScores.dataComprehension),
+    medicalFoundationTestScore:
+      extendedFieldsAvailable &&
+      row.medical_foundation_test_score !== null &&
+      row.medical_foundation_test_score !== undefined
+        ? formatBulkValue(row.medical_foundation_test_score)
+        : "",
   } as StudentBulkRow["values"];
 
   return {

@@ -36,7 +36,10 @@ type ExamResultsData = {
   averageScore: number | null;
   tableMissing?: boolean;
   masterTableMissing?: boolean;
+  resultsTableMissing?: boolean;
   questionCountsMissing?: boolean;
+  cohortRadarScores?: ExamScoreRow[];
+  cohortAverageLabel?: string | null;
 };
 
 function getExamResultsErrorMessage(status: number, message?: string) {
@@ -213,6 +216,24 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
     () => calculateAverageScore(radarScores),
     [radarScores],
   );
+  const radarCohortScores = useMemo(() => {
+    if (!usesTestScoreFormat || !data?.cohortRadarScores) {
+      return null;
+    }
+
+    const cohortBySubject = new Map(
+      data.cohortRadarScores.map((row) => [row.subjectName, row]),
+    );
+
+    return radarScores.map((row) => {
+      const cohortRow = cohortBySubject.get(row.subjectName);
+      return {
+        subjectName: row.subjectName,
+        score: cohortRow?.score ?? null,
+        notTaken: cohortRow?.score === null || cohortRow?.score === undefined,
+      };
+    });
+  }, [data?.cohortRadarScores, radarScores, usesTestScoreFormat]);
   const trackTotals = useMemo(
     () => (usesTestScoreFormat ? calculateExamTrackTotals(scores) : null),
     [scores, usesTestScoreFormat],
@@ -330,8 +351,15 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
 
               {data?.masterTableMissing ? (
                 <p className="examScoreNotice">
-                  定期試験マスタが未作成です。docs/sql/create-regular-exam-tables.sql と
-                  seed-regular-exam-subjects.sql を実行してください。
+                  定期試験マスタ（regular_exam_terms）を読み込めませんでした。
+                  docs/sql/create-regular-exam-tables.sql と seed-regular-exam-subjects.sql
+                  を実行し、Supabase でスキーマを再読み込みしてください。
+                </p>
+              ) : null}
+              {data?.resultsTableMissing ? (
+                <p className="examScoreNotice">
+                  成績テーブル（student_exam_results）が未作成です。
+                  docs/sql/create-student-exam-results-table.sql を実行してください。
                 </p>
               ) : null}
 
@@ -346,11 +374,9 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                   <div className="examScoreListWrap">
                     {isLoading ? (
                       <p className="learningTimeEmpty">読み込み中...</p>
-                    ) : data?.tableMissing ? (
+                    ) : data?.tableMissing && !usesPointScoreFormat ? (
                       <p className="learningTimeEmpty">
-                        {usesPointScoreFormat
-                          ? "student_exam_results テーブルが未作成です。データ登録後に表示されます。"
-                          : "test_scores テーブルが未作成です。データ登録後に表示されます。"}
+                        test_scores テーブルが未作成です。データ登録後に表示されます。
                       </p>
                     ) : scores.length === 0 ? (
                       <p className="learningTimeEmpty">
@@ -412,6 +438,8 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                     <ExamRadarChart
                       scores={radarScores}
                       averageScore={radarAverageScore}
+                      cohortScores={radarCohortScores}
+                      cohortAverageLabel={data?.cohortAverageLabel ?? null}
                       trackTotals={trackTotals}
                       scoreUnit={usesPointScoreFormat ? "点" : "%"}
                     />

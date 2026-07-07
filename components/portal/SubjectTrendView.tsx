@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
-import type { SubjectTrendData, SubjectTrendExamType } from "@/lib/subjectTrend";
+import type { SubjectTrendData, SubjectTrendPoint } from "@/lib/subjectTrend";
 
 type SubjectTrendViewProps = {
   students: StudentRow[];
@@ -15,21 +15,69 @@ type SubjectTrendResponse = SubjectTrendData & {
   message?: string;
 };
 
+const REGULAR_COLOR = "#2563eb";
+const MOCK_COLOR = "#ea580c";
+const STUDENT_LINE_COLOR = "#94a3b8";
+const COHORT_AVERAGE_LINE_COLOR = "#86efac";
+
+function formatAxisLabel(point: SubjectTrendPoint) {
+  if (point.examDateLabel) {
+    return point.examDateLabel.replace(/年/g, "/").replace(/月/g, "/").replace(/日/g, "");
+  }
+  return point.sessionLabel.replace("（定期）", "").replace("（模擬）", "").replace("/", "");
+}
+
+function buildConnectedPath(
+  points: SubjectTrendPoint[],
+  toX: (index: number) => number,
+  toY: (value: number) => number,
+  getValue: (point: SubjectTrendPoint) => number | null = (point) => point.chartValue,
+) {
+  const segments: string[] = [];
+  let currentSegment: string[] = [];
+
+  points.forEach((point, index) => {
+    const value = getValue(point);
+    if (point.notTaken || value === null) {
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment.join(" "));
+        currentSegment = [];
+      }
+      return;
+    }
+
+    const x = toX(index);
+    const y = toY(value);
+    if (currentSegment.length === 0) {
+      currentSegment.push(`M${x},${y}`);
+    } else {
+      currentSegment.push(`L${x},${y}`);
+    }
+  });
+
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment.join(" "));
+  }
+
+  return segments;
+}
+
 function SubjectTrendLineChart({
   points,
-  scoreFormat,
+  cohortAverageLabel,
 }: {
-  points: SubjectTrendData["points"];
-  scoreFormat: "points" | "percent";
+  points: SubjectTrendPoint[];
+  cohortAverageLabel: string | null;
 }) {
-  const width = 720;
-  const height = 280;
-  const padding = { top: 24, right: 24, bottom: 56, left: 44 };
+  const chartPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
+  const pointSpacing = 72;
+  const width = Math.max(720, chartPoints.length * pointSpacing);
+  const height = 300;
+  const padding = { top: 24, right: 24, bottom: 72, left: 44 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const takenPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
 
-  if (takenPoints.length === 0) {
+  if (chartPoints.length === 0) {
     return (
       <div className="subjectTrendChartEmpty">
         <p>表示できる推移データがありません。</p>
@@ -42,24 +90,48 @@ function SubjectTrendLineChart({
   const toY = (value: number) =>
     padding.top + chartHeight - (Math.max(0, Math.min(value, 100)) / 100) * chartHeight;
 
-  const linePath = points
-    .map((point, index) => {
-      if (point.notTaken || point.chartValue === null) {
-        return null;
-      }
-      const command = index === 0 || points[index - 1]?.notTaken ? "M" : "L";
-      return `${command}${toX(index)},${toY(point.chartValue)}`;
-    })
-    .filter(Boolean)
-    .join(" ");
+  const connectedPaths = buildConnectedPath(points, toX, toY);
+  const cohortAveragePaths = buildConnectedPath(
+    points,
+    toX,
+    toY,
+    (point) => point.cohortAverage,
+  );
+  const hasCohortAverage = points.some((point) => point.cohortAverage !== null);
 
   return (
     <div className="subjectTrendChartWrap">
+      <div className="subjectTrendLegend">
+        <span className="subjectTrendLegendItem">
+          <span className="subjectTrendLegendDot" style={{ backgroundColor: REGULAR_COLOR }} />
+          定期（点）
+        </span>
+        <span className="subjectTrendLegendItem">
+          <span className="subjectTrendLegendDot" style={{ backgroundColor: MOCK_COLOR }} />
+          模擬（%）
+        </span>
+        <span className="subjectTrendLegendItem">
+          <span
+            className="subjectTrendLegendLine subjectTrendLegendLineStudent"
+            aria-hidden="true"
+          />
+          本人
+        </span>
+        {hasCohortAverage ? (
+          <span className="subjectTrendLegendItem">
+            <span
+              className="subjectTrendLegendLine subjectTrendLegendLineCohort"
+              aria-hidden="true"
+            />
+            {cohortAverageLabel ?? "クラスメイト平均"}
+          </span>
+        ) : null}
+      </div>
       <svg
         className="subjectTrendChart"
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label={`${scoreFormat === "points" ? "得点" : "得点率"}推移グラフ`}
+        aria-label="科目別成績推移グラフ（日程順）"
       >
         {[0, 25, 50, 75, 100].map((value) => {
           const y = toY(value);
@@ -80,9 +152,43 @@ function SubjectTrendLineChart({
           );
         })}
 
-        {linePath ? (
-          <path d={linePath} fill="none" stroke="#2563eb" strokeWidth={2.5} />
-        ) : null}
+        <line
+          x1={padding.left}
+          y1={toY(60)}
+          x2={width - padding.right}
+          y2={toY(60)}
+          stroke="#dc2626"
+          strokeWidth={1}
+        />
+        <text
+          x={width - padding.right + 4}
+          y={toY(60) + 4}
+          className="subjectTrendChartPassLineLabel"
+          fontSize={10}
+        >
+          60
+        </text>
+
+        {connectedPaths.map((path, index) => (
+          <path
+            key={`trend-line-${index}`}
+            d={path}
+            fill="none"
+            stroke={STUDENT_LINE_COLOR}
+            strokeWidth={1.5}
+          />
+        ))}
+
+        {cohortAveragePaths.map((path, index) => (
+          <path
+            key={`cohort-line-${index}`}
+            d={path}
+            fill="none"
+            stroke={COHORT_AVERAGE_LINE_COLOR}
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+          />
+        ))}
 
         {points.map((point, index) => {
           if (point.notTaken || point.chartValue === null) {
@@ -90,17 +196,44 @@ function SubjectTrendLineChart({
           }
           const x = toX(index);
           const y = toY(point.chartValue);
+          const color = point.sourceType === "regular" ? REGULAR_COLOR : MOCK_COLOR;
+          const axisLabel = formatAxisLabel(point);
+          const radius = point.sourceType === "regular" ? 6.5 : 5.5;
+          const cohortY =
+            point.cohortAverage !== null ? toY(point.cohortAverage) : null;
+
           return (
             <g key={point.sessionKey}>
-              <circle cx={x} cy={y} r={4.5} fill="#2563eb" stroke="#ffffff" strokeWidth={1.5} />
+              {cohortY !== null ? (
+                <rect
+                  x={x - 4}
+                  y={cohortY - 4}
+                  width={8}
+                  height={8}
+                  fill={COHORT_AVERAGE_LINE_COLOR}
+                  stroke="#ffffff"
+                  strokeWidth={1.5}
+                  rx={1}
+                />
+              ) : null}
+              <circle cx={x} cy={y} r={radius} fill={color} stroke="#ffffff" strokeWidth={2} />
               <text
                 x={x}
-                y={height - 18}
+                y={height - 42}
                 textAnchor="middle"
                 className="subjectTrendChartAxisLabel"
-                fontSize={10}
+                fontSize={9}
               >
-                {point.sessionLabel.replace("/", "")}
+                {axisLabel.length > 10 ? `${axisLabel.slice(0, 10)}…` : axisLabel}
+              </text>
+              <text
+                x={x}
+                y={height - 28}
+                textAnchor="middle"
+                className="subjectTrendChartAxisSubLabel"
+                fontSize={8}
+              >
+                {point.sourceType === "regular" ? "定期" : "模擬"}
               </text>
             </g>
           );
@@ -117,7 +250,6 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
   const [selectedGakuseiId, setSelectedGakuseiId] = useState(
     students[0]?.gakusei_id ?? "",
   );
-  const [examType, setExamType] = useState<SubjectTrendExamType>("regular");
   const [subjectName, setSubjectName] = useState("");
   const [data, setData] = useState<SubjectTrendResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -199,7 +331,7 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
 
   useEffect(() => {
     setSubjectName("");
-  }, [examType, selectedGakuseiId]);
+  }, [selectedGakuseiId]);
 
   useEffect(() => {
     if (!selectedGakuseiId) {
@@ -215,7 +347,6 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
 
       const params = new URLSearchParams({
         gakuseiId: selectedGakuseiId,
-        examType,
       });
       if (subjectName) {
         params.set("subjectName", subjectName);
@@ -256,12 +387,10 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [examType, selectedGakuseiId, subjectName]);
+  }, [selectedGakuseiId, subjectName]);
 
   const subjectOptions = data?.subjectOptions ?? [];
   const currentSubject = subjectName || data?.selectedSubjectName || subjectOptions[0] || "";
-  const chartTitle =
-    examType === "regular" ? "定期試験スコア推移" : "模擬試験得点率推移";
 
   return (
     <div className="learningTimePage">
@@ -350,19 +479,6 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
                   <label className="examSessionSelectWrap">
                     <select
                       className="examSessionSelect"
-                      value={examType}
-                      onChange={(event) =>
-                        setExamType(event.target.value as SubjectTrendExamType)
-                      }
-                      aria-label="試験種別"
-                    >
-                      <option value="regular">定期試験</option>
-                      <option value="mock">模擬試験</option>
-                    </select>
-                  </label>
-                  <label className="examSessionSelectWrap">
-                    <select
-                      className="examSessionSelect"
                       value={currentSubject}
                       onChange={(event) => setSubjectName(event.target.value)}
                       aria-label="科目"
@@ -379,6 +495,21 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
 
               {error ? <p className="loginError">{error}</p> : null}
 
+              {data?.summary.cohortMissing ? (
+                <p className="examScoreNotice">
+                  所属クラスから期を特定できません（例: 25期生昼間部）。定期試験の実施日を反映するにはクラス名に「25期」形式を含めてください。
+                </p>
+              ) : null}
+
+              {data?.summary.hasUndatedRegularExams ? (
+                <p className="examScoreNotice">
+                  {data.summary.cohortLabel
+                    ? `${data.summary.cohortLabel}の定期試験に実施日が未設定の学期があります。`
+                    : "一部の定期試験に実施日が未設定です。"}
+                  試験設定の「定期試験」タブで期ごとに実施日を設定すると日程順に並びます。
+                </p>
+              ) : null}
+
               <div className="subjectTrendSummaryRow">
                 <div className="subjectTrendSummaryCard">
                   <span className="subjectTrendSummaryLabel">最新</span>
@@ -387,7 +518,7 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
                   </strong>
                 </div>
                 <div className="subjectTrendSummaryCard">
-                  <span className="subjectTrendSummaryLabel">前期比</span>
+                  <span className="subjectTrendSummaryLabel">前回比</span>
                   <strong className="subjectTrendSummaryValue">
                     {data?.summary.deltaDisplay ?? "—"}
                   </strong>
@@ -401,23 +532,25 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
               </div>
 
               <section className="subjectTrendChartSection">
-                <h3 className="examScoreSectionTitle">{chartTitle}</h3>
+                <h3 className="examScoreSectionTitle">成績推移（日程順）</h3>
                 <p className="subjectTrendChartSubject">{currentSubject}</p>
                 <SubjectTrendLineChart
                   points={data?.points ?? []}
-                  scoreFormat={data?.scoreFormat ?? (examType === "regular" ? "points" : "percent")}
+                  cohortAverageLabel={data?.cohortAverageLabel ?? null}
                 />
               </section>
 
               <section className="subjectTrendTableSection">
-                <h3 className="examScoreSectionTitle">学期別スコア一覧</h3>
+                <h3 className="examScoreSectionTitle">試験別スコア一覧</h3>
                 <div className="subjectTrendTableWrap">
                   <table className="subjectTrendTable">
                     <thead>
                       <tr>
-                        <th>回次</th>
-                        <th>{examType === "regular" ? "得点" : "得点率"}</th>
-                        <th>前期比</th>
+                        <th>実施日</th>
+                        <th>試験</th>
+                        <th>種別</th>
+                        <th>成績</th>
+                        <th>前回比</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -432,17 +565,14 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
                           previous?.chartValue !== undefined
                             ? point.chartValue - previous.chartValue
                             : null;
-                        const unit = examType === "regular" ? "点" : "%";
                         const deltaLabel =
-                          delta === null
-                            ? "—"
-                            : delta > 0
-                              ? `+${delta}${unit}`
-                              : `${delta}${unit}`;
+                          delta === null ? "—" : delta > 0 ? `+${delta}` : `${delta}`;
 
                         return (
                           <tr key={point.sessionKey}>
+                            <td>{point.examDateLabel ?? "未設定"}</td>
                             <td>{point.sessionLabel}</td>
+                            <td>{point.sourceType === "regular" ? "定期" : "模擬"}</td>
                             <td>{point.displayValue}</td>
                             <td>{deltaLabel}</td>
                           </tr>

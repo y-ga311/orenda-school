@@ -41,7 +41,13 @@ export async function POST(request: Request) {
   }
 
   const importRows =
-    parsed.group === "cognitive" ? (parsed.cognitiveRows ?? []) : (parsed.scoreSummaryRows ?? []);
+    parsed.group === "cognitive"
+      ? (parsed.cognitiveRows ?? [])
+      : parsed.group === "learningAbility"
+        ? (parsed.learningAbilityRows ?? [])
+        : parsed.group === "medicalFoundationTest"
+          ? (parsed.medicalFoundationTestRows ?? [])
+          : (parsed.scoreSummaryRows ?? []);
 
   const result = await importStudentBulkScores(supabase, parsed.group, importRows);
   if (!result.ok) {
@@ -54,11 +60,16 @@ export async function POST(request: Request) {
   const refreshed = await getBulkRows();
   const refreshedPayload = await refreshed.json();
 
-  const label = parsed.group === "cognitive" ? "認知特性スコア" : "入学前プレ・キャリアサポート";
+  const labelByGroup = {
+    cognitive: "認知特性スコア",
+    scoreSummary: "入学前プレ・キャリアサポート",
+    learningAbility: "学習能力チェック",
+    medicalFoundationTest: "医療系専門基礎テスト",
+  } as const;
 
   return NextResponse.json({
     ...refreshedPayload,
     updatedCount: result.updatedCount,
-    message: `${result.updatedCount}件の${label}を更新しました。`,
+    message: `${result.updatedCount}件の${labelByGroup[parsed.group]}を更新しました。`,
   });
 }

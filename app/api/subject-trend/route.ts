@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getSubjectTrendSubjectOptions } from "@/lib/subjectTrend";
-import { buildSubjectTrendData } from "@/lib/subjectTrend.server";
+import { getGroupedSubjectTrendOptions } from "@/lib/subjectTrend";
+import { buildUnifiedSubjectTrend } from "@/lib/subjectTrend.server";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
@@ -17,16 +17,14 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const gakuseiId = url.searchParams.get("gakuseiId")?.trim();
-  const examTypeRaw = url.searchParams.get("examType")?.trim();
   const subjectName = url.searchParams.get("subjectName")?.trim() ?? "";
-  const examType = examTypeRaw === "mock" ? "mock" : "regular";
 
   if (!gakuseiId) {
     return NextResponse.json({ message: "学生が選択されていません。" }, { status: 400 });
   }
 
-  const subjectOptions = getSubjectTrendSubjectOptions(examType);
-  const resolvedSubject = subjectOptions.includes(subjectName)
+  const subjectOptions = getGroupedSubjectTrendOptions();
+  const resolvedSubject = subjectOptions.includes(subjectName as (typeof subjectOptions)[number])
     ? subjectName
     : (subjectOptions[0] ?? "");
 
@@ -43,11 +41,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await buildSubjectTrendData(supabase, {
-      gakuseiId,
-      examType,
-      subjectName: resolvedSubject,
-    });
+    const data = await buildUnifiedSubjectTrend(supabase, gakuseiId, resolvedSubject);
 
     return NextResponse.json({
       ...data,

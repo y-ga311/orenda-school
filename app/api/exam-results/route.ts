@@ -8,6 +8,7 @@ import {
 import {
   buildTestScoreExamResponse,
   getTestNameKeyword,
+  parseTestScoreSessionKey,
   TEST_SCORES_SELECT,
   type TestScoreRow,
   usesTestScoresTable,
@@ -20,7 +21,10 @@ import {
 import {
   getRegularExamSubjectsForSession,
   loadRegularExamTerms,
+  loadStudentCohortKey,
 } from "@/lib/regularExam.server";
+import { buildCohortRadarScoresForTest } from "@/lib/examCohortRadar.server";
+import { formatCohortStudentLabel } from "@/lib/cohort";
 import { sortRegularExamTerms } from "@/lib/regularExam";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
@@ -41,8 +45,12 @@ function buildRegularExamResponse(
   rows: ExamResultRow[],
   sessionKey: string | null,
   terms: Awaited<ReturnType<typeof loadRegularExamTerms>>["terms"],
-  masterTableMissing: boolean,
+  options: {
+    masterTableMissing: boolean;
+    resultsTableMissing: boolean;
+  },
 ) {
+  const { masterTableMissing, resultsTableMissing } = options;
   const scoreBySession = new Map<string, Map<string, number>>();
 
   rows.forEach((row) => {
@@ -110,8 +118,9 @@ function buildRegularExamResponse(
     sectionTitle: selectedSession?.sectionTitle ?? null,
     scores: selectedScores,
     averageScore: calculateAverageScore(selectedScores),
-    tableMissing: masterTableMissing,
+    tableMissing: resultsTableMissing,
     masterTableMissing,
+    resultsTableMissing,
   };
 }
 
@@ -223,9 +232,29 @@ export async function GET(request: Request) {
       );
     }
 
+    const response = buildTestScoreExamResponse(examType, rows, questionCountByTestName, sessionKey);
+    const cohortKey = await loadStudentCohortKey(supabase, gakuseiId);
+    const selectedTestName = response.selectedSessionKey
+      ? parseTestScoreSessionKey(response.selectedSessionKey)
+      : "";
+
+    let cohortRadarScores: Awaited<ReturnType<typeof buildCohortRadarScoresForTest>> = [];
+    let cohortAverageLabel: string | null = null;
+
+    if (cohortKey && selectedTestName) {
+      cohortRadarScores = await buildCohortRadarScoresForTest(
+        supabase,
+        cohortKey,
+        selectedTestName,
+      );
+      cohortAverageLabel = `${formatCohortStudentLabel(cohortKey)}平均`;
+    }
+
     return NextResponse.json({
-      ...buildTestScoreExamResponse(examType, rows, questionCountByTestName, sessionKey),
+      ...response,
       questionCountsMissing,
+      cohortRadarScores,
+      cohortAverageLabel,
     });
   }
 
@@ -251,13 +280,10 @@ export async function GET(request: Request) {
   if (error) {
     if (error.code === "42P01" || error.message.includes("student_exam_results")) {
       return NextResponse.json(
-        buildRegularExamResponse(
-          "regular",
-          [],
-          sessionKey,
-          termsLoad.terms,
-          true,
-        ),
+        buildRegularExamResponse("regular", [], sessionKey, termsLoad.terms, {
+          masterTableMissing: termsLoad.tableMissing,
+          resultsTableMissing: true,
+        }),
       );
     }
 
@@ -274,7 +300,10 @@ export async function GET(request: Request) {
       (data ?? []) as ExamResultRow[],
       sessionKey,
       termsLoad.terms,
-      termsLoad.tableMissing,
+      {
+        masterTableMissing: termsLoad.tableMissing,
+        resultsTableMissing: false,
+      },
     ),
   );
 }

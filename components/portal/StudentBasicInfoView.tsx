@@ -7,9 +7,15 @@ import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
   buildProfileFormState,
   COGNITIVE_SCORE_ITEMS,
+  LEARNING_ABILITY_SCORE_ITEMS,
   getHighlightedCognitiveKeys,
+  getScoreCohortHighlight,
   parseCognitiveScoresFormState,
+  parseLearningAbilityScoresFormState,
+  parsePretestScoreFormValue,
   type CognitiveScoreKey,
+  type LearningAbilityScoreKey,
+  type ScoreCohortHighlight,
   type StudentProfileData,
   type StudentProfileFormState,
 } from "@/lib/studentProfile";
@@ -38,7 +44,7 @@ function ScoreBadgeInput({
   label,
   value,
   onChange,
-  highlighted = false,
+  highlight = null,
   inputMode = "text",
   placeholder = "—",
   disabled = false,
@@ -46,15 +52,20 @@ function ScoreBadgeInput({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  highlighted?: boolean;
+  highlight?: "above" | "below" | null;
   inputMode?: "numeric" | "decimal" | "text";
   placeholder?: string;
   disabled?: boolean;
 }) {
+  const highlightClass =
+    highlight === "above"
+      ? " studentInfoScoreBadgeHighlight"
+      : highlight === "below"
+        ? " studentInfoScoreBadgeHighlightBelow"
+        : "";
+
   return (
-    <div
-      className={`studentInfoScoreBadge${highlighted ? " studentInfoScoreBadgeHighlight" : ""}`}
-    >
+    <div className={`studentInfoScoreBadge${highlightClass}`}>
       <span className="studentInfoScoreBadgeLabel">{label}</span>
       <input
         className="studentInfoScoreInput"
@@ -223,6 +234,48 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
     );
   }, [form]);
 
+  const scoreCohortAverages = profile?.scoreCohortAverages ?? null;
+
+  const pretestHighlight = useMemo((): ScoreCohortHighlight | null => {
+    if (!form || !scoreCohortAverages) {
+      return null;
+    }
+    return getScoreCohortHighlight(
+      parsePretestScoreFormValue(form.pretestScore),
+      scoreCohortAverages.pretestScore,
+    );
+  }, [form, scoreCohortAverages]);
+
+  const medicalFoundationHighlight = useMemo((): ScoreCohortHighlight | null => {
+    if (!form || !scoreCohortAverages) {
+      return null;
+    }
+    return getScoreCohortHighlight(
+      parsePretestScoreFormValue(form.medicalFoundationTestScore),
+      scoreCohortAverages.medicalFoundationTestScore,
+    );
+  }, [form, scoreCohortAverages]);
+
+  const learningAbilityHighlights = useMemo(() => {
+    const highlights = new Map<LearningAbilityScoreKey, ScoreCohortHighlight>();
+    if (!form || !scoreCohortAverages) {
+      return highlights;
+    }
+
+    const scores = parseLearningAbilityScoresFormState(form.learningAbilityScores);
+    LEARNING_ABILITY_SCORE_ITEMS.forEach(({ key }) => {
+      const highlight = getScoreCohortHighlight(
+        scores[key],
+        scoreCohortAverages.learningAbilityScores[key],
+      );
+      if (highlight) {
+        highlights.set(key, highlight);
+      }
+    });
+
+    return highlights;
+  }, [form, scoreCohortAverages]);
+
   function updateFormField<K extends keyof StudentProfileFormState>(
     key: K,
     value: StudentProfileFormState[K],
@@ -238,6 +291,21 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
             ...current,
             cognitiveScores: {
               ...current.cognitiveScores,
+              [key]: value,
+            },
+          }
+        : current,
+    );
+    setSaveMessage(null);
+  }
+
+  function updateLearningAbilityScore(key: LearningAbilityScoreKey, value: string) {
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            learningAbilityScores: {
+              ...current.learningAbilityScores,
               [key]: value,
             },
           }
@@ -279,6 +347,8 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
           supportArea: form.supportArea,
           careerEducation: form.careerEducation,
           cognitiveScores: form.cognitiveScores,
+          learningAbilityScores: form.learningAbilityScores,
+          medicalFoundationTestScore: form.medicalFoundationTestScore,
         }),
       });
 
@@ -399,57 +469,96 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                 <section className="studentInfoScoreSection">
                   <h3 className="studentInfoSectionTitle">スコアサマリー</h3>
                   <div className="studentInfoScoreBody">
-                    <div className="studentInfoScoreRow">
-                      <article className="studentInfoScoreCard studentInfoScoreCardCompact">
-                        <h4 className="studentInfoScoreCardTitle">入学前プレ</h4>
-                        <ScoreBadgeInput
-                          label="スコア"
-                          inputMode="decimal"
-                          value={form.pretestScore}
-                          placeholder="—"
-                          highlighted={Boolean(form.pretestScore.trim())}
-                          onChange={(value) => updateFormField("pretestScore", value)}
-                          disabled={scoreFieldsDisabled}
-                        />
-                      </article>
-
-                      <article className="studentInfoScoreCard studentInfoScoreCardCareer">
-                        <h4 className="studentInfoScoreCardTitle">キャリアサポート</h4>
-                        <div className="studentInfoCareerBadges">
+                    <div className="studentInfoScoreGrid">
+                      <div className="studentInfoScoreRow studentInfoScoreRowPrimary">
+                        <article className="studentInfoScoreCard studentInfoScoreCardCompact">
+                          <h4 className="studentInfoScoreCardTitle">入学前プレ</h4>
                           <ScoreBadgeInput
-                            label="サポート領域"
-                            value={form.supportArea}
+                            label="スコア"
+                            inputMode="decimal"
+                            value={form.pretestScore}
                             placeholder="—"
-                            onChange={(value) => updateFormField("supportArea", value)}
+                            highlight={pretestHighlight}
+                            onChange={(value) => updateFormField("pretestScore", value)}
                             disabled={scoreFieldsDisabled}
                           />
-                          <ScoreBadgeInput
-                            label="キャリア教育"
-                            value={form.careerEducation}
-                            placeholder="—"
-                            onChange={(value) => updateFormField("careerEducation", value)}
-                            disabled={scoreFieldsDisabled}
-                          />
-                        </div>
-                      </article>
+                        </article>
 
-                      <article className="studentInfoScoreCard studentInfoScoreCardCognitive">
-                        <h4 className="studentInfoScoreCardTitle">認知特性スコア</h4>
-                        <div className="studentInfoCognitiveBadges">
-                          {COGNITIVE_SCORE_ITEMS.map(({ key, label }) => (
+                        <article className="studentInfoScoreCard studentInfoScoreCardCareer">
+                          <h4 className="studentInfoScoreCardTitle">キャリアサポート</h4>
+                          <div className="studentInfoCareerBadges">
                             <ScoreBadgeInput
-                              key={key}
-                              label={label}
-                              inputMode="numeric"
-                              value={form.cognitiveScores[key]}
+                              label="サポート領域"
+                              value={form.supportArea}
                               placeholder="—"
-                              highlighted={highlightedCognitiveKeys.has(key)}
-                              onChange={(value) => updateCognitiveScore(key, value)}
+                              onChange={(value) => updateFormField("supportArea", value)}
                               disabled={scoreFieldsDisabled}
                             />
-                          ))}
-                        </div>
-                      </article>
+                            <ScoreBadgeInput
+                              label="キャリア教育"
+                              value={form.careerEducation}
+                              placeholder="—"
+                              onChange={(value) => updateFormField("careerEducation", value)}
+                              disabled={scoreFieldsDisabled}
+                            />
+                          </div>
+                        </article>
+
+                        <article className="studentInfoScoreCard studentInfoScoreCardCompact studentInfoScoreCardMedical">
+                          <h4 className="studentInfoScoreCardTitle">医療系専門基礎テスト</h4>
+                          <ScoreBadgeInput
+                            label="スコア"
+                            inputMode="decimal"
+                            value={form.medicalFoundationTestScore}
+                            placeholder="—"
+                            highlight={medicalFoundationHighlight}
+                            onChange={(value) =>
+                              updateFormField("medicalFoundationTestScore", value)
+                            }
+                            disabled={scoreFieldsDisabled}
+                          />
+                        </article>
+                      </div>
+
+                      <div className="studentInfoScoreRow studentInfoScoreRowSecondary">
+                        <article className="studentInfoScoreCard studentInfoScoreCardLearning">
+                          <h4 className="studentInfoScoreCardTitle">学習能力チェック</h4>
+                          <div className="studentInfoLearningBadges">
+                            {LEARNING_ABILITY_SCORE_ITEMS.map(({ key, label }) => (
+                              <ScoreBadgeInput
+                                key={key}
+                                label={label}
+                                inputMode="numeric"
+                                value={form.learningAbilityScores[key]}
+                                placeholder="—"
+                                highlight={learningAbilityHighlights.get(key) ?? null}
+                                onChange={(value) => updateLearningAbilityScore(key, value)}
+                                disabled={scoreFieldsDisabled}
+                              />
+                            ))}
+                          </div>
+                        </article>
+
+                        <article className="studentInfoScoreCard studentInfoScoreCardCognitive">
+                          <h4 className="studentInfoScoreCardTitle">認知特性スコア</h4>
+                          <div className="studentInfoCognitiveBadges">
+                            {COGNITIVE_SCORE_ITEMS.map(({ key, label }) => (
+                              <ScoreBadgeInput
+                                key={key}
+                                label={label}
+                                inputMode="numeric"
+                                value={form.cognitiveScores[key]}
+                                placeholder="—"
+                                highlight={
+                                  highlightedCognitiveKeys.has(key) ? "above" : null
+                                }
+                                onChange={(value) => updateCognitiveScore(key, value)}
+                                disabled={scoreFieldsDisabled}
+                              />
+                            ))}
+                          </div>
+                        </article>
+                      </div>
                     </div>
 
                     {!profile?.extendedFieldsAvailable ? (

@@ -3,16 +3,24 @@ import { NextResponse } from "next/server";
 import {
   COGNITIVE_SCORE_COLUMNS,
   COGNITIVE_SCORE_ITEMS,
+  LEARNING_ABILITY_SCORE_COLUMNS,
+  LEARNING_ABILITY_SCORE_ITEMS,
+  MEDICAL_FOUNDATION_TEST_COLUMN,
   buildCognitiveColumnUpdates,
   buildCognitiveJsonUpdate,
+  buildLearningAbilityColumnUpdates,
   parseCognitiveScoresFromRow,
   parseIntegerScore,
+  parseLearningAbilityScoresFromRow,
   parsePretestScoreFormValue,
   type CognitiveScores,
+  type LearningAbilityScores,
   type StudentProfileData,
 } from "@/lib/studentProfile";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { decryptStudentName } from "@/lib/studentNameCrypto.server";
+import { parseCohortKeyFromClass } from "@/lib/cohort";
+import { buildStudentProfileCohortAverages } from "@/lib/studentProfileCohortAverages.server";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
 export const runtime = "nodejs";
@@ -36,6 +44,10 @@ type StudentRow = {
   cognitive_reading?: number | string | null;
   cognitive_sound?: number | string | null;
   cognitive_radio?: number | string | null;
+  learning_ability_reading?: number | string | null;
+  learning_ability_calculation?: number | string | null;
+  learning_ability_data_reading?: number | string | null;
+  medical_foundation_test_score?: number | string | null;
 };
 
 type UpdateBody = {
@@ -50,6 +62,8 @@ type UpdateBody = {
   supportArea?: unknown;
   careerEducation?: unknown;
   cognitiveScores?: unknown;
+  learningAbilityScores?: unknown;
+  medicalFoundationTestScore?: unknown;
 };
 
 const MAX_TEXT_FIELD_LENGTH = 200;
@@ -65,6 +79,8 @@ const EXTENDED_SELECT = [
   "career_education",
   "cognitive_scores",
   ...COGNITIVE_SCORE_COLUMNS,
+  ...LEARNING_ABILITY_SCORE_COLUMNS,
+  MEDICAL_FOUNDATION_TEST_COLUMN,
 ].join(", ");
 
 const LEGACY_EXTENDED_SELECT =
@@ -74,7 +90,8 @@ function isMissingColumnError(message: string) {
   return (
     message.includes("does not exist") ||
     message.includes("42703") ||
-    message.includes("cognitive_camera")
+    message.includes("cognitive_camera") ||
+    message.includes("learning_ability_reading")
   );
 }
 
@@ -110,6 +127,15 @@ function mapStudentProfile(
     cognitiveScores: extendedFieldsAvailable
       ? parseCognitiveScores(row)
       : {},
+    learningAbilityScores: extendedFieldsAvailable
+      ? parseLearningAbilityScoresFromRow(row)
+      : {},
+    medicalFoundationTestScore:
+      extendedFieldsAvailable &&
+      row.medical_foundation_test_score !== null &&
+      row.medical_foundation_test_score !== undefined
+        ? Number(row.medical_foundation_test_score)
+        : null,
     extendedFieldsAvailable,
   };
 }
@@ -134,6 +160,36 @@ function parseCognitiveScoresInput(value: unknown) {
     if (parsed < 0 || parsed > MAX_COGNITIVE_SCORE) {
       return {
         error: `認知特性スコア（${key}）は0〜${MAX_COGNITIVE_SCORE}の範囲で入力してください。`,
+      };
+    }
+    scores[key] = parsed;
+  }
+
+  return { scores };
+}
+
+function parseLearningAbilityScoresInput(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return { error: "学習能力チェックスコアの形式が正しくありません。" };
+  }
+
+  const scores: LearningAbilityScores = {};
+  for (const { key, label } of LEARNING_ABILITY_SCORE_ITEMS) {
+    const raw = (value as Record<string, unknown>)[key];
+    if (raw === null || raw === undefined || raw === "") {
+      scores[key] = null;
+      continue;
+    }
+
+    const parsed = parseIntegerScore(raw);
+    if (parsed === null) {
+      return {
+        error: `学習能力チェック（${label}）は0〜${MAX_COGNITIVE_SCORE}の整数で入力してください。`,
+      };
+    }
+    if (parsed < 0 || parsed > MAX_COGNITIVE_SCORE) {
+      return {
+        error: `学習能力チェック（${label}）は0〜${MAX_COGNITIVE_SCORE}の範囲で入力してください。`,
       };
     }
     scores[key] = parsed;
@@ -195,13 +251,42 @@ function parseExtendedProfileInput(body: UpdateBody) {
     cognitiveScores = parsed.scores;
   }
 
-  return { extended, cognitiveScores };
+  let learningAbilityScores: LearningAbilityScores | undefined;
+  if (body.learningAbilityScores !== undefined) {
+    const parsed = parseLearningAbilityScoresInput(body.learningAbilityScores);
+    if ("error" in parsed) {
+      return { error: parsed.error };
+    }
+    learningAbilityScores = parsed.scores;
+  }
+
+  if (body.medicalFoundationTestScore !== undefined) {
+    const raw =
+      typeof body.medicalFoundationTestScore === "number"
+        ? String(body.medicalFoundationTestScore)
+        : typeof body.medicalFoundationTestScore === "string"
+          ? body.medicalFoundationTestScore
+          : "";
+    const parsed = parsePretestScoreFormValue(raw);
+    if (raw.trim() && parsed === null) {
+      return { error: "医療系専門基礎テストのスコアは数値で入力してください。" };
+    }
+    if (parsed !== null && (parsed < 0 || parsed > MAX_PRETEST_SCORE)) {
+      return {
+        error: `医療系専門基礎テストのスコアは0〜${MAX_PRETEST_SCORE}の範囲で入力してください。`,
+      };
+    }
+    extended.medical_foundation_test_score = parsed;
+  }
+
+  return { extended, cognitiveScores, learningAbilityScores };
 }
 
 async function updateStudentProfile(
   gakuseiId: string,
   updates: Record<string, unknown>,
   cognitiveScores?: CognitiveScores,
+  learningAbilityScores?: LearningAbilityScores,
 ) {
   const supabase = createServiceRoleClient();
   if (!supabase) {
@@ -216,6 +301,9 @@ async function updateStudentProfile(
   const payload = { ...updates };
   if (cognitiveScores) {
     Object.assign(payload, buildCognitiveColumnUpdates(cognitiveScores));
+  }
+  if (learningAbilityScores) {
+    Object.assign(payload, buildLearningAbilityColumnUpdates(learningAbilityScores));
   }
 
   let { error } = await supabase.from("students").update(payload).eq("gakusei_id", gakuseiId);
@@ -240,10 +328,14 @@ async function updateStudentProfile(
     COGNITIVE_SCORE_COLUMNS.forEach((column) => {
       delete coreOnly[column];
     });
+    LEARNING_ABILITY_SCORE_COLUMNS.forEach((column) => {
+      delete coreOnly[column];
+    });
     delete coreOnly.pretest_score;
     delete coreOnly.support_area;
     delete coreOnly.career_education;
     delete coreOnly.cognitive_scores;
+    delete coreOnly.medical_foundation_test_score;
 
     ({ error } = await supabase
       .from("students")
@@ -349,8 +441,18 @@ async function fetchStudentRow(gakuseiId: string) {
   } as StudentRow;
   row.name = await decryptStudentName(row.name);
 
+  const cohortKey = parseCohortKeyFromClass(row.class);
+  const scoreCohortAverages = await buildStudentProfileCohortAverages(
+    supabase,
+    cohortKey,
+    extendedFieldsAvailable,
+  );
+
   return {
-    profile: mapStudentProfile(row, extendedFieldsAvailable),
+    profile: {
+      ...mapStudentProfile(row, extendedFieldsAvailable),
+      scoreCohortAverages,
+    },
   };
 }
 
@@ -443,6 +545,7 @@ export async function PUT(request: Request) {
     gakuseiId,
     { ...updates, ...extendedInput.extended },
     extendedInput.cognitiveScores,
+    extendedInput.learningAbilityScores,
   );
 
   if ("error" in result && result.error) {

@@ -1,9 +1,14 @@
 import type { ExamScoreRow, ExamTrackTotal } from "@/lib/examResults";
 import { formatTrackTotalDisplay, getTrackTotalTone } from "@/lib/examResults";
 
+const COHORT_RADAR_FILL = "rgba(134, 239, 172, 0.35)";
+const COHORT_RADAR_STROKE = "#86efac";
+
 type ExamRadarChartProps = {
   scores: ExamScoreRow[];
   averageScore: number | null;
+  cohortScores?: ExamScoreRow[] | null;
+  cohortAverageLabel?: string | null;
   trackTotals?: {
     acupuncturist: ExamTrackTotal;
     moxibustionist: ExamTrackTotal;
@@ -78,6 +83,8 @@ function TrackTotalCard({ total }: { total: ExamTrackTotal }) {
 export function ExamRadarChart({
   scores,
   averageScore,
+  cohortScores = null,
+  cohortAverageLabel = null,
   trackTotals = null,
   scoreUnit = "%",
 }: ExamRadarChartProps) {
@@ -107,8 +114,41 @@ export function ExamRadarChart({
     })
     .join(" ");
 
+  const cohortScoreBySubject = new Map(
+    (cohortScores ?? []).map((row) => [row.subjectName, row.score]),
+  );
+  const hasCohortRadar = scores.some((row) => {
+    const cohortScore = cohortScoreBySubject.get(row.subjectName);
+    return cohortScore !== null && cohortScore !== undefined;
+  });
+
+  const cohortPolygonPoints = scores
+    .map((row, index) => {
+      const cohortScore = cohortScoreBySubject.get(row.subjectName);
+      const angle = (Math.PI * 2 * index) / count - Math.PI / 2;
+      const radius =
+        cohortScore === null || cohortScore === undefined
+          ? 0
+          : (Math.max(0, Math.min(cohortScore, 100)) / 100) * maxRadius;
+      const point = polarToCartesian(center, radius, angle);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+
   return (
     <div className="examRadarPanel">
+      {hasCohortRadar ? (
+        <div className="examRadarLegend">
+          <span className="examRadarLegendItem">
+            <span className="examRadarLegendSwatch examRadarLegendSwatchStudent" />
+            本人
+          </span>
+          <span className="examRadarLegendItem">
+            <span className="examRadarLegendSwatch examRadarLegendSwatchCohort" />
+            {cohortAverageLabel ?? "クラス平均"}
+          </span>
+        </div>
+      ) : null}
       {trackTotals ? (
         <div className="examRadarTrackTotals">
           <TrackTotalCard total={trackTotals.acupuncturist} />
@@ -186,6 +226,15 @@ export function ExamRadarChart({
                 (Math.max(0, Math.min(row.score ?? 0, 100)) / 100) * maxRadius,
                 angle,
               );
+              const cohortScore = cohortScoreBySubject.get(row.subjectName);
+              const cohortPoint =
+                cohortScore !== null && cohortScore !== undefined
+                  ? polarToCartesian(
+                      center,
+                      (Math.max(0, Math.min(cohortScore, 100)) / 100) * maxRadius,
+                      angle,
+                    )
+                  : null;
 
               return (
                 <g key={row.subjectName}>
@@ -197,6 +246,18 @@ export function ExamRadarChart({
                     stroke="#94a3b8"
                     strokeWidth={1}
                   />
+                  {cohortPoint ? (
+                    <rect
+                      x={cohortPoint.x - 3}
+                      y={cohortPoint.y - 3}
+                      width={6}
+                      height={6}
+                      fill={COHORT_RADAR_STROKE}
+                      stroke="#ffffff"
+                      strokeWidth={1}
+                      rx={1}
+                    />
+                  ) : null}
                   <circle
                     cx={dataPoint.x}
                     cy={dataPoint.y}
@@ -218,6 +279,16 @@ export function ExamRadarChart({
                 </g>
               );
             })}
+
+            {hasCohortRadar ? (
+              <polygon
+                points={cohortPolygonPoints}
+                fill={COHORT_RADAR_FILL}
+                stroke={COHORT_RADAR_STROKE}
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+              />
+            ) : null}
 
             <polygon
               points={polygonPoints}

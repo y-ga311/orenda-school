@@ -15,3 +15,5 @@ create table if not exists student_exam_results (
 
 create index if not exists idx_student_exam_results_lookup
   on student_exam_results (gakusei_id, exam_type, session_key);
+
+NOTIFY pgrst, 'reload schema';

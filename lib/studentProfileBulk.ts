@@ -1,8 +1,10 @@
 import {
   COGNITIVE_SCORE_ITEMS,
+  LEARNING_ABILITY_SCORE_ITEMS,
   parseIntegerScore,
   parsePretestScoreFormValue,
   type CognitiveScoreKey,
+  type LearningAbilityScoreKey,
 } from "@/lib/studentProfile";
 
 export type StudentBulkFieldKey =
@@ -15,13 +17,17 @@ export type StudentBulkFieldKey =
   | "pretestScore"
   | "supportArea"
   | "careerEducation"
-  | CognitiveScoreKey;
+  | "medicalFoundationTestScore"
+  | CognitiveScoreKey
+  | LearningAbilityScoreKey;
 
 export type StudentBulkGroupKey =
   | "nickname"
   | "className"
   | "scoreSummary"
   | "cognitive"
+  | "learningAbility"
+  | "medicalFoundationTest"
   | "parentAccount"
   | "studentAccount";
 
@@ -99,6 +105,32 @@ export const STUDENT_BULK_GROUPS: StudentBulkGroupDef[] = [
     })),
   },
   {
+    key: "learningAbility",
+    label: "学習能力チェック",
+    section: "score",
+    requiresExtended: true,
+    columns: LEARNING_ABILITY_SCORE_ITEMS.map((item) => ({
+      key: item.key,
+      label: item.label,
+      inputMode: "numeric" as const,
+      placeholder: "未設定",
+    })),
+  },
+  {
+    key: "medicalFoundationTest",
+    label: "医療系専門基礎テスト",
+    section: "score",
+    requiresExtended: true,
+    columns: [
+      {
+        key: "medicalFoundationTestScore",
+        label: "スコア",
+        inputMode: "decimal" as const,
+        placeholder: "未設定",
+      },
+    ],
+  },
+  {
     key: "parentAccount",
     label: "保護者ID・パス・メール",
     section: "account",
@@ -132,6 +164,10 @@ const GROUP_MAP = new Map(STUDENT_BULK_GROUPS.map((group) => [group.key, group])
 
 const COGNITIVE_FIELD_KEYS = new Set<CognitiveScoreKey>(
   COGNITIVE_SCORE_ITEMS.map((item) => item.key),
+);
+
+const LEARNING_ABILITY_FIELD_KEYS = new Set<LearningAbilityScoreKey>(
+  LEARNING_ABILITY_SCORE_ITEMS.map((item) => item.key),
 );
 
 const MAX_TEXT_FIELD_LENGTH = 200;
@@ -210,6 +246,12 @@ export function isCognitiveBulkField(key: StudentBulkFieldKey): key is Cognitive
   return COGNITIVE_FIELD_KEYS.has(key as CognitiveScoreKey);
 }
 
+export function isLearningAbilityBulkField(
+  key: StudentBulkFieldKey,
+): key is LearningAbilityScoreKey {
+  return LEARNING_ABILITY_FIELD_KEYS.has(key as LearningAbilityScoreKey);
+}
+
 export function getBulkFieldDbColumn(field: StudentBulkFieldKey) {
   if (field === "className") {
     return "class";
@@ -235,8 +277,14 @@ export function getBulkFieldDbColumn(field: StudentBulkFieldKey) {
   if (field === "careerEducation") {
     return "career_education";
   }
+  if (field === "medicalFoundationTestScore") {
+    return "medical_foundation_test_score";
+  }
   if (isCognitiveBulkField(field)) {
     return COGNITIVE_SCORE_ITEMS.find((item) => item.key === field)?.column ?? null;
+  }
+  if (isLearningAbilityBulkField(field)) {
+    return LEARNING_ABILITY_SCORE_ITEMS.find((item) => item.key === field)?.column ?? null;
   }
   return field;
 }
@@ -278,6 +326,20 @@ export function validateBulkFieldValue(field: StudentBulkFieldKey, rawValue: str
     return null;
   }
 
+  if (field === "medicalFoundationTestScore") {
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = parsePretestScoreFormValue(trimmed);
+    if (parsed === null) {
+      return "医療系専門基礎テストのスコアは数値で入力してください。";
+    }
+    if (parsed < 0 || parsed > MAX_PRETEST_SCORE) {
+      return `医療系専門基礎テストのスコアは0〜${MAX_PRETEST_SCORE}の範囲で入力してください。`;
+    }
+    return null;
+  }
+
   if (field === "supportArea" || field === "careerEducation") {
     if (trimmed.length > MAX_TEXT_FIELD_LENGTH) {
       return `${label}は${MAX_TEXT_FIELD_LENGTH}文字以内で入力してください。`;
@@ -286,6 +348,19 @@ export function validateBulkFieldValue(field: StudentBulkFieldKey, rawValue: str
   }
 
   if (isCognitiveBulkField(field)) {
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = parseIntegerScore(trimmed);
+    if (parsed === null) {
+      return `${label}は0〜${MAX_COGNITIVE_SCORE}の整数で入力してください。`;
+    }
+    if (parsed < 0 || parsed > MAX_COGNITIVE_SCORE) {
+      return `${label}は0〜${MAX_COGNITIVE_SCORE}の範囲で入力してください。`;
+    }
+  }
+
+  if (isLearningAbilityBulkField(field)) {
     if (!trimmed) {
       return null;
     }
@@ -333,7 +408,7 @@ export function buildBulkFieldUpdatePayload(field: StudentBulkFieldKey, rawValue
     return { [column]: trimmed };
   }
 
-  if (field === "pretestScore") {
+  if (field === "pretestScore" || field === "medicalFoundationTestScore") {
     return { [column]: trimmed ? parsePretestScoreFormValue(trimmed) : null };
   }
 
@@ -341,7 +416,7 @@ export function buildBulkFieldUpdatePayload(field: StudentBulkFieldKey, rawValue
     return { [column]: trimmed || null };
   }
 
-  if (isCognitiveBulkField(field)) {
+  if (isCognitiveBulkField(field) || isLearningAbilityBulkField(field)) {
     return { [column]: trimmed ? parseIntegerScore(trimmed) : null };
   }
 

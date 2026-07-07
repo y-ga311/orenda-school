@@ -698,7 +698,7 @@ export function ExamResultRegistrationView() {
 
                 {detail.questionCountsMissing ? (
                   <p className="examResultRegWarning">
-                    試験問題数が未設定です。正解率は試験問題数設定後に表示されます。
+                    試験問題数が未設定です。正解率は試験設定後に表示されます。
                   </p>
                 ) : null}
 

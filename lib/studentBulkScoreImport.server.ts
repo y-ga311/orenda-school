@@ -2,11 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildCognitiveColumnUpdates,
   buildCognitiveJsonUpdate,
+  buildLearningAbilityColumnUpdates,
 } from "@/lib/studentProfile";
 import { buildPartialGroupUpdatePayload } from "@/lib/studentProfileBulk";
 import type {
   BulkScoreImportRowError,
   CognitiveScoreImportRow,
+  LearningAbilityScoreImportRow,
+  MedicalFoundationTestImportRow,
   ScoreSummaryImportRow,
   StudentBulkScoreImportGroup,
 } from "@/lib/studentBulkScoreImport";
@@ -23,7 +26,8 @@ function isMissingColumnError(message: string) {
   return (
     message.includes("does not exist") ||
     message.includes("42703") ||
-    message.includes("cognitive_camera")
+    message.includes("cognitive_camera") ||
+    message.includes("learning_ability_reading")
   );
 }
 
@@ -95,6 +99,61 @@ async function updateCognitiveScores(
   return { ok: true as const };
 }
 
+async function updateLearningAbilityScores(
+  supabase: SupabaseClient,
+  row: LearningAbilityScoreImportRow,
+) {
+  const columnPayload = buildLearningAbilityColumnUpdates(row.scores);
+  const { error } = await supabase
+    .from("students")
+    .update(columnPayload)
+    .eq("gakusei_id", row.gakuseiId);
+
+  if (error) {
+    if (isMissingColumnError(error.message)) {
+      return {
+        ok: false as const,
+        message: "学習能力チェックのカラムが未作成のため保存できません。",
+      };
+    }
+    return { ok: false as const, message: error.message };
+  }
+
+  return { ok: true as const };
+}
+
+async function updateMedicalFoundationTest(
+  supabase: SupabaseClient,
+  row: MedicalFoundationTestImportRow,
+) {
+  const payload = buildPartialGroupUpdatePayload({
+    medicalFoundationTestScore:
+      row.medicalFoundationTestScore === null
+        ? ""
+        : String(row.medicalFoundationTestScore),
+  });
+  if (!payload) {
+    return { ok: false as const, message: "更新データがありません。" };
+  }
+
+  const { error } = await supabase
+    .from("students")
+    .update(payload)
+    .eq("gakusei_id", row.gakuseiId);
+
+  if (error) {
+    if (isMissingColumnError(error.message)) {
+      return {
+        ok: false as const,
+        message: "医療系専門基礎テストのカラムが未作成のため保存できません。",
+      };
+    }
+    return { ok: false as const, message: error.message };
+  }
+
+  return { ok: true as const };
+}
+
 async function updateScoreSummary(
   supabase: SupabaseClient,
   row: ScoreSummaryImportRow,
@@ -136,7 +195,11 @@ async function updateScoreSummary(
 export async function importStudentBulkScores(
   supabase: SupabaseClient,
   group: StudentBulkScoreImportGroup,
-  rows: CognitiveScoreImportRow[] | ScoreSummaryImportRow[],
+  rows:
+    | CognitiveScoreImportRow[]
+    | ScoreSummaryImportRow[]
+    | LearningAbilityScoreImportRow[]
+    | MedicalFoundationTestImportRow[],
   rowNumbers?: number[],
 ): Promise<ImportStudentBulkScoresResult> {
   const gakuseiIds = [...new Set(rows.map((row) => row.gakuseiId))];
@@ -152,7 +215,11 @@ export async function importStudentBulkScores(
     const result =
       group === "cognitive"
         ? await updateCognitiveScores(supabase, row as CognitiveScoreImportRow)
-        : await updateScoreSummary(supabase, row as ScoreSummaryImportRow);
+        : group === "learningAbility"
+          ? await updateLearningAbilityScores(supabase, row as LearningAbilityScoreImportRow)
+          : group === "medicalFoundationTest"
+            ? await updateMedicalFoundationTest(supabase, row as MedicalFoundationTestImportRow)
+            : await updateScoreSummary(supabase, row as ScoreSummaryImportRow);
 
     if (!result.ok) {
       return {

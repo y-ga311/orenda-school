@@ -3,6 +3,7 @@ export type RegularExamTerm = {
   gradeYear: number;
   term: number;
   sessionLabel: string;
+  examDate: string | null;
   sortOrder: number;
   subjects: string[];
 };
@@ -14,6 +15,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 1,
     term: 1,
     sessionLabel: "1年/1学期",
+    examDate: null,
     sortOrder: 1,
     subjects: [
       "解剖学①",
@@ -29,6 +31,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 1,
     term: 2,
     sessionLabel: "1年/2学期",
+    examDate: null,
     sortOrder: 2,
     subjects: [
       "解剖学①",
@@ -44,6 +47,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 1,
     term: 3,
     sessionLabel: "1年/3学期",
+    examDate: null,
     sortOrder: 3,
     subjects: [
       "医療概論",
@@ -61,6 +65,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 2,
     term: 1,
     sessionLabel: "2年/1学期",
+    examDate: null,
     sortOrder: 4,
     subjects: [
       "病理学概論",
@@ -76,6 +81,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 2,
     term: 2,
     sessionLabel: "2年/2学期",
+    examDate: null,
     sortOrder: 5,
     subjects: [
       "衛生学・公衆衛生学②",
@@ -93,6 +99,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 2,
     term: 3,
     sessionLabel: "2年/3学期",
+    examDate: null,
     sortOrder: 6,
     subjects: [
       "臨床医学総論①",
@@ -109,6 +116,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 3,
     term: 1,
     sessionLabel: "3年/1学期",
+    examDate: null,
     sortOrder: 7,
     subjects: [
       "関係法規",
@@ -123,6 +131,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 3,
     term: 2,
     sessionLabel: "3年/2学期",
+    examDate: null,
     sortOrder: 8,
     subjects: [
       "関係法規",
@@ -136,6 +145,7 @@ export const REGULAR_EXAM_TERMS: RegularExamTerm[] = [
     gradeYear: 3,
     term: 3,
     sessionLabel: "3年/3学期",
+    examDate: null,
     sortOrder: 9,
     subjects: ["臨床医学総論②", "リハビリテーション医学②"],
   },

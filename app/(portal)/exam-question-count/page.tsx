@@ -1,5 +1,5 @@
-import { ExamQuestionCountView } from "@/components/portal/ExamQuestionCountView";
+import { ExamSettingsView } from "@/components/portal/ExamSettingsView";
 
 export default function ExamQuestionCountPage() {
-  return <ExamQuestionCountView />;
+  return <ExamSettingsView />;
 }

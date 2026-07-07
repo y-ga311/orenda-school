@@ -83,3 +83,5 @@ VALUES
   ('はりきゅう理論②', 'acupuncture_theory'),
   ('はりきゅう理論②', 'moxibustion_theory')
 ON CONFLICT (subject_name, trend_track_code) DO NOTHING;
+
+NOTIFY pgrst, 'reload schema';
