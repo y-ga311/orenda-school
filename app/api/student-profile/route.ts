@@ -102,7 +102,7 @@ function parseCognitiveScores(row: StudentRow): CognitiveScores {
 function mapStudentProfile(
   row: StudentRow,
   extendedFieldsAvailable: boolean,
-): StudentProfileData {
+): Omit<StudentProfileData, "scoreCohortAverages"> {
   return {
     gakuseiId: row.gakusei_id,
     name: row.name?.trim() || "名前未設定",

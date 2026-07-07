@@ -94,7 +94,7 @@ export async function buildStudentProfileCohortAverages(
     return buildEmptyCohortAverages(cohortKey);
   }
 
-  const cohortRows = ((result.data ?? []) as CohortScoreRow[]).filter(
+  const cohortRows = ((result.data ?? []) as unknown as CohortScoreRow[]).filter(
     (row) => parseCohortKeyFromClass(row.class) === cohortKey,
   );
 
