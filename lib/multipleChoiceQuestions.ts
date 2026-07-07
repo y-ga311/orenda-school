@@ -81,6 +81,8 @@ export const MULTIPLE_CHOICE_CSV_HEADERS = [
 ] as const;
 
 export const MULTIPLE_CHOICE_TEMPLATE_FILENAME = "multiple-choice-questions-template.csv";
+export const MULTIPLE_CHOICE_TEMPLATE_SAMPLE_EXPLANATION =
+  "この行は記入例です。削除するか上書きしてご利用ください。";
 export const MAX_MULTIPLE_CHOICE_IMPORT_ROWS = 500;
 
 const CSV_UTF8_BOM = "\uFEFF";
@@ -98,6 +100,8 @@ const TEMPLATE_SAMPLE_ROW = [
   "115",
   "42",
 ] as const;
+
+const LEGACY_TEMPLATE_SAMPLE_ROW = TEMPLATE_SAMPLE_ROW;
 
 const CSV_HEADER_TO_KEY = {
   科目ID: "subjectId",
@@ -273,8 +277,17 @@ function isRowEmpty(cells: string[]) {
   return cells.every((cell) => !cell.trim());
 }
 
-function isSampleRow(cells: string[]) {
-  return TEMPLATE_SAMPLE_ROW.every((value, index) => cells[index]?.trim() === value);
+function isSampleRow(cells: string[], indexes?: Record<string, number>) {
+  if (indexes) {
+    const explanationIndex = indexes.explanation;
+    const explanation =
+      explanationIndex === undefined ? "" : (cells[explanationIndex] ?? "").trim();
+    if (explanation === MULTIPLE_CHOICE_TEMPLATE_SAMPLE_EXPLANATION) {
+      return true;
+    }
+  }
+
+  return LEGACY_TEMPLATE_SAMPLE_ROW.every((value, index) => cells[index]?.trim() === value);
 }
 
 function downloadCsv(filename: string, csv: string) {
@@ -289,16 +302,79 @@ function downloadCsv(filename: string, csv: string) {
   URL.revokeObjectURL(url);
 }
 
-export function buildMultipleChoiceCsvTemplate() {
+export function validateMultipleChoiceTemplateSelection(
+  subjectId: string,
+  subcategoryId: string,
+): string | null {
+  const trimmedSubjectId = subjectId.trim();
+  const trimmedSubcategoryId = subcategoryId.trim();
+
+  if (!trimmedSubjectId) {
+    return "テンプレートの科目を選択してください。";
+  }
+  if (!trimmedSubcategoryId) {
+    return "テンプレートの中分類を選択してください。";
+  }
+  if (!QUEST_CATALOG_SUBJECTS.some((item) => item.id === trimmedSubjectId)) {
+    return "テンプレートの科目が不正です。";
+  }
+  if (
+    !getQuestCatalogSubcategories(trimmedSubjectId).some(
+      (item) => item.id === trimmedSubcategoryId,
+    )
+  ) {
+    return "選択した科目に存在しない中分類です。";
+  }
+
+  return null;
+}
+
+export function buildMultipleChoiceTemplateFilename(subjectId: string, subcategoryId: string) {
+  return `multiple-choice-${subjectId.trim()}-${subcategoryId.trim()}-template.csv`;
+}
+
+function buildTemplateSampleRow(subjectId: string, subcategoryId: string) {
+  const subjectLabel = getQuestSubjectLabel(subjectId);
+  const subcategoryLabel = getQuestSubcategoryLabel(subjectId, subcategoryId);
+
+  return [
+    subjectId.trim(),
+    subcategoryId.trim(),
+    `【記入例】${subjectLabel}・${subcategoryLabel}に関する問題文を入力してください。`,
+    "選択肢1の文",
+    "選択肢2の文",
+    "選択肢3の文",
+    "選択肢4の文",
+    "A",
+    MULTIPLE_CHOICE_TEMPLATE_SAMPLE_EXPLANATION,
+    "",
+    "",
+  ] as const;
+}
+
+export function buildMultipleChoiceCsvTemplate(subjectId: string, subcategoryId: string) {
+  const validationError = validateMultipleChoiceTemplateSelection(subjectId, subcategoryId);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
   const lines = [
     MULTIPLE_CHOICE_CSV_HEADERS.join(","),
-    [...TEMPLATE_SAMPLE_ROW].map(escapeCsvCell).join(","),
+    [...buildTemplateSampleRow(subjectId, subcategoryId)].map(escapeCsvCell).join(","),
   ];
   return `${CSV_UTF8_BOM}${lines.join("\r\n")}\r\n`;
 }
 
-export function downloadMultipleChoiceTemplate() {
-  downloadCsv(MULTIPLE_CHOICE_TEMPLATE_FILENAME, buildMultipleChoiceCsvTemplate());
+export function downloadMultipleChoiceTemplate(subjectId: string, subcategoryId: string) {
+  const validationError = validateMultipleChoiceTemplateSelection(subjectId, subcategoryId);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  downloadCsv(
+    buildMultipleChoiceTemplateFilename(subjectId, subcategoryId),
+    buildMultipleChoiceCsvTemplate(subjectId, subcategoryId),
+  );
 }
 
 export function validateMultipleChoiceForm(
@@ -417,7 +493,7 @@ export function parseMultipleChoiceCsv(text: string):
 
   dataRows.forEach((cells, index) => {
     const rowNumber = index + 2;
-    if (isSampleRow(cells)) {
+    if (isSampleRow(cells, columnResult.indexes)) {
       return;
     }
 

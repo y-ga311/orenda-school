@@ -10,6 +10,7 @@ import {
   formatCorrectAnswerLabel,
   formatMultipleChoiceRowErrors,
   groupMultipleChoiceListItems,
+  validateMultipleChoiceTemplateSelection,
   type MultipleChoiceQuestionDetail,
   type MultipleChoiceQuestionFormState,
   type MultipleChoiceQuestionListItem,
@@ -60,6 +61,8 @@ export function MultipleChoiceQuestionsView() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [importDetail, setImportDetail] = useState<string | null>(null);
+  const [templateSubjectId, setTemplateSubjectId] = useState("");
+  const [templateSubcategoryId, setTemplateSubcategoryId] = useState("");
 
   const isBusy = isLoading || isSaving || isDeleting || isImporting;
 
@@ -76,6 +79,20 @@ export function MultipleChoiceQuestionsView() {
     }
     return subcategoriesBySubject[form.subjectId] ?? [];
   }, [form.subjectId, subcategoriesBySubject]);
+
+  const templateSubcategoryOptions = useMemo(() => {
+    if (!templateSubjectId) {
+      return [];
+    }
+    return subcategoriesBySubject[templateSubjectId] ?? [];
+  }, [templateSubjectId, subcategoriesBySubject]);
+
+  const canDownloadTemplate = Boolean(
+    templateSubjectId && templateSubcategoryId && !validateMultipleChoiceTemplateSelection(
+      templateSubjectId,
+      templateSubcategoryId,
+    ),
+  );
 
   const groupedItems = useMemo(() => groupMultipleChoiceListItems(items), [items]);
 
@@ -347,15 +364,62 @@ export function MultipleChoiceQuestionsView() {
     }
   }
 
+  function handleDownloadTemplate() {
+    const validationError = validateMultipleChoiceTemplateSelection(
+      templateSubjectId,
+      templateSubcategoryId,
+    );
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError(null);
+    downloadMultipleChoiceTemplate(templateSubjectId, templateSubcategoryId);
+  }
+
   return (
     <div className="mcqTab">
       <div className="mcqCsvBar">
         <div className="mcqCsvActions">
+          <div className="mcqTemplateSelectors">
+            <select
+              className="mcqFilterSelect"
+              value={templateSubjectId}
+              onChange={(event) => {
+                setTemplateSubjectId(event.target.value);
+                setTemplateSubcategoryId("");
+              }}
+              disabled={isBusy}
+              aria-label="テンプレートの科目"
+            >
+              <option value="">科目を選択</option>
+              {subjects.map((subject) => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="mcqFilterSelect"
+              value={templateSubcategoryId}
+              onChange={(event) => setTemplateSubcategoryId(event.target.value)}
+              disabled={isBusy || !templateSubjectId}
+              aria-label="テンプレートの中分類"
+            >
+              <option value="">中分類を選択</option>
+              {templateSubcategoryOptions.map((subcategory) => (
+                <option key={subcategory.id} value={subcategory.id}>
+                  {subcategory.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             className="mcqSecondaryBtn"
-            onClick={() => downloadMultipleChoiceTemplate()}
-            disabled={isBusy}
+            onClick={handleDownloadTemplate}
+            disabled={isBusy || !canDownloadTemplate}
           >
             ↓ テンプレートダウンロード
           </button>

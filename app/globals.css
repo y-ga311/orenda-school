@@ -3884,6 +3884,18 @@ a {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+  justify-content: flex-end;
+}
+
+.mcqTemplateSelectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.mcqTemplateSelectors .mcqFilterSelect {
+  min-width: 160px;
 }
 
 .mcqSecondaryBtn {
