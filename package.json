@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "verify:student-name-key": "node scripts/verify-student-name-encryption-key.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
