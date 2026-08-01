@@ -465,8 +465,8 @@ export function ExamResultRegistrationView() {
           <h2 className="examResultRegImportCardTitle">CSVインポート</h2>
           <p className="examResultRegImportCardHint">
             {importMode === "regular"
-              ? "学期を選択してからCSVをインポートしてください（100点満点）"
-              : "インポート前に試験名・実施日を入力してください"}
+              ? "学期を選択してからCSVをインポートしてください（100点満点）。同じ学籍番号のデータは上書き保存されます。"
+              : "インポート前に試験名・実施日を入力してください。同じ試験名・学籍番号のデータは上書き保存されます。"}
           </p>
         </div>
         <div className="examResultRegImportModeRow">

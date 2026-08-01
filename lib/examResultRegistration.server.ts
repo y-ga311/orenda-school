@@ -25,13 +25,16 @@ import {
   buildQuestionCountMap,
   type QuestionCountRow,
 } from "@/lib/questionCounts";
-import { rowToSubjectCounts } from "@/lib/questionCountSettings";
-
-type DbStudent = {
-  id: number | string;
-  gakusei_id: string;
-  name: string | null;
-};
+import { buildQuestionCountPayload, rowToSubjectCounts } from "@/lib/questionCountSettings";
+import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
+import {
+  buildStudentLookupMaps,
+  getCanonicalStudentKey,
+  resolveStudentByIdentifier,
+  resolveStudentFromTestScoreStudentId,
+  type StudentLookupMaps,
+  type StudentLookupRow,
+} from "@/lib/studentIdentifier";
 
 type DbExamResultRow = {
   id?: number | string | null;
@@ -75,106 +78,187 @@ function buildScorePayload(scores: Partial<Record<TestScoreSubjectColumn, number
   return payload;
 }
 
+async function ensureQuestionCountExists(
+  supabase: SupabaseClient,
+  testName: string,
+  testDate: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const trimmedName = testName.trim();
+  const trimmedDate = testDate.trim();
+
+  const { data: existing, error: selectError } = await supabase
+    .from("question_counts")
+    .select("test_name")
+    .eq("test_name", trimmedName)
+    .maybeSingle();
+
+  if (selectError && !isMissingTableError(selectError.message, selectError.code)) {
+    return {
+      ok: false,
+      message: `問題数マスタの確認に失敗しました: ${selectError.message}`,
+    };
+  }
+
+  if (existing) {
+    if (trimmedDate) {
+      const { error: updateError } = await supabase
+        .from("question_counts")
+        .update({ test_date: trimmedDate })
+        .eq("test_name", trimmedName);
+
+      if (updateError && !isMissingColumnError(updateError.message)) {
+        return {
+          ok: false,
+          message: `問題数マスタの更新に失敗しました: ${updateError.message}`,
+        };
+      }
+    }
+    return { ok: true };
+  }
+
+  const payload = buildQuestionCountPayload(trimmedName, trimmedDate, {});
+  const { error } = await supabase
+    .from("question_counts")
+    .upsert(payload, { onConflict: "test_name" });
+
+  if (error) {
+    if (isMissingColumnError(error.message)) {
+      const { test_date: _ignored, ...withoutDate } = payload;
+      const retry = await supabase
+        .from("question_counts")
+        .upsert(withoutDate, { onConflict: "test_name" });
+      if (retry.error) {
+        return {
+          ok: false,
+          message: `試験「${trimmedName}」の問題数マスタ作成に失敗しました: ${retry.error.message}`,
+        };
+      }
+      return { ok: true };
+    }
+
+    return {
+      ok: false,
+      message: `試験「${trimmedName}」の問題数マスタ作成に失敗しました: ${error.message}`,
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function listRegisteredExams(supabase: SupabaseClient) {
   const items = new Map<string, ExamRegistrationListItem>();
+  const studentMaps = await loadStudentsById(supabase);
 
-  const [testScoresResult, questionCountsResult, examResultsResult] = await Promise.all([
-    supabase.from("test_scores").select("test_name, test_date, student_id"),
-    supabase.from("question_counts").select("test_name, test_date"),
-    supabase
-      .from("student_exam_results")
-      .select("exam_type, session_key, session_label, gakusei_id"),
+  const [testScoreRows, questionCountRows, examResultRows] = await Promise.all([
+    fetchAllRows<{ test_name: string | null; test_date?: string | null; student_id: number | string | null }>(
+      supabase,
+      "test_scores",
+      "test_name, test_date, student_id",
+    ).catch((error) => {
+      if (isMissingTableError(error.message)) {
+        return [];
+      }
+      throw error;
+    }),
+    fetchAllRows<QuestionCountRow>(supabase, "question_counts", "test_name, test_date").catch(
+      (error) => {
+        if (isMissingTableError(error.message)) {
+          return [];
+        }
+        throw error;
+      },
+    ),
+    fetchAllRows<{
+      exam_type: string | null;
+      session_key: string | null;
+      session_label: string | null;
+      gakusei_id: string | null;
+    }>(supabase, "student_exam_results", "exam_type, session_key, session_label, gakusei_id").catch(
+      (error) => {
+        if (isMissingTableError(error.message)) {
+          return [];
+        }
+        throw error;
+      },
+    ),
   ]);
 
-  const questionCountByName = buildQuestionCountMap(
-    (questionCountsResult.data ?? []) as QuestionCountRow[],
-  );
+  const questionCountByName = buildQuestionCountMap(questionCountRows);
 
-  if (!testScoresResult.error) {
-    const grouped = new Map<string, Set<number | string>>();
+  const grouped = new Map<string, Set<string>>();
 
-    (testScoresResult.data ?? []).forEach((row) => {
-      const testName = String(row.test_name ?? "").trim();
-      if (!testName) {
-        return;
-      }
-      const key = buildExamResultListKey("test_scores", testName);
-      const studentIds = grouped.get(key) ?? new Set<number | string>();
-      if (row.student_id !== null && row.student_id !== undefined) {
-        studentIds.add(row.student_id);
-      }
-      grouped.set(key, studentIds);
+  testScoreRows.forEach((row) => {
+    const testName = String(row.test_name ?? "").trim();
+    if (!testName) {
+      return;
+    }
+    const key = buildExamResultListKey("test_scores", testName);
+    const studentKeys = grouped.get(key) ?? new Set<string>();
+    const canonicalKey = getCanonicalStudentKey(row.student_id, studentMaps);
+    if (canonicalKey) {
+      studentKeys.add(canonicalKey);
+    }
+    grouped.set(key, studentKeys);
+  });
+
+  grouped.forEach((studentKeys, key) => {
+    const testName = decodeURIComponent(key.slice(3));
+    const questionCount = questionCountByName.get(testName);
+    const matchedRow = testScoreRows.find((row) => String(row.test_name).trim() === testName);
+    const testDate =
+      matchedRow?.test_date?.trim() || questionCount?.test_date?.trim() || null;
+    const examType = inferExamRegistrationType(testName);
+
+    items.set(key, {
+      key,
+      source: "test_scores",
+      testName,
+      testDate,
+      testDateLabel: formatListTestDateLabel(testDate),
+      examType,
+      examTypeLabel: getExamRegistrationTypeLabel(examType),
+      registeredCount: studentKeys.size,
     });
+  });
 
-    grouped.forEach((studentIds, key) => {
-      const testName = decodeURIComponent(key.slice(3));
-      const questionCount = questionCountByName.get(testName);
-      const matchedRow = (testScoresResult.data ?? []).find(
-        (row) => String(row.test_name).trim() === testName,
-      );
-      const testDate =
-        (matchedRow?.test_date as string | null | undefined) ?? questionCount?.test_date ?? null;
-      const examType = inferExamRegistrationType(testName);
+  const regularGrouped = new Map<
+    string,
+    { examType: ExamRegistrationExamType; sessionKey: string; testName: string; students: Set<string> }
+  >();
 
-      items.set(key, {
-        key,
-        source: "test_scores",
-        testName,
-        testDate: testDate?.trim() || null,
-        testDateLabel: formatListTestDateLabel(testDate),
-        examType,
-        examTypeLabel: getExamRegistrationTypeLabel(examType),
-        registeredCount: studentIds.size,
-      });
+  examResultRows.forEach((row) => {
+    const examType = inferExamRegistrationType(row.session_label ?? "", row.exam_type);
+    const sessionKey = String(row.session_key ?? "").trim();
+    const testName = String(row.session_label ?? "").trim();
+    if (!sessionKey || !testName) {
+      return;
+    }
+    const key = buildExamResultListKey("student_exam_results", testName, sessionKey, examType);
+    const current = regularGrouped.get(key) ?? {
+      examType,
+      sessionKey,
+      testName,
+      students: new Set<string>(),
+    };
+    if (row.gakusei_id) {
+      current.students.add(String(row.gakusei_id).trim());
+    }
+    regularGrouped.set(key, current);
+  });
+
+  regularGrouped.forEach((value, key) => {
+    items.set(key, {
+      key,
+      source: "student_exam_results",
+      testName: value.testName,
+      testDate: value.sessionKey,
+      testDateLabel: value.testName,
+      examType: value.examType,
+      examTypeLabel: getExamRegistrationTypeLabel(value.examType),
+      registeredCount: value.students.size,
+      sessionKey: value.sessionKey,
     });
-  } else if (!isMissingTableError(testScoresResult.error.message, testScoresResult.error.code)) {
-    throw new Error(testScoresResult.error.message);
-  }
-
-  if (!examResultsResult.error) {
-    const grouped = new Map<
-      string,
-      { examType: ExamRegistrationExamType; sessionKey: string; testName: string; students: Set<string> }
-    >();
-
-    (examResultsResult.data ?? []).forEach((row) => {
-      const examType = inferExamRegistrationType(row.session_label, row.exam_type);
-      const sessionKey = String(row.session_key ?? "").trim();
-      const testName = String(row.session_label ?? "").trim();
-      if (!sessionKey || !testName) {
-        return;
-      }
-      const key = buildExamResultListKey("student_exam_results", testName, sessionKey, examType);
-      const current = grouped.get(key) ?? {
-        examType,
-        sessionKey,
-        testName,
-        students: new Set<string>(),
-      };
-      if (row.gakusei_id) {
-        current.students.add(String(row.gakusei_id));
-      }
-      grouped.set(key, current);
-    });
-
-    grouped.forEach((value, key) => {
-      items.set(key, {
-        key,
-        source: "student_exam_results",
-        testName: value.testName,
-        testDate: value.sessionKey,
-        testDateLabel: value.testName,
-        examType: value.examType,
-        examTypeLabel: getExamRegistrationTypeLabel(value.examType),
-        registeredCount: value.students.size,
-        sessionKey: value.sessionKey,
-      });
-    });
-  } else if (
-    !isMissingTableError(examResultsResult.error.message, examResultsResult.error.code)
-  ) {
-    throw new Error(examResultsResult.error.message);
-  }
+  });
 
   return [...items.values()].sort((a, b) => {
     const dateA = a.testDate ?? "";
@@ -186,30 +270,117 @@ export async function listRegisteredExams(supabase: SupabaseClient) {
   });
 }
 
-async function loadStudentsById(supabase: SupabaseClient) {
-  const { data, error } = await supabase.from("students").select("id, gakusei_id, name");
-  if (error) {
-    throw new Error(error.message);
-  }
+async function loadStudentsById(supabase: SupabaseClient): Promise<StudentLookupMaps> {
+  const data = await fetchAllRows<{
+    id: number | string;
+    gakusei_id: string;
+    name: string | null;
+  }>(supabase, "students", "id, gakusei_id, name");
 
-  const byId = new Map<number, DbStudent>();
-  const byGakuseiId = new Map<string, DbStudent>();
-
-  await Promise.all(
-    ((data ?? []) as DbStudent[]).map(async (student) => {
-      const id = Number(student.id);
+  const students: StudentLookupRow[] = await Promise.all(
+    data.map(async (student) => {
       const decryptedName = student.name ? await decryptStudentName(student.name) : null;
-      const normalized = {
-        ...student,
-        id,
+      return {
+        id: Number(student.id),
+        gakusei_id: String(student.gakusei_id ?? "").trim(),
         name: decryptedName ?? student.name,
       };
-      byId.set(id, normalized);
-      byGakuseiId.set(student.gakusei_id, normalized);
     }),
   );
 
-  return { byId, byGakuseiId };
+  return buildStudentLookupMaps(students);
+}
+
+async function writeTestScoreRow(
+  supabase: SupabaseClient,
+  mode: "insert" | "update",
+  payload: Record<string, unknown>,
+  rowId?: number | string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const attempt = async (data: Record<string, unknown>) => {
+    if (mode === "update" && rowId !== undefined) {
+      return supabase.from("test_scores").update(data).eq("id", rowId);
+    }
+    return supabase.from("test_scores").insert(data);
+  };
+
+  const { error } = await attempt(payload);
+  if (!error) {
+    return { ok: true };
+  }
+
+  if (isMissingColumnError(error.message) && "test_date" in payload) {
+    const { test_date: _ignored, ...withoutDate } = payload;
+    const retry = await attempt(withoutDate);
+    if (!retry.error) {
+      return { ok: true };
+    }
+    return { ok: false, message: retry.error.message };
+  }
+
+  return { ok: false, message: error.message };
+}
+
+async function saveTestScoreRow(
+  supabase: SupabaseClient,
+  student: StudentLookupRow,
+  testName: string,
+  payload: Record<string, unknown>,
+): Promise<{ ok: true; action: "inserted" | "updated" } | { ok: false; message: string }> {
+  const trimmedName = testName.trim();
+  const candidateIds: (number | string)[] = [student.id];
+  const gakuseiId = student.gakusei_id.trim();
+  if (/^\d+$/.test(gakuseiId)) {
+    candidateIds.push(Number(gakuseiId));
+  }
+
+  const { data: existingRows, error: selectError } = await supabase
+    .from("test_scores")
+    .select("id, student_id")
+    .eq("test_name", trimmedName)
+    .in("student_id", candidateIds);
+
+  if (selectError) {
+    return { ok: false, message: selectError.message };
+  }
+
+  const rows = existingRows ?? [];
+  const primary =
+    rows.find((row) => Number(row.student_id) === student.id) ?? rows[0] ?? null;
+
+  const writePayload = {
+    ...payload,
+    student_id: student.id,
+    test_name: trimmedName,
+  };
+
+  if (primary?.id) {
+    const writeResult = await writeTestScoreRow(supabase, "update", writePayload, primary.id);
+    if (!writeResult.ok) {
+      return writeResult;
+    }
+
+    const duplicateIds = rows
+      .map((row) => row.id)
+      .filter((id): id is number | string => id != null && id !== primary.id);
+
+    if (duplicateIds.length > 0) {
+      await supabase.from("test_scores").delete().in("id", duplicateIds);
+    }
+
+    return { ok: true, action: "updated" };
+  }
+
+  const writeResult = await writeTestScoreRow(supabase, "insert", writePayload);
+  if (!writeResult.ok) {
+    return writeResult;
+  }
+
+  return { ok: true, action: "inserted" };
+}
+
+function resolveStudentByGakuseiId(gakuseiId: string, maps: StudentLookupMaps) {
+  return resolveStudentByIdentifier(gakuseiId, maps);
 }
 
 export async function getExamRegistrationDetail(
@@ -248,26 +419,38 @@ export async function getExamRegistrationDetail(
         : rowToSubjectCounts(questionCountRow);
     const questionCountsMissing = Boolean(questionCountsResult.error) || !questionCountRow;
 
-    const { byId } = await loadStudentsById(supabase);
+    const studentMaps = await loadStudentsById(supabase);
     const examType = inferExamRegistrationType(parsedKey.testName);
     const testDate =
       (data?.[0] as { test_date?: string | null } | undefined)?.test_date ??
       questionCountRow?.test_date ??
       null;
 
-    const rows: ExamRegistrationScoreRow[] = ((data ?? []) as unknown as TestScoreRow[]).map((row) => {
+    const rowsByStudent = new Map<string, ExamRegistrationScoreRow>();
+
+    ((data ?? []) as unknown as TestScoreRow[]).forEach((row) => {
       const scores = rowToSubjectScoreMap(row);
-      const student = byId.get(Number(row.student_id));
-      return {
+      const student = resolveStudentFromTestScoreStudentId(row.student_id, studentMaps);
+      const canonicalKey = student ? String(student.id) : String(row.student_id);
+      const mappedRow: ExamRegistrationScoreRow = {
         recordId: (row as { id?: number | string }).id ?? null,
-        studentId: Number(row.student_id),
+        studentId: student?.id ?? (Number(row.student_id) || null),
         gakuseiId: student?.gakusei_id ?? String(row.student_id),
         studentName: student?.name?.trim() || "名前未設定",
         scores,
         totalCorrect: calculateTotalCorrect(scores),
         correctRate: calculateCorrectRate(scores, questionCounts),
       };
+
+      const existing = rowsByStudent.get(canonicalKey);
+      if (!existing || student?.id === Number(row.student_id)) {
+        rowsByStudent.set(canonicalKey, mappedRow);
+      }
     });
+
+    const rows = [...rowsByStudent.values()].sort((a, b) =>
+      a.gakuseiId.localeCompare(b.gakuseiId, "ja"),
+    );
 
     return {
       key,
@@ -301,7 +484,7 @@ export async function getExamRegistrationDetail(
     throw new Error(error.message);
   }
 
-  const { byGakuseiId } = await loadStudentsById(supabase);
+  const studentMaps = await loadStudentsById(supabase);
   const { terms } = await loadRegularExamTerms(supabase);
   const masterSubjects = getRegularExamSubjectsForSession(terms, parsedKey.sessionKey);
   const subjectNamesFromData = [
@@ -318,8 +501,8 @@ export async function getExamRegistrationDetail(
     const current = grouped.get(gakuseiId) ?? {
       recordId: row.id ?? null,
       gakuseiId,
-      studentId: Number(byGakuseiId.get(gakuseiId)?.id ?? 0) || null,
-      studentName: byGakuseiId.get(gakuseiId)?.name?.trim() || "名前未設定",
+      studentId: Number(studentMaps.byGakuseiId.get(gakuseiId)?.id ?? 0) || null,
+      studentName: studentMaps.byGakuseiId.get(gakuseiId)?.name?.trim() || "名前未設定",
       scores: {},
       subjectScores: {},
       totalCorrect: null,
@@ -381,56 +564,52 @@ export async function saveExamRegistrationDetail(
 
   if (parsedKey.source === "test_scores") {
     const previousTestName = parsedKey.testName;
+    const studentMaps = await loadStudentsById(supabase);
+    const questionCountResult = await ensureQuestionCountExists(
+      supabase,
+      input.testName,
+      input.testDate,
+    );
+    if (!questionCountResult.ok) {
+      return questionCountResult;
+    }
 
     for (const row of input.rows) {
-      if (!row.studentId) {
+      const student =
+        resolveStudentByGakuseiId(row.gakuseiId, studentMaps) ??
+        (row.studentId ? studentMaps.byId.get(row.studentId) ?? null : null);
+      if (!student) {
         continue;
       }
 
       const payload = {
-        student_id: row.studentId,
-        test_name: input.testName.trim(),
         test_date: input.testDate.trim(),
         ...buildScorePayload(row.scores ?? {}),
       };
 
       if (row.recordId) {
-        const { error } = await supabase
-          .from("test_scores")
-          .update(payload)
-          .eq("id", row.recordId);
-        if (error) {
-          if (isMissingColumnError(error.message)) {
-            const { test_date: _ignored, ...withoutDate } = payload;
-            const retry = await supabase.from("test_scores").update(withoutDate).eq("id", row.recordId);
-            if (retry.error) {
-              return { ok: false as const, message: "試験結果の保存に失敗しました。" };
-            }
-          } else {
-            return { ok: false as const, message: "試験結果の保存に失敗しました。" };
-          }
+        const writeResult = await writeTestScoreRow(
+          supabase,
+          "update",
+          {
+            ...payload,
+            student_id: student.id,
+            test_name: input.testName.trim(),
+          },
+          row.recordId,
+        );
+        if (!writeResult.ok) {
+          return { ok: false as const, message: "試験結果の保存に失敗しました。" };
         }
       } else {
-        const { data: existing } = await supabase
-          .from("test_scores")
-          .select("id")
-          .eq("student_id", row.studentId)
-          .eq("test_name", previousTestName)
-          .maybeSingle();
-
-        if (existing?.id) {
-          const updateResult = await supabase
-            .from("test_scores")
-            .update(payload)
-            .eq("id", existing.id);
-          if (updateResult.error) {
-            return { ok: false as const, message: "試験結果の保存に失敗しました。" };
-          }
-        } else {
-          const insertResult = await supabase.from("test_scores").insert(payload);
-          if (insertResult.error) {
-            return { ok: false as const, message: "試験結果の保存に失敗しました。" };
-          }
+        const saveResult = await saveTestScoreRow(
+          supabase,
+          student,
+          previousTestName,
+          payload,
+        );
+        if (!saveResult.ok) {
+          return { ok: false as const, message: "試験結果の保存に失敗しました。" };
         }
       }
     }
@@ -482,17 +661,17 @@ export async function importTestScoreResults(
     testName: string;
     testDate: string;
     rows: Array<{
-      studentId: number;
+      gakuseiId: string;
       scores: Partial<Record<TestScoreSubjectColumn, number | null>>;
     }>;
   },
 ) {
-  const { byId } = await loadStudentsById(supabase);
-  const missingStudents: number[] = [];
+  const studentMaps = await loadStudentsById(supabase);
+  const missingStudents: string[] = [];
 
   input.rows.forEach((row) => {
-    if (!byId.has(row.studentId)) {
-      missingStudents.push(row.studentId);
+    if (!resolveStudentByGakuseiId(row.gakuseiId, studentMaps)) {
+      missingStudents.push(row.gakuseiId);
     }
   });
 
@@ -503,69 +682,48 @@ export async function importTestScoreResults(
     };
   }
 
+  const questionCountResult = await ensureQuestionCountExists(
+    supabase,
+    input.testName,
+    input.testDate,
+  );
+  if (!questionCountResult.ok) {
+    return questionCountResult;
+  }
+
   let inserted = 0;
   let updated = 0;
 
   for (const row of input.rows) {
+    const student = resolveStudentByGakuseiId(row.gakuseiId, studentMaps);
+    if (!student) {
+      continue;
+    }
+
     const payload = {
-      student_id: row.studentId,
-      test_name: input.testName.trim(),
       test_date: input.testDate.trim(),
       ...buildScorePayload(row.scores),
     };
 
-    const { data: existing } = await supabase
-      .from("test_scores")
-      .select("id")
-      .eq("student_id", row.studentId)
-      .eq("test_name", input.testName.trim())
-      .maybeSingle();
+    const saveResult = await saveTestScoreRow(
+      supabase,
+      student,
+      input.testName.trim(),
+      payload,
+    );
 
-    if (existing?.id) {
-      const { error } = await supabase.from("test_scores").update(payload).eq("id", existing.id);
-      if (error) {
-        if (isMissingColumnError(error.message)) {
-          const { test_date: _ignored, ...withoutDate } = payload;
-          const retry = await supabase.from("test_scores").update(withoutDate).eq("id", existing.id);
-          if (retry.error) {
-            return { ok: false as const, message: `学籍番号 ${row.studentId} の更新に失敗しました。` };
-          }
-        } else {
-          return { ok: false as const, message: `学籍番号 ${row.studentId} の更新に失敗しました。` };
-        }
-      }
+    if (!saveResult.ok) {
+      return {
+        ok: false as const,
+        message: `学籍番号 ${row.gakuseiId} の登録に失敗しました: ${saveResult.message}`,
+      };
+    }
+
+    if (saveResult.action === "updated") {
       updated += 1;
     } else {
-      const { error } = await supabase.from("test_scores").insert(payload);
-      if (error) {
-        if (isMissingColumnError(error.message)) {
-          const { test_date: _ignored, ...withoutDate } = payload;
-          const retry = await supabase.from("test_scores").insert(withoutDate);
-          if (retry.error) {
-            return { ok: false as const, message: `学籍番号 ${row.studentId} の登録に失敗しました。` };
-          }
-        } else {
-          return { ok: false as const, message: `学籍番号 ${row.studentId} の登録に失敗しました。` };
-        }
-      }
       inserted += 1;
     }
-  }
-
-  const { data: questionCount } = await supabase
-    .from("question_counts")
-    .select("test_name")
-    .eq("test_name", input.testName.trim())
-    .maybeSingle();
-
-  if (!questionCount) {
-    await supabase.from("question_counts").upsert(
-      {
-        test_name: input.testName.trim(),
-        test_date: input.testDate.trim(),
-      },
-      { onConflict: "test_name" },
-    );
   }
 
   return {
@@ -581,7 +739,7 @@ export async function importRegularExamResults(
   input: {
     sessionKey: string;
     rows: Array<{
-      studentId: number;
+      gakuseiId: string;
       scores: Record<string, number | null>;
     }>;
   },
@@ -591,12 +749,12 @@ export async function importRegularExamResults(
     return { ok: false as const, message: "学期が選択されていません。" };
   }
 
-  const { byId } = await loadStudentsById(supabase);
-  const missingStudents: number[] = [];
+  const studentMaps = await loadStudentsById(supabase);
+  const missingStudents: string[] = [];
 
   input.rows.forEach((row) => {
-    if (!byId.has(row.studentId)) {
-      missingStudents.push(row.studentId);
+    if (!resolveStudentByGakuseiId(row.gakuseiId, studentMaps)) {
+      missingStudents.push(row.gakuseiId);
     }
   });
 
@@ -611,14 +769,36 @@ export async function importRegularExamResults(
   let updated = 0;
 
   for (const row of input.rows) {
-    const student = byId.get(row.studentId);
+    const student = resolveStudentByGakuseiId(row.gakuseiId, studentMaps);
     if (!student?.gakusei_id) {
       continue;
     }
 
     for (const subjectName of term.subjects) {
-      const score = row.scores[subjectName];
-      if (score === null || score === undefined) {
+      const score = row.scores[subjectName] ?? null;
+      if (score === null) {
+        const { data: existing } = await supabase
+          .from("student_exam_results")
+          .select("id")
+          .eq("gakusei_id", student.gakusei_id)
+          .eq("exam_type", "regular")
+          .eq("session_key", term.sessionKey)
+          .eq("subject_name", subjectName)
+          .maybeSingle();
+
+        if (existing?.id) {
+          const { error } = await supabase
+            .from("student_exam_results")
+            .delete()
+            .eq("id", existing.id);
+          if (error) {
+            return {
+              ok: false as const,
+              message: `学籍番号 ${row.gakuseiId} の更新に失敗しました。`,
+            };
+          }
+          updated += 1;
+        }
         continue;
       }
 
@@ -648,7 +828,7 @@ export async function importRegularExamResults(
         if (error) {
           return {
             ok: false as const,
-            message: `学籍番号 ${row.studentId} の更新に失敗しました。`,
+            message: `学籍番号 ${row.gakuseiId} の更新に失敗しました。`,
           };
         }
         updated += 1;
@@ -657,7 +837,7 @@ export async function importRegularExamResults(
         if (error) {
           return {
             ok: false as const,
-            message: `学籍番号 ${row.studentId} の登録に失敗しました。`,
+            message: `学籍番号 ${row.gakuseiId} の登録に失敗しました。`,
           };
         }
         inserted += 1;

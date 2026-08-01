@@ -2,6 +2,7 @@ import { TEST_SCORE_SUBJECTS, type TestScoreSubjectColumn } from "@/lib/examSubj
 import { formatExamTestDate } from "@/lib/questionCounts";
 import { getExamTypeFromTestName } from "@/lib/questionCountSettings";
 import { parseCsvText } from "@/lib/newStudentRegistration";
+import { normalizeStudentIdentifier } from "@/lib/studentIdentifier";
 import {
   getRegularExamTerm,
   parseRegularExamPointScore,
@@ -67,7 +68,7 @@ export const MAX_EXAM_RESULT_IMPORT_ROWS = 500;
 const CSV_UTF8_BOM = "\uFEFF";
 
 const TEMPLATE_SAMPLE_ROW = [
-  "1001",
+  "20250001",
   "8",
   "7",
   "6",
@@ -87,6 +88,21 @@ const TEMPLATE_SAMPLE_ROW = [
 
 function normalizeCsvHeader(value: string) {
   return value.trim().replace(/\s+/g, "");
+}
+
+const STUDENT_IDENTIFIER_HEADERS = new Set([
+  "学籍番号",
+  "student_id",
+  "gakusei_id",
+  "学生ID",
+  "学生id",
+  "ID",
+  "id",
+]);
+
+function findStudentIdentifierColumnIndex(headers: string[]) {
+  const normalizedHeaders = headers.map(normalizeCsvHeader);
+  return normalizedHeaders.findIndex((header) => STUDENT_IDENTIFIER_HEADERS.has(header));
 }
 
 function escapeCsvCell(value: string) {
@@ -264,12 +280,13 @@ function buildColumnIndexes(headers: string[]):
   | { ok: true; studentIdIndex: number; subjectIndexes: Record<TestScoreSubjectColumn, number> }
   | { ok: false; message: string } {
   const normalizedHeaders = headers.map(normalizeCsvHeader);
-  const studentIdIndex = normalizedHeaders.findIndex(
-    (header) => header === "学籍番号" || header === "student_id" || header === "ID",
-  );
+  const studentIdIndex = findStudentIdentifierColumnIndex(headers);
 
   if (studentIdIndex === -1) {
-    return { ok: false, message: "CSVのヘッダーに「学籍番号」列がありません。" };
+    return {
+      ok: false,
+      message: "CSVのヘッダーに「学籍番号」列がありません。",
+    };
   }
 
   const subjectIndexes = {} as Record<TestScoreSubjectColumn, number>;
@@ -298,7 +315,7 @@ export type ParseExamResultCsvResult =
   | {
       ok: true;
       rows: Array<{
-        studentId: number;
+        gakuseiId: string;
         scores: Partial<Record<TestScoreSubjectColumn, number | null>>;
       }>;
       rowNumbers: number[];
@@ -326,7 +343,7 @@ export function parseExamResultCsv(text: string): ParseExamResultCsvResult {
 
   const rowErrors: ExamRegistrationRowError[] = [];
   const validRows: Array<{
-    studentId: number;
+    gakuseiId: string;
     scores: Partial<Record<TestScoreSubjectColumn, number | null>>;
   }> = [];
   const rowNumbers: number[] = [];
@@ -346,15 +363,9 @@ export function parseExamResultCsv(text: string): ParseExamResultCsvResult {
       return;
     }
 
-    const studentIdRaw = cells[columnResult.studentIdIndex]?.trim() ?? "";
-    if (!/^\d+$/.test(studentIdRaw)) {
-      rowErrors.push({ rowNumber, message: "学籍番号は半角数字で入力してください。" });
-      return;
-    }
-
-    const studentId = Number(studentIdRaw);
-    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
-      rowErrors.push({ rowNumber, message: "学籍番号が不正です。" });
+    const gakuseiId = normalizeStudentIdentifier(cells[columnResult.studentIdIndex] ?? "");
+    if (!gakuseiId) {
+      rowErrors.push({ rowNumber, message: "学籍番号を入力してください。" });
       return;
     }
 
@@ -375,7 +386,7 @@ export function parseExamResultCsv(text: string): ParseExamResultCsvResult {
       return;
     }
 
-    validRows.push({ studentId, scores });
+    validRows.push({ gakuseiId, scores });
     rowNumbers.push(rowNumber);
   });
 
@@ -394,6 +405,16 @@ export function parseExamResultCsv(text: string): ParseExamResultCsvResult {
     return {
       ok: false,
       message: `一度に登録できるのは${MAX_EXAM_RESULT_IMPORT_ROWS}件までです。`,
+    };
+  }
+
+  const duplicateGakuseiIds = validRows
+    .map((row) => row.gakuseiId)
+    .filter((gakuseiId, index, all) => all.indexOf(gakuseiId) !== index);
+  if (duplicateGakuseiIds.length > 0) {
+    return {
+      ok: false,
+      message: `学籍番号が重複しています: ${[...new Set(duplicateGakuseiIds)].join("、")}`,
     };
   }
 
@@ -434,7 +455,7 @@ export function buildRegularExamCsvTemplate(sessionKey: string) {
 
   const headers = ["学籍番号", ...term.subjects];
   const sampleRow = [
-    "1001",
+    "20250001",
     ...term.subjects.map((_, index) => String(Math.max(60, 88 - index * 3))),
   ];
   const lines = [headers.join(","), sampleRow.map(escapeCsvCell).join(",")];
@@ -463,7 +484,7 @@ export type ParseRegularExamResultCsvResult =
   | {
       ok: true;
       rows: Array<{
-        studentId: number;
+        gakuseiId: string;
         scores: Record<string, number | null>;
       }>;
       rowNumbers: number[];
@@ -478,9 +499,7 @@ export type ParseRegularExamResultCsvResult =
 
 function buildRegularSubjectIndexes(headers: string[], expectedSubjects: string[]) {
   const normalizedHeaders = headers.map(normalizeCsvHeader);
-  const studentIdIndex = normalizedHeaders.findIndex(
-    (header) => header === "学籍番号" || header === "student_id" || header === "ID",
-  );
+  const studentIdIndex = findStudentIdentifierColumnIndex(headers);
 
   if (studentIdIndex === -1) {
     return { ok: false as const, message: "CSVのヘッダーに「学籍番号」列がありません。" };
@@ -530,7 +549,7 @@ export function parseRegularExamResultCsv(
 
   const rowErrors: ExamRegistrationRowError[] = [];
   const validRows: Array<{
-    studentId: number;
+    gakuseiId: string;
     scores: Record<string, number | null>;
   }> = [];
   const rowNumbers: number[] = [];
@@ -545,15 +564,9 @@ export function parseRegularExamResultCsv(
       return;
     }
 
-    const studentIdRaw = cells[columnResult.studentIdIndex]?.trim() ?? "";
-    if (!/^\d+$/.test(studentIdRaw)) {
-      rowErrors.push({ rowNumber, message: "学籍番号は半角数字で入力してください。" });
-      return;
-    }
-
-    const studentId = Number(studentIdRaw);
-    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
-      rowErrors.push({ rowNumber, message: "学籍番号が不正です。" });
+    const gakuseiId = normalizeStudentIdentifier(cells[columnResult.studentIdIndex] ?? "");
+    if (!gakuseiId) {
+      rowErrors.push({ rowNumber, message: "学籍番号を入力してください。" });
       return;
     }
 
@@ -577,7 +590,7 @@ export function parseRegularExamResultCsv(
       return;
     }
 
-    validRows.push({ studentId, scores });
+    validRows.push({ gakuseiId, scores });
     rowNumbers.push(rowNumber);
   });
 
@@ -596,6 +609,16 @@ export function parseRegularExamResultCsv(
     return {
       ok: false,
       message: `一度に登録できるのは${MAX_EXAM_RESULT_IMPORT_ROWS}件までです。`,
+    };
+  }
+
+  const duplicateGakuseiIds = validRows
+    .map((row) => row.gakuseiId)
+    .filter((gakuseiId, index, all) => all.indexOf(gakuseiId) !== index);
+  if (duplicateGakuseiIds.length > 0) {
+    return {
+      ok: false,
+      message: `学籍番号が重複しています: ${[...new Set(duplicateGakuseiIds)].join("、")}`,
     };
   }
 

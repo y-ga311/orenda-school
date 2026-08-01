@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   const rows: Array<{
-    studentId: number;
+    gakuseiId: string;
     scores: Partial<Record<TestScoreSubjectColumn, number | null>>;
   }> = [];
 
@@ -50,12 +50,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "リクエスト形式が不正です。" }, { status: 400 });
     }
     const record = row as Record<string, unknown>;
-    const studentId = Number(record.studentId);
-    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
+    const gakuseiId = typeof record.gakuseiId === "string" ? record.gakuseiId.trim() : "";
+    if (!gakuseiId) {
       return NextResponse.json({ message: "学籍番号が不正です。" }, { status: 400 });
     }
     rows.push({
-      studentId,
+      gakuseiId,
       scores: (record.scores ?? {}) as Partial<Record<TestScoreSubjectColumn, number | null>>,
     });
   }
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    message: `${result.registeredCount}件の試験結果を登録しました（新規${result.inserted}件 / 更新${result.updated}件）。`,
+    message: `${result.registeredCount}件の試験結果を登録しました（新規${result.inserted}件 / 上書き${result.updated}件）。`,
     registeredCount: result.registeredCount,
     inserted: result.inserted,
     updated: result.updated,
