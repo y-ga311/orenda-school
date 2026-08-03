@@ -156,6 +156,7 @@ export type StudentProfileData = {
   parentEmail: string;
   hasStudentPassword: boolean;
   hasParentPassword: boolean;
+  nationalExamFailed: boolean;
   pretestScore: number | null;
   supportArea: string | null;
   careerEducation: string | null;
@@ -173,6 +174,7 @@ export type StudentProfileFormState = {
   parentId: string;
   parentPassword: string;
   parentEmail: string;
+  nationalExamFailed: boolean;
   pretestScore: string;
   supportArea: string;
   careerEducation: string;
@@ -215,6 +217,7 @@ export function buildProfileFormState(profile: StudentProfileData): StudentProfi
     parentId: profile.parentId,
     parentPassword: "",
     parentEmail: profile.parentEmail,
+    nationalExamFailed: profile.nationalExamFailed,
     pretestScore:
       profile.pretestScore === null || profile.pretestScore === undefined
         ? ""

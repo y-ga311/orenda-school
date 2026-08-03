@@ -1989,6 +1989,11 @@ a {
   border: 1.5px dashed #86efac;
 }
 
+.examRadarLegendSwatchFailedCohort {
+  background: rgba(251, 146, 60, 0.35);
+  border: 1.5px dashed #fb923c;
+}
+
 .examRadarTrackTotals {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2424,6 +2429,19 @@ a {
 
 .studentInfoFieldFull {
   grid-column: 1 / -1;
+}
+
+.studentInfoFieldCheckbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.studentInfoFieldCheckbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .studentInfoFieldLabel {
@@ -5587,6 +5605,11 @@ a {
 
 .subjectTrendLegendLineCohort {
   border-top-color: #86efac;
+  border-top-style: dashed;
+}
+
+.subjectTrendLegendLineFailedCohort {
+  border-top-color: #fb923c;
   border-top-style: dashed;
 }
 

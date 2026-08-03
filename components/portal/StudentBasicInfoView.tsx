@@ -343,6 +343,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
           parentId: form.parentId,
           parentPassword: form.parentPassword,
           parentEmail: form.parentEmail,
+          nationalExamFailed: form.nationalExamFailed,
           pretestScore: form.pretestScore,
           supportArea: form.supportArea,
           careerEducation: form.careerEducation,
@@ -649,6 +650,17 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         onChange={(event) => updateFormField("parentEmail", event.target.value)}
                         disabled={isLoading || isSaving}
                       />
+                    </label>
+                    <label className="studentInfoField studentInfoFieldCheckbox studentInfoFieldFull">
+                      <input
+                        type="checkbox"
+                        checked={form.nationalExamFailed}
+                        onChange={(event) =>
+                          updateFormField("nationalExamFailed", event.target.checked)
+                        }
+                        disabled={isLoading || isSaving}
+                      />
+                      <span className="studentInfoFieldLabel">国家試験不合格（卒業生）</span>
                     </label>
                   </div>
                 </section>

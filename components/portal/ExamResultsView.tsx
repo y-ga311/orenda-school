@@ -40,6 +40,8 @@ type ExamResultsData = {
   questionCountsMissing?: boolean;
   cohortRadarScores?: ExamScoreRow[];
   cohortAverageLabel?: string | null;
+  failedCohortRadarScores?: ExamScoreRow[];
+  failedCohortAverageLabel?: string | null;
 };
 
 function getExamResultsErrorMessage(status: number, message?: string) {
@@ -234,6 +236,25 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
       };
     });
   }, [data?.cohortRadarScores, radarScores, usesTestScoreFormat]);
+  const radarFailedCohortScores = useMemo(() => {
+    if (!usesTestScoreFormat || !data?.failedCohortRadarScores) {
+      return null;
+    }
+
+    const failedCohortBySubject = new Map(
+      data.failedCohortRadarScores.map((row) => [row.subjectName, row]),
+    );
+
+    return radarScores.map((row) => {
+      const failedCohortRow = failedCohortBySubject.get(row.subjectName);
+      return {
+        subjectName: row.subjectName,
+        score: failedCohortRow?.score ?? null,
+        notTaken:
+          failedCohortRow?.score === null || failedCohortRow?.score === undefined,
+      };
+    });
+  }, [data?.failedCohortRadarScores, radarScores, usesTestScoreFormat]);
   const trackTotals = useMemo(
     () => (usesTestScoreFormat ? calculateExamTrackTotals(scores) : null),
     [scores, usesTestScoreFormat],
@@ -440,6 +461,8 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                       averageScore={radarAverageScore}
                       cohortScores={radarCohortScores}
                       cohortAverageLabel={data?.cohortAverageLabel ?? null}
+                      failedCohortScores={radarFailedCohortScores}
+                      failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
                       trackTotals={trackTotals}
                       scoreUnit={usesPointScoreFormat ? "点" : "%"}
                     />

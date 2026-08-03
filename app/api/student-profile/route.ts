@@ -48,6 +48,7 @@ type StudentRow = {
   learning_ability_calculation?: number | string | null;
   learning_ability_data_reading?: number | string | null;
   medical_foundation_test_score?: number | string | null;
+  national_exam_failed?: boolean | null;
 };
 
 type UpdateBody = {
@@ -58,6 +59,7 @@ type UpdateBody = {
   parentId?: unknown;
   parentPassword?: unknown;
   parentEmail?: unknown;
+  nationalExamFailed?: unknown;
   pretestScore?: unknown;
   supportArea?: unknown;
   careerEducation?: unknown;
@@ -71,7 +73,7 @@ const MAX_PRETEST_SCORE = 9999.9;
 const MAX_COGNITIVE_SCORE = 999;
 
 const CORE_SELECT =
-  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail" as const;
+  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail, national_exam_failed" as const;
 
 const EXTENDED_SELECT = [
   "pretest_score",
@@ -112,6 +114,7 @@ function mapStudentProfile(
     parentEmail: row.mail?.trim() || "",
     hasStudentPassword: Boolean(row.gakusei_password),
     hasParentPassword: Boolean(row.hogosya_pass),
+    nationalExamFailed: Boolean(row.national_exam_failed),
     pretestScore:
       extendedFieldsAvailable && row.pretest_score !== null && row.pretest_score !== undefined
         ? Number(row.pretest_score)
@@ -491,6 +494,7 @@ export async function PUT(request: Request) {
   const parentPassword =
     typeof body?.parentPassword === "string" ? body.parentPassword : "";
   const parentEmail = typeof body?.parentEmail === "string" ? body.parentEmail.trim() : "";
+  const nationalExamFailed = body?.nationalExamFailed === true;
 
   if (!gakuseiId) {
     return NextResponse.json({ message: "学生が選択されていません。" }, { status: 400 });
@@ -522,11 +526,12 @@ export async function PUT(request: Request) {
     );
   }
 
-  const updates: Record<string, string | null> = {
+  const updates: Record<string, string | boolean | null> = {
     nickname: nickname || null,
     class: className,
     hogosya_id: parentId || null,
     mail: parentEmail || null,
+    national_exam_failed: nationalExamFailed,
   };
   if (studentPassword) {
     updates.gakusei_password = studentPassword;

@@ -23,8 +23,13 @@ import {
   loadRegularExamTerms,
   loadStudentCohortKey,
 } from "@/lib/regularExam.server";
-import { buildCohortRadarScoresForTest } from "@/lib/examCohortRadar.server";
+import {
+  buildCohortRadarScoresForTest,
+  buildFailedNationalExamRadarScoresForTest,
+} from "@/lib/examCohortRadar.server";
+import { loadCohortStudentContext } from "@/lib/cohortStudents.server";
 import { formatCohortStudentLabel } from "@/lib/cohort";
+import { FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL } from "@/lib/subjectTrend";
 import { sortRegularExamTerms } from "@/lib/regularExam";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
@@ -240,14 +245,32 @@ export async function GET(request: Request) {
 
     let cohortRadarScores: Awaited<ReturnType<typeof buildCohortRadarScoresForTest>> = [];
     let cohortAverageLabel: string | null = null;
+    let failedCohortRadarScores: Awaited<
+      ReturnType<typeof buildFailedNationalExamRadarScoresForTest>
+    > = [];
+    let failedCohortAverageLabel: string | null = null;
 
-    if (cohortKey && selectedTestName) {
-      cohortRadarScores = await buildCohortRadarScoresForTest(
+    if (selectedTestName) {
+      const cohortContext = await loadCohortStudentContext(supabase);
+
+      if (cohortKey) {
+        cohortRadarScores = await buildCohortRadarScoresForTest(
+          supabase,
+          cohortKey,
+          selectedTestName,
+          { context: cohortContext },
+        );
+        cohortAverageLabel = `${formatCohortStudentLabel(cohortKey)}平均`;
+      }
+
+      failedCohortRadarScores = await buildFailedNationalExamRadarScoresForTest(
         supabase,
-        cohortKey,
         selectedTestName,
+        cohortContext,
       );
-      cohortAverageLabel = `${formatCohortStudentLabel(cohortKey)}平均`;
+      if (failedCohortRadarScores.some((row) => row.score !== null)) {
+        failedCohortAverageLabel = FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL;
+      }
     }
 
     return NextResponse.json({
@@ -255,6 +278,8 @@ export async function GET(request: Request) {
       questionCountsMissing,
       cohortRadarScores,
       cohortAverageLabel,
+      failedCohortRadarScores,
+      failedCohortAverageLabel,
     });
   }
 

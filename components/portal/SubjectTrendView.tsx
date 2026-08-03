@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
-import type { SubjectTrendData, SubjectTrendPoint } from "@/lib/subjectTrend";
+import {
+  formatSubjectTrendCohortAverageLabel,
+  type SubjectTrendData,
+  type SubjectTrendPoint,
+} from "@/lib/subjectTrend";
 
 type SubjectTrendViewProps = {
   students: StudentRow[];
@@ -19,6 +23,7 @@ const REGULAR_COLOR = "#2563eb";
 const MOCK_COLOR = "#ea580c";
 const STUDENT_LINE_COLOR = "#94a3b8";
 const COHORT_AVERAGE_LINE_COLOR = "#86efac";
+const FAILED_COHORT_AVERAGE_LINE_COLOR = "#fb923c";
 
 function formatAxisLabel(point: SubjectTrendPoint) {
   if (point.examDateLabel) {
@@ -32,13 +37,14 @@ function buildConnectedPath(
   toX: (index: number) => number,
   toY: (value: number) => number,
   getValue: (point: SubjectTrendPoint) => number | null = (point) => point.chartValue,
+  options: { skipNotTaken?: boolean } = {},
 ) {
   const segments: string[] = [];
   let currentSegment: string[] = [];
 
   points.forEach((point, index) => {
     const value = getValue(point);
-    if (point.notTaken || value === null) {
+    if (value === null || (options.skipNotTaken !== false && point.notTaken)) {
       if (currentSegment.length > 0) {
         segments.push(currentSegment.join(" "));
         currentSegment = [];
@@ -65,9 +71,11 @@ function buildConnectedPath(
 function SubjectTrendLineChart({
   points,
   cohortAverageLabel,
+  failedCohortAverageLabel,
 }: {
   points: SubjectTrendPoint[];
   cohortAverageLabel: string | null;
+  failedCohortAverageLabel: string | null;
 }) {
   const chartPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
   const pointSpacing = 72;
@@ -90,14 +98,27 @@ function SubjectTrendLineChart({
   const toY = (value: number) =>
     padding.top + chartHeight - (Math.max(0, Math.min(value, 100)) / 100) * chartHeight;
 
-  const connectedPaths = buildConnectedPath(points, toX, toY);
+  const connectedPaths = buildConnectedPath(points, toX, toY, undefined, {
+    skipNotTaken: true,
+  });
   const cohortAveragePaths = buildConnectedPath(
     points,
     toX,
     toY,
     (point) => point.cohortAverage,
+    { skipNotTaken: false },
+  );
+  const failedCohortAveragePaths = buildConnectedPath(
+    points,
+    toX,
+    toY,
+    (point) => point.failedCohortAverage,
+    { skipNotTaken: false },
   );
   const hasCohortAverage = points.some((point) => point.cohortAverage !== null);
+  const hasFailedCohortAverage = points.some(
+    (point) => point.failedCohortAverage !== null,
+  );
 
   return (
     <div className="subjectTrendChartWrap">
@@ -124,6 +145,15 @@ function SubjectTrendLineChart({
               aria-hidden="true"
             />
             {cohortAverageLabel ?? "クラスメイト平均"}
+          </span>
+        ) : null}
+        {hasFailedCohortAverage ? (
+          <span className="subjectTrendLegendItem">
+            <span
+              className="subjectTrendLegendLine subjectTrendLegendLineFailedCohort"
+              aria-hidden="true"
+            />
+            {failedCohortAverageLabel ?? "国家試験不合格者平均"}
           </span>
         ) : null}
       </div>
@@ -190,6 +220,17 @@ function SubjectTrendLineChart({
           />
         ))}
 
+        {failedCohortAveragePaths.map((path, index) => (
+          <path
+            key={`failed-cohort-line-${index}`}
+            d={path}
+            fill="none"
+            stroke={FAILED_COHORT_AVERAGE_LINE_COLOR}
+            strokeWidth={1.5}
+            strokeDasharray="2 2"
+          />
+        ))}
+
         {points.map((point, index) => {
           if (point.notTaken || point.chartValue === null) {
             return null;
@@ -201,9 +242,27 @@ function SubjectTrendLineChart({
           const radius = point.sourceType === "regular" ? 6.5 : 5.5;
           const cohortY =
             point.cohortAverage !== null ? toY(point.cohortAverage) : null;
+          const failedCohortY =
+            point.failedCohortAverage !== null ? toY(point.failedCohortAverage) : null;
 
           return (
             <g key={point.sessionKey}>
+              {failedCohortY !== null ? (
+                <polygon
+                  points={`${x - 4},${failedCohortY + 4} ${x + 4},${failedCohortY + 4} ${x},${failedCohortY - 4}`}
+                  fill={FAILED_COHORT_AVERAGE_LINE_COLOR}
+                  stroke="#ffffff"
+                  strokeWidth={1.5}
+                >
+                  <title>
+                    {failedCohortAverageLabel ?? "国家試験不合格者平均"}:{" "}
+                    {formatSubjectTrendCohortAverageLabel(
+                      point.failedCohortAverage!,
+                      point.sourceType,
+                    )}
+                  </title>
+                </polygon>
+              ) : null}
               {cohortY !== null ? (
                 <rect
                   x={x - 4}
@@ -214,7 +273,12 @@ function SubjectTrendLineChart({
                   stroke="#ffffff"
                   strokeWidth={1.5}
                   rx={1}
-                />
+                >
+                  <title>
+                    {cohortAverageLabel ?? "同期平均"}:{" "}
+                    {formatSubjectTrendCohortAverageLabel(point.cohortAverage!, point.sourceType)}
+                  </title>
+                </rect>
               ) : null}
               <circle cx={x} cy={y} r={radius} fill={color} stroke="#ffffff" strokeWidth={2} />
               <text
@@ -537,6 +601,7 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
                 <SubjectTrendLineChart
                   points={data?.points ?? []}
                   cohortAverageLabel={data?.cohortAverageLabel ?? null}
+                  failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
                 />
               </section>
 

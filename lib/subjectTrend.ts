@@ -8,6 +8,7 @@ import {
   REGULAR_EXAM_TREND_FANOUT,
 } from "@/lib/regularExam";
 import { formatExamTestDate } from "@/lib/questionCounts";
+import { buildFailedTestScoreRoundLookupKey } from "@/lib/examRoundKey";
 
 export type SubjectTrendSourceType = "regular" | "mock";
 
@@ -20,6 +21,7 @@ export type SubjectTrendPoint = {
   sourceType: SubjectTrendSourceType;
   chartValue: number | null;
   cohortAverage: number | null;
+  failedCohortAverage: number | null;
   displayValue: string;
   notTaken: boolean;
 };
@@ -41,6 +43,7 @@ export type SubjectTrendData = {
   points: SubjectTrendPoint[];
   summary: SubjectTrendSummary;
   cohortAverageLabel: string | null;
+  failedCohortAverageLabel: string | null;
 };
 
 const MOCK_LABELS: string[] = TEST_SCORE_SUBJECTS.map((subject) => subject.label);
@@ -122,26 +125,23 @@ export function resolveMockLabelsForTrend(groupName: string): string[] {
   return [];
 }
 
-/** 左（古い）→ 右（新しい）の並び用タイムスタンプ */
-export function getSubjectTrendSortTimestamp(
-  point: SubjectTrendPoint,
-  allPoints: SubjectTrendPoint[] = [],
-) {
-  if (point.examDateIso) {
-    const parsed = Date.parse(point.examDateIso);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+/** 実施日 ISO をミリ秒に変換（無効なら null） */
+export function parseSubjectTrendExamTimestamp(
+  examDateIso: string | null | undefined,
+): number | null {
+  if (!examDateIso?.trim()) {
+    return null;
   }
 
-  const datedTimestamps = allPoints
-    .map((item) => (item.examDateIso ? Date.parse(item.examDateIso) : Number.NaN))
-    .filter((value) => Number.isFinite(value));
+  const parsed = Date.parse(examDateIso.trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
-  if (datedTimestamps.length > 0) {
-    const earliestDated = Math.min(...datedTimestamps);
-    const monthOffset = Math.max(point.sortOrder, 1);
-    return earliestDated - (10 - monthOffset) * 30 * 86_400_000;
+/** 左（古い）→ 右（新しい）の並び用タイムスタンプ */
+export function getSubjectTrendSortTimestamp(point: SubjectTrendPoint) {
+  const dated = parseSubjectTrendExamTimestamp(point.examDateIso);
+  if (dated !== null) {
+    return dated;
   }
 
   return point.sortOrder * 86_400_000;
@@ -149,15 +149,24 @@ export function getSubjectTrendSortTimestamp(
 
 export function sortSubjectTrendPoints(points: SubjectTrendPoint[]) {
   return [...points].sort((a, b) => {
-    const timestampA = getSubjectTrendSortTimestamp(a, points);
-    const timestampB = getSubjectTrendSortTimestamp(b, points);
-    if (timestampA !== timestampB) {
-      return timestampA - timestampB;
+    const dateA = parseSubjectTrendExamTimestamp(a.examDateIso);
+    const dateB = parseSubjectTrendExamTimestamp(b.examDateIso);
+
+    if (dateA !== null && dateB !== null) {
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+    } else if (dateA !== null && dateB === null) {
+      return -1;
+    } else if (dateA === null && dateB !== null) {
+      return 1;
     }
-    if (a.sourceType !== b.sourceType) {
-      return a.sourceType === "regular" ? -1 : 1;
+
+    if (a.sortOrder !== b.sortOrder) {
+      return a.sortOrder - b.sortOrder;
     }
-    return a.sortOrder - b.sortOrder;
+
+    return a.sessionKey.localeCompare(b.sessionKey, "ja");
   });
 }
 
@@ -212,6 +221,69 @@ export function roundSubjectTrendAverage(values: number[]): number | null {
   }
   const sum = values.reduce((total, value) => total + value, 0);
   return Math.round((sum / values.length) * 10) / 10;
+}
+
+export const FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL = "国家試験不合格者平均";
+
+export function getRegularCohortTrendLookupKey(point: SubjectTrendPoint): string | null {
+  if (point.sourceType !== "regular") {
+    return null;
+  }
+
+  const match = point.sessionKey.match(/^regular:([^:]+):/);
+  return match ? `regular:${match[1]}` : null;
+}
+
+export function formatSubjectTrendCohortAverageLabel(
+  value: number,
+  sourceType: SubjectTrendSourceType,
+) {
+  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return sourceType === "regular" ? `${formatted}点` : `${formatted}%`;
+}
+
+/** @deprecated use lib/examRoundKey.ts */
+export {
+  buildFailedMockTrendAverageKey,
+  buildFailedTestScoreRoundLookupKey,
+  normalizeMockExamRoundKey,
+  parseTestScoreRoundKey,
+  testScoreRoundKeysMatch,
+  type TestScoreExamKind,
+  type TestScoreRoundMatch,
+} from "@/lib/examRoundKey";
+
+export function parseMockTrendLookupKey(lookupKey: string): {
+  testName: string;
+  subjectName: string;
+} | null {
+  if (!lookupKey.startsWith("mock:")) {
+    return null;
+  }
+
+  const rest = lookupKey.slice("mock:".length);
+  const subjectSeparator = rest.lastIndexOf(":");
+  if (subjectSeparator === -1) {
+    return null;
+  }
+
+  return {
+    testName: rest.slice(0, subjectSeparator),
+    subjectName: rest.slice(subjectSeparator + 1),
+  };
+}
+
+export function getFailedNationalExamTrendLookupKey(point: SubjectTrendPoint): string | null {
+  if (point.sourceType === "regular") {
+    return getRegularCohortTrendLookupKey(point);
+  }
+
+  const parsed = parseMockTrendLookupKey(getSubjectTrendCohortLookupKey(point));
+  if (!parsed) {
+    return null;
+  }
+
+  return buildFailedTestScoreRoundLookupKey(parsed.testName, parsed.subjectName);
 }
 
 export function getSubjectTrendCohortLookupKey(point: SubjectTrendPoint): string {

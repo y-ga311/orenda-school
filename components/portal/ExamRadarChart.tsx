@@ -3,12 +3,16 @@ import { formatTrackTotalDisplay, getTrackTotalTone } from "@/lib/examResults";
 
 const COHORT_RADAR_FILL = "rgba(134, 239, 172, 0.35)";
 const COHORT_RADAR_STROKE = "#86efac";
+const FAILED_COHORT_RADAR_FILL = "rgba(251, 146, 60, 0.35)";
+const FAILED_COHORT_RADAR_STROKE = "#fb923c";
 
 type ExamRadarChartProps = {
   scores: ExamScoreRow[];
   averageScore: number | null;
   cohortScores?: ExamScoreRow[] | null;
   cohortAverageLabel?: string | null;
+  failedCohortScores?: ExamScoreRow[] | null;
+  failedCohortAverageLabel?: string | null;
   trackTotals?: {
     acupuncturist: ExamTrackTotal;
     moxibustionist: ExamTrackTotal;
@@ -85,6 +89,8 @@ export function ExamRadarChart({
   averageScore,
   cohortScores = null,
   cohortAverageLabel = null,
+  failedCohortScores = null,
+  failedCohortAverageLabel = null,
   trackTotals = null,
   scoreUnit = "%",
 }: ExamRadarChartProps) {
@@ -122,6 +128,13 @@ export function ExamRadarChart({
     return cohortScore !== null && cohortScore !== undefined;
   });
 
+  const failedCohortScoreBySubject = new Map(
+    (failedCohortScores ?? []).map((row) => [row.subjectName, row.score]),
+  );
+  const hasFailedCohortRadar = (failedCohortScores ?? []).some(
+    (row) => row.score !== null && row.score !== undefined,
+  );
+
   const cohortPolygonPoints = scores
     .map((row, index) => {
       const cohortScore = cohortScoreBySubject.get(row.subjectName);
@@ -135,18 +148,39 @@ export function ExamRadarChart({
     })
     .join(" ");
 
+  const failedCohortPolygonPoints = scores
+    .map((row, index) => {
+      const failedCohortScore = failedCohortScoreBySubject.get(row.subjectName);
+      const angle = (Math.PI * 2 * index) / count - Math.PI / 2;
+      const radius =
+        failedCohortScore === null || failedCohortScore === undefined
+          ? 0
+          : (Math.max(0, Math.min(failedCohortScore, 100)) / 100) * maxRadius;
+      const point = polarToCartesian(center, radius, angle);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+
   return (
     <div className="examRadarPanel">
-      {hasCohortRadar ? (
+      {hasCohortRadar || hasFailedCohortRadar ? (
         <div className="examRadarLegend">
           <span className="examRadarLegendItem">
             <span className="examRadarLegendSwatch examRadarLegendSwatchStudent" />
             本人
           </span>
-          <span className="examRadarLegendItem">
-            <span className="examRadarLegendSwatch examRadarLegendSwatchCohort" />
-            {cohortAverageLabel ?? "クラス平均"}
-          </span>
+          {hasCohortRadar ? (
+            <span className="examRadarLegendItem">
+              <span className="examRadarLegendSwatch examRadarLegendSwatchCohort" />
+              {cohortAverageLabel ?? "クラス平均"}
+            </span>
+          ) : null}
+          {hasFailedCohortRadar ? (
+            <span className="examRadarLegendItem">
+              <span className="examRadarLegendSwatch examRadarLegendSwatchFailedCohort" />
+              {failedCohortAverageLabel ?? "国家試験不合格者平均"}
+            </span>
+          ) : null}
         </div>
       ) : null}
       {trackTotals ? (
@@ -235,6 +269,15 @@ export function ExamRadarChart({
                       angle,
                     )
                   : null;
+              const failedCohortScore = failedCohortScoreBySubject.get(row.subjectName);
+              const failedCohortPoint =
+                failedCohortScore !== null && failedCohortScore !== undefined
+                  ? polarToCartesian(
+                      center,
+                      (Math.max(0, Math.min(failedCohortScore, 100)) / 100) * maxRadius,
+                      angle,
+                    )
+                  : null;
 
               return (
                 <g key={row.subjectName}>
@@ -246,6 +289,14 @@ export function ExamRadarChart({
                     stroke="#94a3b8"
                     strokeWidth={1}
                   />
+                  {failedCohortPoint ? (
+                    <polygon
+                      points={`${failedCohortPoint.x},${failedCohortPoint.y - 4} ${failedCohortPoint.x - 4},${failedCohortPoint.y + 3} ${failedCohortPoint.x + 4},${failedCohortPoint.y + 3}`}
+                      fill={FAILED_COHORT_RADAR_STROKE}
+                      stroke="#ffffff"
+                      strokeWidth={1}
+                    />
+                  ) : null}
                   {cohortPoint ? (
                     <rect
                       x={cohortPoint.x - 3}
@@ -279,6 +330,16 @@ export function ExamRadarChart({
                 </g>
               );
             })}
+
+            {hasFailedCohortRadar ? (
+              <polygon
+                points={failedCohortPolygonPoints}
+                fill={FAILED_COHORT_RADAR_FILL}
+                stroke={FAILED_COHORT_RADAR_STROKE}
+                strokeWidth={1.5}
+                strokeDasharray="2 2"
+              />
+            ) : null}
 
             {hasCohortRadar ? (
               <polygon
