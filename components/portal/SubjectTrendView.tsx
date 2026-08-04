@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
-import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
-  formatSubjectTrendCohortAverageLabel,
-  type SubjectTrendData,
-  type SubjectTrendPoint,
-} from "@/lib/subjectTrend";
-import { ChartLegendToggleButton, useChartLegendToggle } from "@/lib/chartLegendToggle";
+  buildSubjectTrendNotices,
+  SubjectTrendDetailContent,
+  SubjectTrendHeader,
+} from "@/components/portal/SubjectTrendDetailContent";
+import type { StudentRow } from "@/components/portal/LearningTimeView";
+import { type SubjectTrendData } from "@/lib/subjectTrend";
+import type { SubjectTrendAnalysis } from "@/lib/subjectTrendAnalysis";
 
 type SubjectTrendViewProps = {
   students: StudentRow[];
@@ -17,426 +19,9 @@ type SubjectTrendViewProps = {
 type SubjectTrendResponse = SubjectTrendData & {
   subjectOptions: string[];
   selectedSubjectName: string;
+  subjectAnalysis?: SubjectTrendAnalysis;
   message?: string;
 };
-
-const REGULAR_COLOR = "#2563eb";
-const MOCK_COLOR = "#ea580c";
-const STUDENT_LINE_COLOR = "#94a3b8";
-const COHORT_AVERAGE_LINE_COLOR = "#86efac";
-const FAILED_COHORT_AVERAGE_LINE_COLOR = "#fb923c";
-const PASSED_COHORT_AVERAGE_LINE_COLOR = "#a78bfa";
-
-function formatAxisLabel(point: SubjectTrendPoint) {
-  if (point.examDateLabel) {
-    return point.examDateLabel.replace(/年/g, "/").replace(/月/g, "/").replace(/日/g, "");
-  }
-  return point.sessionLabel.replace("（定期）", "").replace("（模擬）", "").replace("/", "");
-}
-
-function buildConnectedPath(
-  points: SubjectTrendPoint[],
-  toX: (index: number) => number,
-  toY: (value: number) => number,
-  getValue: (point: SubjectTrendPoint) => number | null = (point) => point.chartValue,
-  options: { skipNotTaken?: boolean } = {},
-) {
-  const segments: string[] = [];
-  let currentSegment: string[] = [];
-
-  points.forEach((point, index) => {
-    const value = getValue(point);
-    if (value === null || (options.skipNotTaken !== false && point.notTaken)) {
-      if (currentSegment.length > 0) {
-        segments.push(currentSegment.join(" "));
-        currentSegment = [];
-      }
-      return;
-    }
-
-    const x = toX(index);
-    const y = toY(value);
-    if (currentSegment.length === 0) {
-      currentSegment.push(`M${x},${y}`);
-    } else {
-      currentSegment.push(`L${x},${y}`);
-    }
-  });
-
-  if (currentSegment.length > 0) {
-    segments.push(currentSegment.join(" "));
-  }
-
-  return segments;
-}
-
-function SubjectTrendLineChart({
-  points,
-  cohortAverageLabel,
-  failedCohortAverageLabel,
-  passedCohortAverageLabel,
-}: {
-  points: SubjectTrendPoint[];
-  cohortAverageLabel: string | null;
-  failedCohortAverageLabel: string | null;
-  passedCohortAverageLabel: string | null;
-}) {
-  const { isVisible, toggle } = useChartLegendToggle();
-  const showRegular = isVisible("regular");
-  const showMock = isVisible("mock");
-  const showStudent = isVisible("student");
-  const showCohort = isVisible("cohort");
-  const showPassed = isVisible("passed");
-  const showFailed = isVisible("failed");
-
-  const chartPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
-  const pointSpacing = 72;
-  const width = Math.max(720, chartPoints.length * pointSpacing);
-  const height = 300;
-  const padding = { top: 24, right: 24, bottom: 72, left: 44 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-
-  if (chartPoints.length === 0) {
-    return (
-      <div className="subjectTrendChartEmpty">
-        <p>表示できる推移データがありません。</p>
-      </div>
-    );
-  }
-
-  const xStep = points.length > 1 ? chartWidth / (points.length - 1) : 0;
-  const toX = (index: number) => padding.left + index * xStep;
-  const toY = (value: number) =>
-    padding.top + chartHeight - (Math.max(0, Math.min(value, 100)) / 100) * chartHeight;
-
-  const connectedPaths = showStudent
-    ? buildConnectedPath(
-        points,
-        toX,
-        toY,
-        (point) => {
-          if (!showRegular && point.sourceType === "regular") {
-            return null;
-          }
-          if (!showMock && point.sourceType === "mock") {
-            return null;
-          }
-          return point.chartValue;
-        },
-        { skipNotTaken: true },
-      )
-    : [];
-  const cohortAveragePaths =
-    showCohort
-      ? buildConnectedPath(
-          points,
-          toX,
-          toY,
-          (point) => point.cohortAverage,
-          { skipNotTaken: false },
-        )
-      : [];
-  const failedCohortAveragePaths =
-    showFailed
-      ? buildConnectedPath(
-          points,
-          toX,
-          toY,
-          (point) => point.failedCohortAverage,
-          { skipNotTaken: false },
-        )
-      : [];
-  const passedCohortAveragePaths =
-    showPassed
-      ? buildConnectedPath(
-          points,
-          toX,
-          toY,
-          (point) => point.passedCohortAverage,
-          { skipNotTaken: false },
-        )
-      : [];
-  const hasCohortAverage = points.some((point) => point.cohortAverage !== null);
-  const hasFailedCohortAverage = points.some(
-    (point) => point.failedCohortAverage !== null,
-  );
-  const hasPassedCohortAverage = points.some(
-    (point) => point.passedCohortAverage !== null,
-  );
-
-  return (
-    <div className="subjectTrendChartWrap">
-      <div className="subjectTrendLegend">
-        <ChartLegendToggleButton
-          seriesKey="regular"
-          isVisible={isVisible}
-          onToggle={toggle}
-          className="subjectTrendLegendItem chartLegendToggleButton"
-        >
-          <span className="subjectTrendLegendDot" style={{ backgroundColor: REGULAR_COLOR }} />
-          定期（点）
-        </ChartLegendToggleButton>
-        <ChartLegendToggleButton
-          seriesKey="mock"
-          isVisible={isVisible}
-          onToggle={toggle}
-          className="subjectTrendLegendItem chartLegendToggleButton"
-        >
-          <span className="subjectTrendLegendDot" style={{ backgroundColor: MOCK_COLOR }} />
-          模擬（%）
-        </ChartLegendToggleButton>
-        <ChartLegendToggleButton
-          seriesKey="student"
-          isVisible={isVisible}
-          onToggle={toggle}
-          className="subjectTrendLegendItem chartLegendToggleButton"
-        >
-          <span
-            className="subjectTrendLegendLine subjectTrendLegendLineStudent"
-            aria-hidden="true"
-          />
-          本人
-        </ChartLegendToggleButton>
-        {hasCohortAverage ? (
-          <ChartLegendToggleButton
-            seriesKey="cohort"
-            isVisible={isVisible}
-            onToggle={toggle}
-            className="subjectTrendLegendItem chartLegendToggleButton"
-          >
-            <span
-              className="subjectTrendLegendLine subjectTrendLegendLineCohort"
-              aria-hidden="true"
-            />
-            {cohortAverageLabel ?? "クラスメイト平均"}
-          </ChartLegendToggleButton>
-        ) : null}
-        {hasPassedCohortAverage ? (
-          <ChartLegendToggleButton
-            seriesKey="passed"
-            isVisible={isVisible}
-            onToggle={toggle}
-            className="subjectTrendLegendItem chartLegendToggleButton"
-          >
-            <span
-              className="subjectTrendLegendLine subjectTrendLegendLinePassedCohort"
-              aria-hidden="true"
-            />
-            {passedCohortAverageLabel ?? "国家試験合格者平均"}
-          </ChartLegendToggleButton>
-        ) : null}
-        {hasFailedCohortAverage ? (
-          <ChartLegendToggleButton
-            seriesKey="failed"
-            isVisible={isVisible}
-            onToggle={toggle}
-            className="subjectTrendLegendItem chartLegendToggleButton"
-          >
-            <span
-              className="subjectTrendLegendLine subjectTrendLegendLineFailedCohort"
-              aria-hidden="true"
-            />
-            {failedCohortAverageLabel ?? "国家試験不合格者平均"}
-          </ChartLegendToggleButton>
-        ) : null}
-      </div>
-      <svg
-        className="subjectTrendChart"
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label="科目別成績推移グラフ（日程順）"
-      >
-        {[0, 25, 50, 75, 100].map((value) => {
-          const y = toY(value);
-          return (
-            <g key={value}>
-              <line
-                x1={padding.left}
-                y1={y}
-                x2={width - padding.right}
-                y2={y}
-                stroke="#e2e8f0"
-                strokeWidth={1}
-              />
-              <text x={8} y={y + 4} className="subjectTrendChartScale" fontSize={11}>
-                {value}
-              </text>
-            </g>
-          );
-        })}
-
-        <line
-          x1={padding.left}
-          y1={toY(60)}
-          x2={width - padding.right}
-          y2={toY(60)}
-          stroke="#dc2626"
-          strokeWidth={1}
-        />
-        <text
-          x={width - padding.right + 4}
-          y={toY(60) + 4}
-          className="subjectTrendChartPassLineLabel"
-          fontSize={10}
-        >
-          60
-        </text>
-
-        {connectedPaths.map((path, index) => (
-          <path
-            key={`trend-line-${index}`}
-            d={path}
-            fill="none"
-            stroke={STUDENT_LINE_COLOR}
-            strokeWidth={1.5}
-          />
-        ))}
-
-        {cohortAveragePaths.map((path, index) => (
-          <path
-            key={`cohort-line-${index}`}
-            d={path}
-            fill="none"
-            stroke={COHORT_AVERAGE_LINE_COLOR}
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
-          />
-        ))}
-
-        {passedCohortAveragePaths.map((path, index) => (
-          <path
-            key={`passed-cohort-line-${index}`}
-            d={path}
-            fill="none"
-            stroke={PASSED_COHORT_AVERAGE_LINE_COLOR}
-            strokeWidth={1.5}
-            strokeDasharray="6 3"
-          />
-        ))}
-
-        {failedCohortAveragePaths.map((path, index) => (
-          <path
-            key={`failed-cohort-line-${index}`}
-            d={path}
-            fill="none"
-            stroke={FAILED_COHORT_AVERAGE_LINE_COLOR}
-            strokeWidth={1.5}
-            strokeDasharray="2 2"
-          />
-        ))}
-
-        {points.map((point, index) => {
-          if (point.notTaken || point.chartValue === null) {
-            return null;
-          }
-
-          const isStudentPointVisible =
-            showStudent &&
-            (showRegular || point.sourceType !== "regular") &&
-            (showMock || point.sourceType !== "mock");
-          const hasVisibleOverlay =
-            (showCohort && point.cohortAverage !== null) ||
-            (showPassed && point.passedCohortAverage !== null) ||
-            (showFailed && point.failedCohortAverage !== null);
-
-          if (!isStudentPointVisible && !hasVisibleOverlay) {
-            return null;
-          }
-
-          const x = toX(index);
-          const y = toY(point.chartValue);
-          const color = point.sourceType === "regular" ? REGULAR_COLOR : MOCK_COLOR;
-          const axisLabel = formatAxisLabel(point);
-          const radius = point.sourceType === "regular" ? 6.5 : 5.5;
-          const cohortY =
-            point.cohortAverage !== null ? toY(point.cohortAverage) : null;
-          const failedCohortY =
-            point.failedCohortAverage !== null ? toY(point.failedCohortAverage) : null;
-          const passedCohortY =
-            point.passedCohortAverage !== null ? toY(point.passedCohortAverage) : null;
-
-          return (
-            <g key={point.sessionKey}>
-              {showPassed && passedCohortY !== null ? (
-                <circle
-                  cx={x}
-                  cy={passedCohortY}
-                  r={4}
-                  fill="none"
-                  stroke={PASSED_COHORT_AVERAGE_LINE_COLOR}
-                  strokeWidth={2}
-                >
-                  <title>
-                    {passedCohortAverageLabel ?? "国家試験合格者平均"}:{" "}
-                    {formatSubjectTrendCohortAverageLabel(
-                      point.passedCohortAverage!,
-                      point.sourceType,
-                    )}
-                  </title>
-                </circle>
-              ) : null}
-              {showFailed && failedCohortY !== null ? (
-                <polygon
-                  points={`${x - 4},${failedCohortY + 4} ${x + 4},${failedCohortY + 4} ${x},${failedCohortY - 4}`}
-                  fill={FAILED_COHORT_AVERAGE_LINE_COLOR}
-                  stroke="#ffffff"
-                  strokeWidth={1.5}
-                >
-                  <title>
-                    {failedCohortAverageLabel ?? "国家試験不合格者平均"}:{" "}
-                    {formatSubjectTrendCohortAverageLabel(
-                      point.failedCohortAverage!,
-                      point.sourceType,
-                    )}
-                  </title>
-                </polygon>
-              ) : null}
-              {showCohort && cohortY !== null ? (
-                <rect
-                  x={x - 4}
-                  y={cohortY - 4}
-                  width={8}
-                  height={8}
-                  fill={COHORT_AVERAGE_LINE_COLOR}
-                  stroke="#ffffff"
-                  strokeWidth={1.5}
-                  rx={1}
-                >
-                  <title>
-                    {cohortAverageLabel ?? "同期平均"}:{" "}
-                    {formatSubjectTrendCohortAverageLabel(point.cohortAverage!, point.sourceType)}
-                  </title>
-                </rect>
-              ) : null}
-              {isStudentPointVisible ? (
-                <circle cx={x} cy={y} r={radius} fill={color} stroke="#ffffff" strokeWidth={2} />
-              ) : null}
-              <text
-                x={x}
-                y={height - 42}
-                textAnchor="middle"
-                className="subjectTrendChartAxisLabel"
-                fontSize={9}
-              >
-                {axisLabel.length > 10 ? `${axisLabel.slice(0, 10)}…` : axisLabel}
-              </text>
-              <text
-                x={x}
-                y={height - 28}
-                textAnchor="middle"
-                className="subjectTrendChartAxisSubLabel"
-                fontSize={8}
-              >
-                {point.sourceType === "regular" ? "定期" : "模擬"}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
 
 export function SubjectTrendView({ students }: SubjectTrendViewProps) {
   const [search, setSearch] = useState("");
@@ -449,6 +34,7 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
   const [data, setData] = useState<SubjectTrendResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
   const classFilterOptions = useMemo(() => {
     const classes = new Map<string, string>();
@@ -586,9 +172,75 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
 
   const subjectOptions = data?.subjectOptions ?? [];
   const currentSubject = subjectName || data?.selectedSubjectName || subjectOptions[0] || "";
+  const notices = useMemo(() => buildSubjectTrendNotices(data), [data]);
+
+  const selectStudent = (gakuseiId: string) => {
+    setSelectedGakuseiId(gakuseiId);
+    setIsFullscreenOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isFullscreenOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFullscreenOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreenOpen]);
+
+  const openFullscreen = () => {
+    setIsFullscreenOpen(true);
+  };
+
+  const fullscreenOverlay =
+    isFullscreenOpen && selectedStudent && typeof document !== "undefined"
+      ? createPortal(
+          <div className="examDetailFullscreen" role="dialog" aria-modal="true">
+            <div className="examDetailFullscreenInner">
+              <PortalLoadingOverlay active={isLoading} />
+              <SubjectTrendHeader
+                studentName={selectedStudent.name}
+                studentClass={selectedStudent.class ?? null}
+                subjectOptions={subjectOptions}
+                currentSubject={currentSubject}
+                onSubjectChange={setSubjectName}
+                isFullscreen
+                onCloseFullscreen={() => setIsFullscreenOpen(false)}
+              />
+              {error ? <p className="loginError">{error}</p> : null}
+              <div className="examDetailFullscreenBody">
+                <SubjectTrendDetailContent
+                  subjectName={currentSubject}
+                  points={data?.points ?? []}
+                  cohortAverageLabel={data?.cohortAverageLabel ?? null}
+                  failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
+                  passedCohortAverageLabel={data?.passedCohortAverageLabel ?? null}
+                  subjectAnalysis={data?.subjectAnalysis}
+                  isLoading={isLoading}
+                  notices={notices}
+                />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className="learningTimePage">
+      {fullscreenOverlay}
       <header className="learningTimeHeader">
         <div>
           <h1 className="learningTimeTitle">科目別推移</h1>
@@ -642,15 +294,25 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
               filteredStudents.map((student) => {
                 const isSelected = student.gakusei_id === selectedGakuseiId;
                 return (
-                  <button
+                  <div
                     key={student.gakusei_id}
-                    type="button"
-                    className={`learningTimeStudentRow${isSelected ? " learningTimeStudentRowSelected" : ""}`}
-                    onClick={() => setSelectedGakuseiId(student.gakusei_id)}
+                    className={`examStudentRow${isSelected ? " examStudentRowSelected" : ""}`}
                   >
-                    <span className="learningTimeStudentRowText">{student.name}</span>
-                    <span className="learningTimeStudentRowBtn">詳細</span>
-                  </button>
+                    <button
+                      type="button"
+                      className="examStudentRowMain"
+                      onClick={() => selectStudent(student.gakusei_id)}
+                    >
+                      <span className="learningTimeStudentRowText">{student.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="learningTimeStudentRowBtn"
+                      onClick={() => selectStudent(student.gakusei_id)}
+                    >
+                      詳細
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -663,122 +325,27 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
             <div className="learningTimeEmptyPanel">学生を選択してください。</div>
           ) : (
             <>
-              <div className="subjectTrendHeader">
-                <div>
-                  <h2 className="examDetailName">{selectedStudent.name}</h2>
-                  <p className="examDetailMeta">
-                    {selectedStudent.class ?? "クラス未設定"} · 科目別推移
-                  </p>
-                </div>
-                <div className="subjectTrendFilters">
-                  <label className="examSessionSelectWrap">
-                    <select
-                      className="examSessionSelect"
-                      value={currentSubject}
-                      onChange={(event) => setSubjectName(event.target.value)}
-                      aria-label="科目"
-                    >
-                      {subjectOptions.map((subject) => (
-                        <option key={subject} value={subject}>
-                          {subject}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              </div>
+              <SubjectTrendHeader
+                studentName={selectedStudent.name}
+                studentClass={selectedStudent.class ?? null}
+                subjectOptions={subjectOptions}
+                currentSubject={currentSubject}
+                onSubjectChange={setSubjectName}
+                onOpenFullscreen={openFullscreen}
+              />
 
               {error ? <p className="loginError">{error}</p> : null}
 
-              {data?.summary.cohortMissing ? (
-                <p className="examScoreNotice">
-                  所属クラスから期を特定できません（例: 25期生昼間部）。定期試験の実施日を反映するにはクラス名に「25期」形式を含めてください。
+              {notices.map((notice) => (
+                <p key={notice} className="examScoreNotice">
+                  {notice}
                 </p>
-              ) : null}
+              ))}
 
-              {data?.summary.hasUndatedRegularExams ? (
-                <p className="examScoreNotice">
-                  {data.summary.cohortLabel
-                    ? `${data.summary.cohortLabel}の定期試験に実施日が未設定の学期があります。`
-                    : "一部の定期試験に実施日が未設定です。"}
-                  試験設定の「定期試験」タブで期ごとに実施日を設定すると日程順に並びます。
-                </p>
-              ) : null}
-
-              <div className="subjectTrendSummaryRow">
-                <div className="subjectTrendSummaryCard">
-                  <span className="subjectTrendSummaryLabel">最新</span>
-                  <strong className="subjectTrendSummaryValue">
-                    {data?.summary.latestDisplay ?? "—"}
-                  </strong>
-                </div>
-                <div className="subjectTrendSummaryCard">
-                  <span className="subjectTrendSummaryLabel">前回比</span>
-                  <strong className="subjectTrendSummaryValue">
-                    {data?.summary.deltaDisplay ?? "—"}
-                  </strong>
-                </div>
-                <div className="subjectTrendSummaryCard">
-                  <span className="subjectTrendSummaryLabel">データ点数</span>
-                  <strong className="subjectTrendSummaryValue">
-                    {data?.summary.dataPointCount ?? 0}
-                  </strong>
-                </div>
-              </div>
-
-              <section className="subjectTrendChartSection">
-                <h3 className="examScoreSectionTitle">成績推移（日程順）</h3>
-                <p className="subjectTrendChartSubject">{currentSubject}</p>
-                <SubjectTrendLineChart
-                  points={data?.points ?? []}
-                  cohortAverageLabel={data?.cohortAverageLabel ?? null}
-                  failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
-                  passedCohortAverageLabel={data?.passedCohortAverageLabel ?? null}
-                />
-              </section>
-
-              <section className="subjectTrendTableSection">
-                <h3 className="examScoreSectionTitle">試験別スコア一覧</h3>
-                <div className="subjectTrendTableWrap">
-                  <table className="subjectTrendTable">
-                    <thead>
-                      <tr>
-                        <th>実施日</th>
-                        <th>試験</th>
-                        <th>種別</th>
-                        <th>成績</th>
-                        <th>前回比</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data?.points ?? []).map((point, index, rows) => {
-                        const previous = rows
-                          .slice(0, index)
-                          .reverse()
-                          .find((item) => !item.notTaken && item.chartValue !== null);
-                        const delta =
-                          point.chartValue !== null &&
-                          previous?.chartValue !== null &&
-                          previous?.chartValue !== undefined
-                            ? point.chartValue - previous.chartValue
-                            : null;
-                        const deltaLabel =
-                          delta === null ? "—" : delta > 0 ? `+${delta}` : `${delta}`;
-
-                        return (
-                          <tr key={point.sessionKey}>
-                            <td>{point.examDateLabel ?? "未設定"}</td>
-                            <td>{point.sessionLabel}</td>
-                            <td>{point.sourceType === "regular" ? "定期" : "模擬"}</td>
-                            <td>{point.displayValue}</td>
-                            <td>{deltaLabel}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+              <p className="examScoreHint">
+                氏名または「詳細」で全画面表示します。上段に推移グラフ、中央に科目別 ABCD
+                分析、下段に試験一覧が表示されます。
+              </p>
             </>
           )}
         </section>

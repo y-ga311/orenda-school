@@ -6151,6 +6151,75 @@ a {
   background: #ffffff;
 }
 
+.subjectTrendFullscreenLayout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.subjectTrendFullscreenChartSection {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.subjectTrendFullscreenChartSection .subjectTrendChartWrap {
+  max-height: 320px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.subjectTrendFullscreenAnalysisSection {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.subjectTrendFullscreenTableSection {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+.subjectTrendFullscreenTableWrap {
+  flex: 1;
+  min-height: 0;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.subjectTrendAnalysisPanel {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.subjectTrendAnalysisPanelExpanded {
+  flex: 1;
+}
+
+.subjectTrendAnalysisLatestMeta {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.subjectTrendApproachBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .subjectTrendHeader {
     flex-direction: column;

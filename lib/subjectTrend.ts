@@ -1,4 +1,5 @@
 import { TEST_SCORE_SUBJECTS } from "@/lib/examSubjects";
+import type { SubjectTrendAnalysis } from "@/lib/subjectTrendAnalysis";
 import {
   ACUPUNCTURE_THEORY_LABEL,
   MOXIBUSTION_THEORY_LABEL,
@@ -46,6 +47,7 @@ export type SubjectTrendData = {
   cohortAverageLabel: string | null;
   failedCohortAverageLabel: string | null;
   passedCohortAverageLabel: string | null;
+  subjectAnalysis?: SubjectTrendAnalysis;
 };
 
 const MOCK_LABELS: string[] = TEST_SCORE_SUBJECTS.map((subject) => subject.label);

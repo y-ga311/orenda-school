@@ -37,6 +37,7 @@ import {
   loadRegularExamTermsForCohort,
   loadStudentCohortKey,
 } from "@/lib/regularExam.server";
+import { buildSubjectTrendPassRateAnalysis } from "@/lib/subjectTrendAnalysis.server";
 import {
   buildSubjectTrendSummary,
   formatSubjectTrendDateLabel,
@@ -643,12 +644,22 @@ export async function buildUnifiedSubjectTrend(
     );
   }
 
+  const subjectAnalysis = await buildSubjectTrendPassRateAnalysis(
+    supabase,
+    subjectName,
+    points,
+    regularSubjects,
+    mockLabels,
+    cohortContext,
+  );
+
   return {
     subjectName,
     points,
     cohortAverageLabel,
     failedCohortAverageLabel,
     passedCohortAverageLabel,
+    subjectAnalysis,
     summary: buildSubjectTrendSummary(points, {
       cohortKey,
       cohortLabel,
