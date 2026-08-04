@@ -287,6 +287,14 @@ export async function PUT(request: Request) {
   const failures: { gakuseiId: string; message: string }[] = [];
   let updatedCount = 0;
 
+  let nationalExamStatusAvailable = true;
+  if (group.key === "nationalExamStatus") {
+    const passedColumnProbe = await supabase.from("students").select("national_exam_passed").limit(1);
+    nationalExamStatusAvailable =
+      !passedColumnProbe.error ||
+      !isMissingNationalExamPassedColumn(passedColumnProbe.error.message);
+  }
+
   for (const item of body.updates) {
     if (!item || typeof item !== "object") {
       continue;
@@ -315,6 +323,22 @@ export async function PUT(request: Request) {
     const payload = buildPartialGroupUpdatePayload(values);
     if (!payload) {
       continue;
+    }
+
+    if (group.key === "nationalExamStatus") {
+      const status = values.nationalExamStatus?.trim() ?? "";
+      if (!nationalExamStatusAvailable && status === "passed") {
+        failures.push({
+          gakuseiId,
+          message:
+            "国家試験合格の保存には SQL マイグレーション（add-student-national-exam-passed.sql）の実行が必要です。",
+        });
+        continue;
+      }
+
+      if (!nationalExamStatusAvailable) {
+        delete payload.national_exam_passed;
+      }
     }
 
     const { error } = await supabase.from("students").update(payload).eq("gakusei_id", gakuseiId);

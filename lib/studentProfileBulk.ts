@@ -422,6 +422,10 @@ export function validateBulkGroupPartialValues(values: StudentBulkRowValues) {
 }
 
 export function buildBulkFieldUpdatePayload(field: StudentBulkFieldKey, rawValue: string) {
+  if (field === "nationalExamStatus") {
+    return buildNationalExamStatusDbUpdate(parseNationalExamStatusFromBulkValue(rawValue));
+  }
+
   const trimmed = rawValue.trim();
   const column = getBulkFieldDbColumn(field);
   if (!column) {
@@ -441,10 +445,6 @@ export function buildBulkFieldUpdatePayload(field: StudentBulkFieldKey, rawValue
       return null;
     }
     return { [column]: trimmed };
-  }
-
-  if (field === "nationalExamStatus") {
-    return buildNationalExamStatusDbUpdate(parseNationalExamStatusFromBulkValue(rawValue));
   }
 
   if (field === "pretestScore" || field === "medicalFoundationTestScore") {

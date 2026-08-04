@@ -324,6 +324,7 @@ export function StudentBulkEditView() {
       const payload = (await response.json()) as {
         rows?: StudentBulkRow[];
         extendedFieldsAvailable?: boolean;
+        nationalExamStatusAvailable?: boolean;
         message?: string;
         failures?: { gakuseiId: string; message: string }[];
       };
@@ -335,6 +336,7 @@ export function StudentBulkEditView() {
       const nextRows = payload.rows ?? [];
       setRows(nextRows);
       setExtendedFieldsAvailable(Boolean(payload.extendedFieldsAvailable));
+      setNationalExamStatusAvailable(Boolean(payload.nationalExamStatusAvailable ?? true));
       applyGroupValues(nextRows, selectedGroup);
       setSaveMessage(payload.message ?? "保存しました。");
 
