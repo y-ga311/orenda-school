@@ -100,7 +100,7 @@ export function SubjectTrendAnalysisPanel({
         <p className="examPassRateEmpty">{analysis.reason ?? "分析できません。"}</p>
       ) : (
         <>
-          <div className="examPassRateSummaryGrid">
+          <div className="subjectTrendAnalysisSummaryGrid">
             <div
               className="examPassRateAbcdCard"
               style={
@@ -146,9 +146,9 @@ export function SubjectTrendAnalysisPanel({
                   : "—"}
               </span>
             </div>
-            {analysis.trendApproach !== null && approachTone ? (
-              <div className="examPassRateMetricCard">
-                <span className="examPassRateMetricLabel">推移アプローチ</span>
+            <div className="examPassRateMetricCard">
+              <span className="examPassRateMetricLabel">推移アプローチ</span>
+              {analysis.trendApproach !== null && approachTone ? (
                 <span
                   className="examPassRateApproachBadge subjectTrendApproachBadge"
                   style={{
@@ -158,8 +158,10 @@ export function SubjectTrendAnalysisPanel({
                 >
                   {getSubjectTrendApproachLabel(analysis.trendApproach)}
                 </span>
-              </div>
-            ) : null}
+              ) : (
+                <strong className="examPassRateMetricValue">—</strong>
+              )}
+            </div>
           </div>
 
           {analysis.latestSessionLabel ? (

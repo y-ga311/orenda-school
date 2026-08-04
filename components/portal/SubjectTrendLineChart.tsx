@@ -58,11 +58,13 @@ export function SubjectTrendLineChart({
   cohortAverageLabel,
   failedCohortAverageLabel,
   passedCohortAverageLabel,
+  compact = false,
 }: {
   points: SubjectTrendPoint[];
   cohortAverageLabel: string | null;
   failedCohortAverageLabel: string | null;
   passedCohortAverageLabel: string | null;
+  compact?: boolean;
 }) {
   const { isVisible, toggle } = useChartLegendToggle();
   const showRegular = isVisible("regular");
@@ -73,10 +75,12 @@ export function SubjectTrendLineChart({
   const showFailed = isVisible("failed");
 
   const chartPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
-  const pointSpacing = 72;
-  const width = Math.max(720, chartPoints.length * pointSpacing);
-  const height = 300;
-  const padding = { top: 24, right: 24, bottom: 72, left: 44 };
+  const pointSpacing = compact ? 56 : 72;
+  const width = Math.max(compact ? 560 : 720, chartPoints.length * pointSpacing);
+  const height = compact ? 200 : 300;
+  const padding = compact
+    ? { top: 16, right: 20, bottom: 52, left: 36 }
+    : { top: 24, right: 24, bottom: 72, left: 44 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -130,7 +134,7 @@ export function SubjectTrendLineChart({
   const hasPassedCohortAverage = points.some((point) => point.passedCohortAverage !== null);
 
   return (
-    <div className="subjectTrendChartWrap">
+    <div className={`subjectTrendChartWrap${compact ? " subjectTrendChartWrapCompact" : ""}`}>
       <div className="subjectTrendLegend">
         <ChartLegendToggleButton
           seriesKey="regular"
@@ -206,7 +210,7 @@ export function SubjectTrendLineChart({
         ) : null}
       </div>
       <svg
-        className="subjectTrendChart"
+        className={`subjectTrendChart${compact ? " subjectTrendChartCompact" : ""}`}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="科目別成績推移グラフ（日程順）"

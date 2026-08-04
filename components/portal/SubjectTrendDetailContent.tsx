@@ -52,6 +52,7 @@ export function SubjectTrendDetailContent({
           cohortAverageLabel={cohortAverageLabel}
           failedCohortAverageLabel={failedCohortAverageLabel}
           passedCohortAverageLabel={passedCohortAverageLabel}
+          compact
         />
       </section>
 
