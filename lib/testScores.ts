@@ -1,7 +1,7 @@
 import {
   buildExamSectionTitle,
   calculateAverageScore,
-  sortExamSessionsByDate,
+  sortExamSessionsByDateDescending,
   type ExamScoreRow,
   type ExamType,
 } from "@/lib/examResults";
@@ -104,7 +104,7 @@ export function buildTestScoreExamResponse(
   questionCountByTestName: Map<string, QuestionCountRow>,
   sessionKey: string | null,
 ) {
-  const sessions = sortExamSessionsByDate(
+  const sessions = sortExamSessionsByDateDescending(
     rows.map((row, index) => {
       const sessionLabel = row.test_name.trim();
       const key = buildTestScoreSessionKey(sessionLabel, index);

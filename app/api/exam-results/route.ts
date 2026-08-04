@@ -73,14 +73,14 @@ function buildRegularExamResponse(
     scoreBySession.set(row.session_key, sessionScores);
   });
 
-  const sessions = sortRegularExamTerms(
+  const sessions = [...sortRegularExamTerms(
     terms.map((term) => ({
       sessionKey: term.sessionKey,
       sessionLabel: term.sessionLabel,
       sectionTitle: buildExamSectionTitle(examType, term.sessionLabel),
       sortOrder: term.sortOrder,
     })),
-  );
+  )].reverse();
 
   const selectedSession =
     sessions.find((session) => session.sessionKey === sessionKey) ??

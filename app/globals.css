@@ -1897,7 +1897,7 @@ a {
 .examDetailFullscreenBody {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .examDetailBodyCompact {
@@ -1906,8 +1906,56 @@ a {
 }
 
 .examDetailBodyFullscreen {
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
-  min-height: min(720px, 100%);
+  grid-template-columns: minmax(240px, 300px) minmax(280px, 1fr) minmax(300px, 1.05fr);
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.examDetailBodyFullscreenNoAnalysis {
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+}
+
+.examDetailFullscreenScoresColumn {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.examDetailFullscreenScoresColumn .examScoreSection {
+  min-height: min-content;
+  overflow: visible;
+}
+
+.examDetailFullscreenScoresColumn .examScoreListWrap,
+.examDetailFullscreenScoresColumn .examScoreList {
+  flex: none;
+  overflow: visible;
+}
+
+.examDetailFullscreenAnalysisColumn {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.examDetailFullscreenAnalysisColumn .examPassRatePanel {
+  height: auto;
+  max-height: none;
+}
+
+.examDetailFullscreenRadarColumn {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.examDetailFullscreenRadarSection {
+  flex: 1;
+  min-height: 360px;
 }
 
 .examDetailCompactPrompt {
@@ -1921,12 +1969,14 @@ a {
   background: #f8fafc;
 }
 
-.examDetailBodyFullscreen .examRadarSection {
-  min-height: 400px;
+.examDetailBodyFullscreen .examRadarSection,
+.examDetailFullscreenRadarSection {
+  min-height: 360px;
 }
 
-.examDetailBodyFullscreen .examRadarChart {
-  max-height: min(72vh, 520px);
+.examDetailBodyFullscreen .examRadarChart,
+.examDetailFullscreenRadarSection .examRadarChart {
+  max-height: min(78vh, 560px);
 }
 
 .examDetailName {
@@ -2438,9 +2488,15 @@ a {
 
 @media (max-width: 1100px) {
   .examDetailBody,
-  .examDetailBodyFullscreen {
+  .examDetailBodyFullscreen,
+  .examDetailBodyFullscreenNoAnalysis {
     grid-template-columns: 1fr;
     overflow-y: auto;
+  }
+
+  .examDetailFullscreenScoresColumn,
+  .examDetailFullscreenAnalysisColumn {
+    overflow: visible;
   }
 
   .examDetailFullscreen {

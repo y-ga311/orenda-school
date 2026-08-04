@@ -91,6 +91,30 @@ export function sortExamSessionsByDate<T extends ExamSessionOption>(sessions: T[
   });
 }
 
+/** 試験日の新しい順（未来→過去）。日付不明は末尾。 */
+export function sortExamSessionsByDateDescending<T extends ExamSessionOption>(sessions: T[]) {
+  return [...sessions].sort((a, b) => {
+    const aTimestamp = getExamSessionSortTimestamp(a);
+    const bTimestamp = getExamSessionSortTimestamp(b);
+
+    if (aTimestamp !== null && bTimestamp !== null) {
+      if (aTimestamp !== bTimestamp) {
+        return bTimestamp - aTimestamp;
+      }
+      return a.sessionLabel.localeCompare(b.sessionLabel, "ja");
+    }
+
+    if (aTimestamp !== null) {
+      return -1;
+    }
+    if (bTimestamp !== null) {
+      return 1;
+    }
+
+    return a.sessionLabel.localeCompare(b.sessionLabel, "ja");
+  });
+}
+
 export const EXAM_TYPE_CONFIG: Record<
   ExamType,
   { label: string; path: string; sectionSuffix: string | null }

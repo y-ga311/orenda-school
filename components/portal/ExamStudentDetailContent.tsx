@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { ExamRadarChart } from "@/components/portal/ExamRadarChart";
 import { ExamPassRateAnalysisPanel } from "@/components/portal/ExamPassRateAnalysisPanel";
 import {
@@ -10,6 +11,7 @@ import {
   getPercentScoreTone,
   getScoreTone,
   isTakenExamScore,
+  sortExamSessionsByDateDescending,
   type ExamScoreRow,
   type ExamSessionOption,
   type ExamType,
@@ -124,36 +126,26 @@ export function ExamStudentDetailContent({
     </section>
   );
 
-  const visualColumn = (
-    <div className="examDetailVisualColumn">
-      <section className="examRadarSection">
-        {isLoading ? (
-          <p className="learningTimeEmpty">読み込み中...</p>
-        ) : (
-          <ExamRadarChart
-            scores={radarScores}
-            averageScore={radarAverageScore}
-            cohortScores={radarCohortScores}
-            cohortAverageLabel={cohortAverageLabel}
-            failedCohortScores={radarFailedCohortScores}
-            failedCohortAverageLabel={failedCohortAverageLabel}
-            passedCohortScores={radarPassedCohortScores}
-            passedCohortAverageLabel={passedCohortAverageLabel}
-            trackTotals={trackTotals}
-            scoreUnit={scoreUnit}
-            chartSize={isFullscreen ? 460 : 320}
-          />
-        )}
-      </section>
-
-      {usesTestScoreFormat ? (
-        <ExamPassRateAnalysisPanel
-          analysis={passRateAnalysis}
-          isLoading={isLoading}
-          expanded={isFullscreen}
+  const radarSection = (
+    <section className="examRadarSection examDetailFullscreenRadarSection">
+      {isLoading ? (
+        <p className="learningTimeEmpty">読み込み中...</p>
+      ) : (
+        <ExamRadarChart
+          scores={radarScores}
+          averageScore={radarAverageScore}
+          cohortScores={radarCohortScores}
+          cohortAverageLabel={cohortAverageLabel}
+          failedCohortScores={radarFailedCohortScores}
+          failedCohortAverageLabel={failedCohortAverageLabel}
+          passedCohortScores={radarPassedCohortScores}
+          passedCohortAverageLabel={passedCohortAverageLabel}
+          trackTotals={trackTotals}
+          scoreUnit={scoreUnit}
+          chartSize={460}
         />
-      ) : null}
-    </div>
+      )}
+    </section>
   );
 
   if (!isFullscreen) {
@@ -172,9 +164,20 @@ export function ExamStudentDetailContent({
   }
 
   return (
-    <div className="examDetailBody examDetailBodyFullscreen">
-      {scoreSection}
-      {visualColumn}
+    <div
+      className={`examDetailBody examDetailBodyFullscreen${usesTestScoreFormat ? "" : " examDetailBodyFullscreenNoAnalysis"}`}
+    >
+      <div className="examDetailFullscreenScoresColumn">{scoreSection}</div>
+      {usesTestScoreFormat ? (
+        <div className="examDetailFullscreenAnalysisColumn">
+          <ExamPassRateAnalysisPanel
+            analysis={passRateAnalysis}
+            isLoading={isLoading}
+            expanded
+          />
+        </div>
+      ) : null}
+      <div className="examDetailFullscreenRadarColumn">{radarSection}</div>
     </div>
   );
 }
@@ -204,6 +207,11 @@ export function ExamDetailHeader({
   onCloseFullscreen,
   isFullscreen = false,
 }: ExamDetailHeaderProps) {
+  const orderedSessions = useMemo(
+    () => sortExamSessionsByDateDescending(sessions),
+    [sessions],
+  );
+
   return (
     <div className="examDetailHeader">
       <div>
@@ -222,7 +230,7 @@ export function ExamDetailHeader({
               onChange={(event) => onSessionChange(event.target.value)}
               aria-label="試験回次"
             >
-              {sessions.map((session) => (
+              {orderedSessions.map((session) => (
                 <option key={session.sessionKey} value={session.sessionKey}>
                   {session.sessionLabel}
                 </option>
