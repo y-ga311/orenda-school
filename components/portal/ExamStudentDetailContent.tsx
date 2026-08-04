@@ -37,7 +37,6 @@ export type ExamStudentDetailContentProps = {
   trackTotals: ReturnType<typeof calculateExamTrackTotals>;
   passRateAnalysis: ExamPassRateAnalysis | null | undefined;
   tableMissing?: boolean;
-  onOpenFullscreen?: () => void;
 };
 
 export function ExamStudentDetailContent({
@@ -60,7 +59,6 @@ export function ExamStudentDetailContent({
   trackTotals,
   passRateAnalysis,
   tableMissing,
-  onOpenFullscreen,
 }: ExamStudentDetailContentProps) {
   const isFullscreen = layout === "fullscreen";
   const scoreUnit = usesPointScoreFormat ? "点" : "%";
@@ -165,17 +163,9 @@ export function ExamStudentDetailContent({
         <section className="examDetailCompactPrompt">
           <p className="examDetailCompactPromptText">
             {usesTestScoreFormat
-              ? "レーダーチャートと ABCD 分析は全画面表示で確認できます。"
-              : "レーダーチャートは全画面表示で確認できます。"}
+              ? "レーダーチャートと ABCD 分析は「詳細」または右上の全画面ボタンから開けます。"
+              : "レーダーチャートは「詳細」または右上の全画面ボタンから開けます。"}
           </p>
-          <button
-            type="button"
-            className="examDetailExpandBtn"
-            onClick={onOpenFullscreen}
-            disabled={!onOpenFullscreen}
-          >
-            全画面で表示
-          </button>
         </section>
       </div>
     );

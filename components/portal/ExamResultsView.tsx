@@ -150,8 +150,21 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
 
   useEffect(() => {
     setActiveSessionKey(null);
-    setIsFullscreenOpen(false);
   }, [selectedGakuseiId, examType]);
+
+  useEffect(() => {
+    setIsFullscreenOpen(false);
+  }, [examType]);
+
+  const selectStudent = (gakuseiId: string) => {
+    setSelectedGakuseiId(gakuseiId);
+    setIsFullscreenOpen(false);
+  };
+
+  const openStudentDetail = (gakuseiId: string) => {
+    setSelectedGakuseiId(gakuseiId);
+    setIsFullscreenOpen(true);
+  };
 
   useEffect(() => {
     if (!isFullscreenOpen) {
@@ -436,17 +449,14 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                     <button
                       type="button"
                       className="examStudentRowMain"
-                      onClick={() => setSelectedGakuseiId(student.gakusei_id)}
+                      onClick={() => selectStudent(student.gakusei_id)}
                     >
                       <span className="learningTimeStudentRowText">{student.name}</span>
                     </button>
                     <button
                       type="button"
                       className="learningTimeStudentRowBtn"
-                      onClick={() => {
-                        setSelectedGakuseiId(student.gakusei_id);
-                        setIsFullscreenOpen(true);
-                      }}
+                      onClick={() => openStudentDetail(student.gakusei_id)}
                     >
                       詳細
                     </button>
@@ -487,7 +497,6 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
               <ExamStudentDetailContent
                 {...detailContentProps}
                 layout="compact"
-                onOpenFullscreen={openFullscreen}
               />
             </>
           )}
