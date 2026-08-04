@@ -55,6 +55,23 @@ export const PASS_RATE_ABCD_THRESHOLDS = {
 export const SUBJECT_APPROACH_FOCUS_GAP = -15;
 export const SUBJECT_APPROACH_MAINTAIN_SCORE = 60;
 export const LOGISTIC_MIN_SAMPLES_PER_GROUP = 5;
+/** この問題数未満の科目は ABCD 判定の弱点集計から除外する */
+export const SIGNIFICANT_SUBJECT_MIN_QUESTIONS = 6;
+
+function isSignificantExamSubject(row: ExamScoreRow) {
+  const questionCount = row.questionCount;
+  if (questionCount === null || questionCount === undefined) {
+    return true;
+  }
+  return questionCount >= SIGNIFICANT_SUBJECT_MIN_QUESTIONS;
+}
+
+function getPenaltySubjectScores(scores: ExamScoreRow[]) {
+  const takenScores = scores.filter(isTakenExamScore);
+  const significantScores = takenScores.filter(isSignificantExamSubject);
+  const penaltySubjects = significantScores.length > 0 ? significantScores : takenScores;
+  return penaltySubjects.map((row) => row.score ?? 0);
+}
 
 export function classifyPassRateAbcd(
   probability: number,
@@ -75,16 +92,25 @@ export function classifyPassRateAbcd(
   }
 
   const midpoint = (benchmarks.passedMean + benchmarks.failedMean) / 2;
+  const isStrongOverall =
+    features.totalAverage >= midpoint + 2 ||
+    features.totalAverage >= benchmarks.passedMean - 3;
   const downgrade = (current: PassRateAbcdGrade, steps: number): PassRateAbcdGrade => {
     const order: PassRateAbcdGrade[] = ["A", "B", "C", "D"];
     const index = Math.min(order.length - 1, order.indexOf(current) + steps);
     return order[index];
   };
 
-  if (features.totalAverage < benchmarks.failedMean - 3 || features.minSubjectScore < 28) {
+  if (features.totalAverage < benchmarks.failedMean - 3) {
     grade = downgrade(grade, 1);
   }
-  if (features.totalAverage < benchmarks.failedMean - 8 || features.minSubjectScore < 22) {
+  if (features.totalAverage < benchmarks.failedMean - 8) {
+    grade = downgrade(grade, 1);
+  }
+  if (!isStrongOverall && features.minSubjectScore < 28) {
+    grade = downgrade(grade, 1);
+  }
+  if (!isStrongOverall && features.minSubjectScore < 22) {
     grade = downgrade(grade, 1);
   }
   if (features.weakSubjectCount >= 12) {
@@ -125,16 +151,20 @@ export function buildExamSnapshotFeatures(scores: ExamScoreRow[]): ExamSnapshotF
     return null;
   }
 
-  const scoreValues = takenScores.map((row) => row.score ?? 0);
+  const penaltyScores = getPenaltySubjectScores(scores);
   const totalAverage = calculateAverageScore(scores);
   if (totalAverage === null) {
     return null;
   }
 
+  const significantTakenScores = takenScores.filter(isSignificantExamSubject);
+
   return {
     totalAverage,
-    weakSubjectCount: scoreValues.filter((score) => score < SUBJECT_APPROACH_MAINTAIN_SCORE).length,
-    minSubjectScore: Math.min(...scoreValues),
+    weakSubjectCount: significantTakenScores.filter(
+      (row) => (row.score ?? 0) < SUBJECT_APPROACH_MAINTAIN_SCORE,
+    ).length,
+    minSubjectScore: Math.min(...penaltyScores),
     takenSubjectCount: takenScores.length,
   };
 }
@@ -192,6 +222,10 @@ function applyPassProbabilityGuards(
   failedMean: number,
 ) {
   let adjusted = probability;
+  const midpoint = (passedMean + failedMean) / 2;
+  const isStrongOverall =
+    features.totalAverage >= midpoint + 2 ||
+    features.totalAverage >= passedMean - 3;
 
   if (features.totalAverage < failedMean) {
     adjusted = Math.min(adjusted, 0.38);
@@ -199,11 +233,14 @@ function applyPassProbabilityGuards(
   if (features.totalAverage < failedMean - 5) {
     adjusted = Math.min(adjusted, 0.28);
   }
-  if (features.minSubjectScore < 40) {
+  if (!isStrongOverall && features.minSubjectScore < 40) {
     adjusted = Math.min(adjusted, 0.45);
   }
-  if (features.minSubjectScore < 30) {
+  if (!isStrongOverall && features.minSubjectScore < 30) {
     adjusted = Math.min(adjusted, 0.3);
+  }
+  if (isStrongOverall && features.minSubjectScore < 20) {
+    adjusted = Math.min(adjusted, 0.58);
   }
   if (features.weakSubjectCount >= 9) {
     adjusted *= 0.92;
