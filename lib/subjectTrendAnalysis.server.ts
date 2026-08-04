@@ -23,6 +23,7 @@ import {
   TEST_SCORES_SELECT,
   type TestScoreRow,
 } from "@/lib/testScores";
+import type { GraduateExamSample } from "@/lib/passRateAnalysis";
 import {
   createGraduateSampleFromSubjectScore,
   buildSubjectTrendAnalysis,
@@ -46,8 +47,8 @@ function collectMockGraduateSubjectSamples(
   studentLookupMaps: CohortStudentContext["studentLookupMaps"],
   matchFn: (selected: string, candidate: string) => boolean,
 ) {
-  const passedSamples = [];
-  const failedSamples = [];
+  const passedSamples: GraduateExamSample[] = [];
+  const failedSamples: GraduateExamSample[] = [];
   const passedScores: number[] = [];
   const seenPassedStudents = new Set<string>();
   const seenFailedStudents = new Set<string>();
@@ -108,8 +109,8 @@ async function collectRegularGraduateSubjectSamples(
   passedGakuseiIdSet: Set<string>,
   failedGakuseiIdSet: Set<string>,
 ) {
-  const passedSamples = [];
-  const failedSamples = [];
+  const passedSamples: GraduateExamSample[] = [];
+  const failedSamples: GraduateExamSample[] = [];
   const passedScores: number[] = [];
   const seenPassed = new Set<string>();
   const seenFailed = new Set<string>();
@@ -263,8 +264,8 @@ export async function buildSubjectTrendPassRateAnalysis(
   }
 
   let collected: {
-    passedSamples: ReturnType<typeof createGraduateSampleFromSubjectScore>[];
-    failedSamples: ReturnType<typeof createGraduateSampleFromSubjectScore>[];
+    passedSamples: GraduateExamSample[];
+    failedSamples: GraduateExamSample[];
     passedAverageAtLatest: number | null;
   };
 
