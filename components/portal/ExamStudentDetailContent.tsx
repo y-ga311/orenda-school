@@ -66,7 +66,9 @@ export function ExamStudentDetailContent({
   const scoreUnit = usesPointScoreFormat ? "点" : "%";
 
   const scoreSection = (
-    <section className="examScoreSection">
+    <section
+      className={`examScoreSection${isFullscreen ? " examScoreSectionFullscreen" : ""}`}
+    >
       <h3 className="examScoreSectionTitle">
         {isLoading ? "読み込み中..." : (sectionTitle ?? `${examLabel}成績`)}
       </h3>
@@ -118,16 +120,19 @@ export function ExamStudentDetailContent({
         )}
       </div>
 
-      <p className="examScoreHint">
-        {usesPointScoreFormat
-          ? "未実施科目は「-」表示。実施科目は100点満点の得点で表示します。80点以上は緑、60点以上は黄、60点未満は赤です。"
-          : "未実施科目は「-」表示。実施科目は正解数/問題数（正解率%）で表示します。40%以下は赤、60%未満は黄、60%以上は緑です。"}
-      </p>
+      {!isFullscreen ? (
+        <p className="examScoreHint">
+          {usesPointScoreFormat
+            ? "未実施科目は「-」表示。実施科目は100点満点の得点で表示します。80点以上は緑、60点以上は黄、60点未満は赤です。"
+            : "未実施科目は「-」表示。実施科目は正解数/問題数（正解率%）で表示します。40%以下は赤、60%未満は黄、60%以上は緑です。"}
+        </p>
+      ) : null}
     </section>
   );
 
   const radarSection = (
     <section className="examRadarSection examDetailFullscreenRadarSection">
+      <h3 className="examScoreSectionTitle">レーダーチャート</h3>
       {isLoading ? (
         <p className="learningTimeEmpty">読み込み中...</p>
       ) : (
@@ -165,19 +170,19 @@ export function ExamStudentDetailContent({
 
   return (
     <div
-      className={`examDetailBody examDetailBodyFullscreen${usesTestScoreFormat ? "" : " examDetailBodyFullscreenNoAnalysis"}`}
+      className={`examFullscreenLayout${usesTestScoreFormat ? "" : " examFullscreenLayoutNoAnalysis"}`}
     >
-      <div className="examDetailFullscreenScoresColumn">{scoreSection}</div>
+      <aside className="examFullscreenCol examFullscreenColScores">{scoreSection}</aside>
       {usesTestScoreFormat ? (
-        <div className="examDetailFullscreenAnalysisColumn">
+        <section className="examFullscreenCol examFullscreenColAnalysis">
           <ExamPassRateAnalysisPanel
             analysis={passRateAnalysis}
             isLoading={isLoading}
             expanded
           />
-        </div>
+        </section>
       ) : null}
-      <div className="examDetailFullscreenRadarColumn">{radarSection}</div>
+      <aside className="examFullscreenCol examFullscreenColRadar">{radarSection}</aside>
     </div>
   );
 }
