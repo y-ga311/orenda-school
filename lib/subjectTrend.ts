@@ -22,6 +22,7 @@ export type SubjectTrendPoint = {
   chartValue: number | null;
   cohortAverage: number | null;
   failedCohortAverage: number | null;
+  passedCohortAverage: number | null;
   displayValue: string;
   notTaken: boolean;
 };
@@ -44,6 +45,7 @@ export type SubjectTrendData = {
   summary: SubjectTrendSummary;
   cohortAverageLabel: string | null;
   failedCohortAverageLabel: string | null;
+  passedCohortAverageLabel: string | null;
 };
 
 const MOCK_LABELS: string[] = TEST_SCORE_SUBJECTS.map((subject) => subject.label);
@@ -224,6 +226,7 @@ export function roundSubjectTrendAverage(values: number[]): number | null {
 }
 
 export const FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL = "国家試験不合格者平均";
+export const PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL = "国家試験合格者平均";
 
 export function getRegularCohortTrendLookupKey(point: SubjectTrendPoint): string | null {
   if (point.sourceType !== "regular") {

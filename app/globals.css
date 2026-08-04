@@ -1994,6 +1994,40 @@ a {
   border: 1.5px dashed #fb923c;
 }
 
+.examRadarLegendSwatchPassedCohort {
+  background: rgba(167, 139, 250, 0.35);
+  border: 1.5px dashed #a78bfa;
+}
+
+.chartLegendToggleButton {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.chartLegendToggleButton:hover {
+  opacity: 0.85;
+}
+
+.chartLegendToggleButton:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.chartLegendItemHidden {
+  opacity: 0.4;
+}
+
+.chartLegendItemHidden .examRadarLegendSwatch,
+.chartLegendItemHidden .subjectTrendLegendDot,
+.chartLegendItemHidden .subjectTrendLegendLine {
+  opacity: 0.5;
+}
+
 .examRadarTrackTotals {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5621,6 +5655,7 @@ a {
 
 .subjectTrendLegend {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 8px;
 }
@@ -5659,6 +5694,11 @@ a {
 
 .subjectTrendLegendLineFailedCohort {
   border-top-color: #fb923c;
+  border-top-style: dashed;
+}
+
+.subjectTrendLegendLinePassedCohort {
+  border-top-color: #a78bfa;
   border-top-style: dashed;
 }
 

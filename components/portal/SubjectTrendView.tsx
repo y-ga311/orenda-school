@@ -8,6 +8,7 @@ import {
   type SubjectTrendData,
   type SubjectTrendPoint,
 } from "@/lib/subjectTrend";
+import { ChartLegendToggleButton, useChartLegendToggle } from "@/lib/chartLegendToggle";
 
 type SubjectTrendViewProps = {
   students: StudentRow[];
@@ -24,6 +25,7 @@ const MOCK_COLOR = "#ea580c";
 const STUDENT_LINE_COLOR = "#94a3b8";
 const COHORT_AVERAGE_LINE_COLOR = "#86efac";
 const FAILED_COHORT_AVERAGE_LINE_COLOR = "#fb923c";
+const PASSED_COHORT_AVERAGE_LINE_COLOR = "#a78bfa";
 
 function formatAxisLabel(point: SubjectTrendPoint) {
   if (point.examDateLabel) {
@@ -72,11 +74,21 @@ function SubjectTrendLineChart({
   points,
   cohortAverageLabel,
   failedCohortAverageLabel,
+  passedCohortAverageLabel,
 }: {
   points: SubjectTrendPoint[];
   cohortAverageLabel: string | null;
   failedCohortAverageLabel: string | null;
+  passedCohortAverageLabel: string | null;
 }) {
+  const { isVisible, toggle } = useChartLegendToggle();
+  const showRegular = isVisible("regular");
+  const showMock = isVisible("mock");
+  const showStudent = isVisible("student");
+  const showCohort = isVisible("cohort");
+  const showPassed = isVisible("passed");
+  const showFailed = isVisible("failed");
+
   const chartPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
   const pointSpacing = 72;
   const width = Math.max(720, chartPoints.length * pointSpacing);
@@ -98,63 +110,135 @@ function SubjectTrendLineChart({
   const toY = (value: number) =>
     padding.top + chartHeight - (Math.max(0, Math.min(value, 100)) / 100) * chartHeight;
 
-  const connectedPaths = buildConnectedPath(points, toX, toY, undefined, {
-    skipNotTaken: true,
-  });
-  const cohortAveragePaths = buildConnectedPath(
-    points,
-    toX,
-    toY,
-    (point) => point.cohortAverage,
-    { skipNotTaken: false },
-  );
-  const failedCohortAveragePaths = buildConnectedPath(
-    points,
-    toX,
-    toY,
-    (point) => point.failedCohortAverage,
-    { skipNotTaken: false },
-  );
+  const connectedPaths = showStudent
+    ? buildConnectedPath(
+        points,
+        toX,
+        toY,
+        (point) => {
+          if (!showRegular && point.sourceType === "regular") {
+            return null;
+          }
+          if (!showMock && point.sourceType === "mock") {
+            return null;
+          }
+          return point.chartValue;
+        },
+        { skipNotTaken: true },
+      )
+    : [];
+  const cohortAveragePaths =
+    showCohort
+      ? buildConnectedPath(
+          points,
+          toX,
+          toY,
+          (point) => point.cohortAverage,
+          { skipNotTaken: false },
+        )
+      : [];
+  const failedCohortAveragePaths =
+    showFailed
+      ? buildConnectedPath(
+          points,
+          toX,
+          toY,
+          (point) => point.failedCohortAverage,
+          { skipNotTaken: false },
+        )
+      : [];
+  const passedCohortAveragePaths =
+    showPassed
+      ? buildConnectedPath(
+          points,
+          toX,
+          toY,
+          (point) => point.passedCohortAverage,
+          { skipNotTaken: false },
+        )
+      : [];
   const hasCohortAverage = points.some((point) => point.cohortAverage !== null);
   const hasFailedCohortAverage = points.some(
     (point) => point.failedCohortAverage !== null,
+  );
+  const hasPassedCohortAverage = points.some(
+    (point) => point.passedCohortAverage !== null,
   );
 
   return (
     <div className="subjectTrendChartWrap">
       <div className="subjectTrendLegend">
-        <span className="subjectTrendLegendItem">
+        <ChartLegendToggleButton
+          seriesKey="regular"
+          isVisible={isVisible}
+          onToggle={toggle}
+          className="subjectTrendLegendItem chartLegendToggleButton"
+        >
           <span className="subjectTrendLegendDot" style={{ backgroundColor: REGULAR_COLOR }} />
           定期（点）
-        </span>
-        <span className="subjectTrendLegendItem">
+        </ChartLegendToggleButton>
+        <ChartLegendToggleButton
+          seriesKey="mock"
+          isVisible={isVisible}
+          onToggle={toggle}
+          className="subjectTrendLegendItem chartLegendToggleButton"
+        >
           <span className="subjectTrendLegendDot" style={{ backgroundColor: MOCK_COLOR }} />
           模擬（%）
-        </span>
-        <span className="subjectTrendLegendItem">
+        </ChartLegendToggleButton>
+        <ChartLegendToggleButton
+          seriesKey="student"
+          isVisible={isVisible}
+          onToggle={toggle}
+          className="subjectTrendLegendItem chartLegendToggleButton"
+        >
           <span
             className="subjectTrendLegendLine subjectTrendLegendLineStudent"
             aria-hidden="true"
           />
           本人
-        </span>
+        </ChartLegendToggleButton>
         {hasCohortAverage ? (
-          <span className="subjectTrendLegendItem">
+          <ChartLegendToggleButton
+            seriesKey="cohort"
+            isVisible={isVisible}
+            onToggle={toggle}
+            className="subjectTrendLegendItem chartLegendToggleButton"
+          >
             <span
               className="subjectTrendLegendLine subjectTrendLegendLineCohort"
               aria-hidden="true"
             />
             {cohortAverageLabel ?? "クラスメイト平均"}
-          </span>
+          </ChartLegendToggleButton>
+        ) : null}
+        {hasPassedCohortAverage ? (
+          <ChartLegendToggleButton
+            seriesKey="passed"
+            isVisible={isVisible}
+            onToggle={toggle}
+            className="subjectTrendLegendItem chartLegendToggleButton"
+          >
+            <span
+              className="subjectTrendLegendLine subjectTrendLegendLinePassedCohort"
+              aria-hidden="true"
+            />
+            {passedCohortAverageLabel ?? "国家試験合格者平均"}
+          </ChartLegendToggleButton>
         ) : null}
         {hasFailedCohortAverage ? (
-          <span className="subjectTrendLegendItem">
+          <ChartLegendToggleButton
+            seriesKey="failed"
+            isVisible={isVisible}
+            onToggle={toggle}
+            className="subjectTrendLegendItem chartLegendToggleButton"
+          >
             <span
               className="subjectTrendLegendLine subjectTrendLegendLineFailedCohort"
               aria-hidden="true"
             />
             {failedCohortAverageLabel ?? "国家試験不合格者平均"}
-          </span>
+          </ChartLegendToggleButton>
         ) : null}
       </div>
       <svg
@@ -220,6 +304,17 @@ function SubjectTrendLineChart({
           />
         ))}
 
+        {passedCohortAveragePaths.map((path, index) => (
+          <path
+            key={`passed-cohort-line-${index}`}
+            d={path}
+            fill="none"
+            stroke={PASSED_COHORT_AVERAGE_LINE_COLOR}
+            strokeWidth={1.5}
+            strokeDasharray="6 3"
+          />
+        ))}
+
         {failedCohortAveragePaths.map((path, index) => (
           <path
             key={`failed-cohort-line-${index}`}
@@ -235,6 +330,20 @@ function SubjectTrendLineChart({
           if (point.notTaken || point.chartValue === null) {
             return null;
           }
+
+          const isStudentPointVisible =
+            showStudent &&
+            (showRegular || point.sourceType !== "regular") &&
+            (showMock || point.sourceType !== "mock");
+          const hasVisibleOverlay =
+            (showCohort && point.cohortAverage !== null) ||
+            (showPassed && point.passedCohortAverage !== null) ||
+            (showFailed && point.failedCohortAverage !== null);
+
+          if (!isStudentPointVisible && !hasVisibleOverlay) {
+            return null;
+          }
+
           const x = toX(index);
           const y = toY(point.chartValue);
           const color = point.sourceType === "regular" ? REGULAR_COLOR : MOCK_COLOR;
@@ -244,10 +353,30 @@ function SubjectTrendLineChart({
             point.cohortAverage !== null ? toY(point.cohortAverage) : null;
           const failedCohortY =
             point.failedCohortAverage !== null ? toY(point.failedCohortAverage) : null;
+          const passedCohortY =
+            point.passedCohortAverage !== null ? toY(point.passedCohortAverage) : null;
 
           return (
             <g key={point.sessionKey}>
-              {failedCohortY !== null ? (
+              {showPassed && passedCohortY !== null ? (
+                <circle
+                  cx={x}
+                  cy={passedCohortY}
+                  r={4}
+                  fill="none"
+                  stroke={PASSED_COHORT_AVERAGE_LINE_COLOR}
+                  strokeWidth={2}
+                >
+                  <title>
+                    {passedCohortAverageLabel ?? "国家試験合格者平均"}:{" "}
+                    {formatSubjectTrendCohortAverageLabel(
+                      point.passedCohortAverage!,
+                      point.sourceType,
+                    )}
+                  </title>
+                </circle>
+              ) : null}
+              {showFailed && failedCohortY !== null ? (
                 <polygon
                   points={`${x - 4},${failedCohortY + 4} ${x + 4},${failedCohortY + 4} ${x},${failedCohortY - 4}`}
                   fill={FAILED_COHORT_AVERAGE_LINE_COLOR}
@@ -263,7 +392,7 @@ function SubjectTrendLineChart({
                   </title>
                 </polygon>
               ) : null}
-              {cohortY !== null ? (
+              {showCohort && cohortY !== null ? (
                 <rect
                   x={x - 4}
                   y={cohortY - 4}
@@ -280,7 +409,9 @@ function SubjectTrendLineChart({
                   </title>
                 </rect>
               ) : null}
-              <circle cx={x} cy={y} r={radius} fill={color} stroke="#ffffff" strokeWidth={2} />
+              {isStudentPointVisible ? (
+                <circle cx={x} cy={y} r={radius} fill={color} stroke="#ffffff" strokeWidth={2} />
+              ) : null}
               <text
                 x={x}
                 y={height - 42}
@@ -602,6 +733,7 @@ export function SubjectTrendView({ students }: SubjectTrendViewProps) {
                   points={data?.points ?? []}
                   cohortAverageLabel={data?.cohortAverageLabel ?? null}
                   failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
+                  passedCohortAverageLabel={data?.passedCohortAverageLabel ?? null}
                 />
               </section>
 

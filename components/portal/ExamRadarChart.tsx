@@ -1,10 +1,15 @@
+"use client";
+
 import type { ExamScoreRow, ExamTrackTotal } from "@/lib/examResults";
 import { formatTrackTotalDisplay, getTrackTotalTone } from "@/lib/examResults";
+import { ChartLegendToggleButton, useChartLegendToggle } from "@/lib/chartLegendToggle";
 
 const COHORT_RADAR_FILL = "rgba(134, 239, 172, 0.35)";
 const COHORT_RADAR_STROKE = "#86efac";
 const FAILED_COHORT_RADAR_FILL = "rgba(251, 146, 60, 0.35)";
 const FAILED_COHORT_RADAR_STROKE = "#fb923c";
+const PASSED_COHORT_RADAR_FILL = "rgba(167, 139, 250, 0.35)";
+const PASSED_COHORT_RADAR_STROKE = "#a78bfa";
 
 type ExamRadarChartProps = {
   scores: ExamScoreRow[];
@@ -13,6 +18,8 @@ type ExamRadarChartProps = {
   cohortAverageLabel?: string | null;
   failedCohortScores?: ExamScoreRow[] | null;
   failedCohortAverageLabel?: string | null;
+  passedCohortScores?: ExamScoreRow[] | null;
+  passedCohortAverageLabel?: string | null;
   trackTotals?: {
     acupuncturist: ExamTrackTotal;
     moxibustionist: ExamTrackTotal;
@@ -91,9 +98,12 @@ export function ExamRadarChart({
   cohortAverageLabel = null,
   failedCohortScores = null,
   failedCohortAverageLabel = null,
+  passedCohortScores = null,
+  passedCohortAverageLabel = null,
   trackTotals = null,
   scoreUnit = "%",
 }: ExamRadarChartProps) {
+  const { isVisible, toggle } = useChartLegendToggle();
   const size = 340;
   const center = size / 2;
   const maxRadius = 118;
@@ -135,6 +145,18 @@ export function ExamRadarChart({
     (row) => row.score !== null && row.score !== undefined,
   );
 
+  const passedCohortScoreBySubject = new Map(
+    (passedCohortScores ?? []).map((row) => [row.subjectName, row.score]),
+  );
+  const hasPassedCohortRadar = (passedCohortScores ?? []).some(
+    (row) => row.score !== null && row.score !== undefined,
+  );
+
+  const showStudent = isVisible("student");
+  const showCohort = isVisible("cohort");
+  const showPassed = isVisible("passed");
+  const showFailed = isVisible("failed");
+
   const cohortPolygonPoints = scores
     .map((row, index) => {
       const cohortScore = cohortScoreBySubject.get(row.subjectName);
@@ -161,25 +183,64 @@ export function ExamRadarChart({
     })
     .join(" ");
 
+  const passedCohortPolygonPoints = scores
+    .map((row, index) => {
+      const passedCohortScore = passedCohortScoreBySubject.get(row.subjectName);
+      const angle = (Math.PI * 2 * index) / count - Math.PI / 2;
+      const radius =
+        passedCohortScore === null || passedCohortScore === undefined
+          ? 0
+          : (Math.max(0, Math.min(passedCohortScore, 100)) / 100) * maxRadius;
+      const point = polarToCartesian(center, radius, angle);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+
   return (
     <div className="examRadarPanel">
-      {hasCohortRadar || hasFailedCohortRadar ? (
+      {hasCohortRadar || hasFailedCohortRadar || hasPassedCohortRadar ? (
         <div className="examRadarLegend">
-          <span className="examRadarLegendItem">
+          <ChartLegendToggleButton
+            seriesKey="student"
+            isVisible={isVisible}
+            onToggle={toggle}
+            className="examRadarLegendItem chartLegendToggleButton"
+          >
             <span className="examRadarLegendSwatch examRadarLegendSwatchStudent" />
             本人
-          </span>
+          </ChartLegendToggleButton>
           {hasCohortRadar ? (
-            <span className="examRadarLegendItem">
+            <ChartLegendToggleButton
+              seriesKey="cohort"
+              isVisible={isVisible}
+              onToggle={toggle}
+              className="examRadarLegendItem chartLegendToggleButton"
+            >
               <span className="examRadarLegendSwatch examRadarLegendSwatchCohort" />
               {cohortAverageLabel ?? "クラス平均"}
-            </span>
+            </ChartLegendToggleButton>
+          ) : null}
+          {hasPassedCohortRadar ? (
+            <ChartLegendToggleButton
+              seriesKey="passed"
+              isVisible={isVisible}
+              onToggle={toggle}
+              className="examRadarLegendItem chartLegendToggleButton"
+            >
+              <span className="examRadarLegendSwatch examRadarLegendSwatchPassedCohort" />
+              {passedCohortAverageLabel ?? "国家試験合格者平均"}
+            </ChartLegendToggleButton>
           ) : null}
           {hasFailedCohortRadar ? (
-            <span className="examRadarLegendItem">
+            <ChartLegendToggleButton
+              seriesKey="failed"
+              isVisible={isVisible}
+              onToggle={toggle}
+              className="examRadarLegendItem chartLegendToggleButton"
+            >
               <span className="examRadarLegendSwatch examRadarLegendSwatchFailedCohort" />
               {failedCohortAverageLabel ?? "国家試験不合格者平均"}
-            </span>
+            </ChartLegendToggleButton>
           ) : null}
         </div>
       ) : null}
@@ -278,6 +339,15 @@ export function ExamRadarChart({
                       angle,
                     )
                   : null;
+              const passedCohortScore = passedCohortScoreBySubject.get(row.subjectName);
+              const passedCohortPoint =
+                passedCohortScore !== null && passedCohortScore !== undefined
+                  ? polarToCartesian(
+                      center,
+                      (Math.max(0, Math.min(passedCohortScore, 100)) / 100) * maxRadius,
+                      angle,
+                    )
+                  : null;
 
               return (
                 <g key={row.subjectName}>
@@ -289,7 +359,17 @@ export function ExamRadarChart({
                     stroke="#94a3b8"
                     strokeWidth={1}
                   />
-                  {failedCohortPoint ? (
+                  {showPassed && passedCohortPoint ? (
+                    <circle
+                      cx={passedCohortPoint.x}
+                      cy={passedCohortPoint.y}
+                      r={4}
+                      fill="none"
+                      stroke={PASSED_COHORT_RADAR_STROKE}
+                      strokeWidth={2}
+                    />
+                  ) : null}
+                  {showFailed && failedCohortPoint ? (
                     <polygon
                       points={`${failedCohortPoint.x},${failedCohortPoint.y - 4} ${failedCohortPoint.x - 4},${failedCohortPoint.y + 3} ${failedCohortPoint.x + 4},${failedCohortPoint.y + 3}`}
                       fill={FAILED_COHORT_RADAR_STROKE}
@@ -297,7 +377,7 @@ export function ExamRadarChart({
                       strokeWidth={1}
                     />
                   ) : null}
-                  {cohortPoint ? (
+                  {showCohort && cohortPoint ? (
                     <rect
                       x={cohortPoint.x - 3}
                       y={cohortPoint.y - 3}
@@ -309,14 +389,16 @@ export function ExamRadarChart({
                       rx={1}
                     />
                   ) : null}
-                  <circle
-                    cx={dataPoint.x}
-                    cy={dataPoint.y}
-                    r={3}
-                    fill="#2563eb"
-                    stroke="#ffffff"
-                    strokeWidth={1}
-                  />
+                  {showStudent ? (
+                    <circle
+                      cx={dataPoint.x}
+                      cy={dataPoint.y}
+                      r={3}
+                      fill="#2563eb"
+                      stroke="#ffffff"
+                      strokeWidth={1}
+                    />
+                  ) : null}
                   <text
                     x={labelPoint.x}
                     y={labelPoint.y}
@@ -331,7 +413,17 @@ export function ExamRadarChart({
               );
             })}
 
-            {hasFailedCohortRadar ? (
+            {showPassed && hasPassedCohortRadar ? (
+              <polygon
+                points={passedCohortPolygonPoints}
+                fill={PASSED_COHORT_RADAR_FILL}
+                stroke={PASSED_COHORT_RADAR_STROKE}
+                strokeWidth={1.5}
+                strokeDasharray="6 3"
+              />
+            ) : null}
+
+            {showFailed && hasFailedCohortRadar ? (
               <polygon
                 points={failedCohortPolygonPoints}
                 fill={FAILED_COHORT_RADAR_FILL}
@@ -341,7 +433,7 @@ export function ExamRadarChart({
               />
             ) : null}
 
-            {hasCohortRadar ? (
+            {showCohort && hasCohortRadar ? (
               <polygon
                 points={cohortPolygonPoints}
                 fill={COHORT_RADAR_FILL}
@@ -351,14 +443,16 @@ export function ExamRadarChart({
               />
             ) : null}
 
-            <polygon
-              points={polygonPoints}
-              fill="rgba(59, 130, 246, 0.35)"
-              stroke="#2563eb"
-              strokeWidth={1.5}
-            />
+            {showStudent ? (
+              <polygon
+                points={polygonPoints}
+                fill="rgba(59, 130, 246, 0.35)"
+                stroke="#2563eb"
+                strokeWidth={1.5}
+              />
+            ) : null}
 
-            {!trackTotals && averageScore !== null ? (
+            {!trackTotals && averageScore !== null && showStudent ? (
               <text
                 x={center}
                 y={center}

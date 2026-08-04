@@ -26,10 +26,14 @@ import {
 import {
   buildCohortRadarScoresForTest,
   buildFailedNationalExamRadarScoresForTest,
+  buildPassedNationalExamRadarScoresForTest,
 } from "@/lib/examCohortRadar.server";
 import { loadCohortStudentContext } from "@/lib/cohortStudents.server";
 import { formatCohortStudentLabel } from "@/lib/cohort";
-import { FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL } from "@/lib/subjectTrend";
+import {
+  FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL,
+  PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL,
+} from "@/lib/subjectTrend";
 import { sortRegularExamTerms } from "@/lib/regularExam";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
@@ -249,6 +253,10 @@ export async function GET(request: Request) {
       ReturnType<typeof buildFailedNationalExamRadarScoresForTest>
     > = [];
     let failedCohortAverageLabel: string | null = null;
+    let passedCohortRadarScores: Awaited<
+      ReturnType<typeof buildPassedNationalExamRadarScoresForTest>
+    > = [];
+    let passedCohortAverageLabel: string | null = null;
 
     if (selectedTestName) {
       const cohortContext = await loadCohortStudentContext(supabase);
@@ -271,6 +279,15 @@ export async function GET(request: Request) {
       if (failedCohortRadarScores.some((row) => row.score !== null)) {
         failedCohortAverageLabel = FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL;
       }
+
+      passedCohortRadarScores = await buildPassedNationalExamRadarScoresForTest(
+        supabase,
+        selectedTestName,
+        cohortContext,
+      );
+      if (passedCohortRadarScores.some((row) => row.score !== null)) {
+        passedCohortAverageLabel = PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL;
+      }
     }
 
     return NextResponse.json({
@@ -280,6 +297,8 @@ export async function GET(request: Request) {
       cohortAverageLabel,
       failedCohortRadarScores,
       failedCohortAverageLabel,
+      passedCohortRadarScores,
+      passedCohortAverageLabel,
     });
   }
 

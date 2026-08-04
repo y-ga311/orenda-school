@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildAllNationalExamFailedStudentSets,
+  buildAllNationalExamPassedStudentSets,
   buildCohortStudentSets,
   isTestScoreRowInStudentIdSet,
   loadCohortStudentContext,
@@ -9,9 +10,14 @@ import {
 import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 import { formatCohortLabel, formatCohortStudentLabel } from "@/lib/cohort";
 import {
+  buildFailedTestScoreLooseLookupKey,
   buildFailedTestScoreRoundLookupKey,
+  buildPassedTestScoreLooseLookupKey,
+  buildPassedTestScoreRoundLookupKey,
   getTestScoreKeyword,
   parseTestScoreRoundKey,
+  resolveFailedTestScoreAverage,
+  resolvePassedTestScoreAverage,
 } from "@/lib/examRoundKey";
 import { normalizeStudentIdentifier } from "@/lib/studentIdentifier";
 import { TEST_SCORE_SUBJECTS } from "@/lib/examSubjects";
@@ -37,11 +43,13 @@ import {
   getFailedNationalExamTrendLookupKey,
   getRegularCohortTrendLookupKey,
   getSubjectTrendCohortLookupKey,
+  parseMockTrendLookupKey,
   resolveMockLabelsForTrend,
   resolveRegularSubjectsForTrend,
   roundSubjectTrendAverage,
   sortSubjectTrendPoints,
   FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL,
+  PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL,
   type SubjectTrendData,
   type SubjectTrendPoint,
 } from "@/lib/subjectTrend";
@@ -95,6 +103,7 @@ function buildRegularTrendPoints(
       chartValue: score,
       cohortAverage: null,
       failedCohortAverage: null,
+      passedCohortAverage: null,
       displayValue: `${score}点`,
       notTaken: false,
     });
@@ -167,6 +176,7 @@ async function buildMockTrendPoints(
         chartValue: target.score,
         cohortAverage: null,
         failedCohortAverage: null,
+        passedCohortAverage: null,
         displayValue: `${target.correctCount}/${target.questionCount}（${target.score}%）`,
         notTaken: false,
       });
@@ -256,16 +266,26 @@ async function loadRegularCohortAverages(
   return scoresByKey;
 }
 
-async function loadFailedTestScoreAverages(
+async function loadNationalExamOutcomeTestScoreAverages(
   supabase: SupabaseClient,
   studentIdSet: Set<string>,
   mockLabels: string[],
   studentLookupMaps: CohortStudentContext["studentLookupMaps"],
+  outcome: "failed" | "passed",
 ) {
   const scoresByKey = new Map<string, number[]>();
   if (mockLabels.length === 0 || studentIdSet.size === 0) {
     return scoresByKey;
   }
+
+  const buildStrictKey =
+    outcome === "failed"
+      ? buildFailedTestScoreRoundLookupKey
+      : buildPassedTestScoreRoundLookupKey;
+  const buildLooseKey =
+    outcome === "failed"
+      ? buildFailedTestScoreLooseLookupKey
+      : buildPassedTestScoreLooseLookupKey;
 
   const mockLabelSet = new Set(mockLabels);
   const keywords = [getTestScoreKeyword("mock"), getTestScoreKeyword("graduation")];
@@ -320,18 +340,52 @@ async function loadFailedTestScoreAverages(
         return;
       }
 
-      const key = buildFailedTestScoreRoundLookupKey(testName, target.subjectName);
-      if (!key) {
-        return;
-      }
+      const strictKey = buildStrictKey(testName, target.subjectName);
+      const looseKey = buildLooseKey(testName, target.subjectName);
 
-      const scores = scoresByKey.get(key) ?? [];
-      scores.push(target.score);
-      scoresByKey.set(key, scores);
+      for (const key of [strictKey, looseKey]) {
+        if (!key) {
+          continue;
+        }
+
+        const scores = scoresByKey.get(key) ?? [];
+        scores.push(target.score);
+        scoresByKey.set(key, scores);
+      }
     });
   });
 
   return scoresByKey;
+}
+
+async function loadFailedTestScoreAverages(
+  supabase: SupabaseClient,
+  studentIdSet: Set<string>,
+  mockLabels: string[],
+  studentLookupMaps: CohortStudentContext["studentLookupMaps"],
+) {
+  return loadNationalExamOutcomeTestScoreAverages(
+    supabase,
+    studentIdSet,
+    mockLabels,
+    studentLookupMaps,
+    "failed",
+  );
+}
+
+async function loadPassedTestScoreAverages(
+  supabase: SupabaseClient,
+  studentIdSet: Set<string>,
+  mockLabels: string[],
+  studentLookupMaps: CohortStudentContext["studentLookupMaps"],
+) {
+  return loadNationalExamOutcomeTestScoreAverages(
+    supabase,
+    studentIdSet,
+    mockLabels,
+    studentLookupMaps,
+    "passed",
+  );
 }
 
 async function loadMockCohortAverages(
@@ -417,25 +471,63 @@ function attachCohortAveragesToPoints(
   });
 }
 
+function attachNationalExamOutcomeAveragesToPoints(
+  points: SubjectTrendPoint[],
+  regularAverages: Map<string, number>,
+  mockAverages: Map<string, number>,
+  outcome: "failed" | "passed",
+) {
+  const resolveMockAverage =
+    outcome === "failed" ? resolveFailedTestScoreAverage : resolvePassedTestScoreAverage;
+  const fieldName =
+    outcome === "failed" ? "failedCohortAverage" : "passedCohortAverage";
+
+  return points.map((point) => {
+    if (point.sourceType === "regular") {
+      const lookupKey = getFailedNationalExamTrendLookupKey(point);
+      return {
+        ...point,
+        [fieldName]:
+          lookupKey === null ? null : (regularAverages.get(lookupKey) ?? null),
+      };
+    }
+
+    const parsed = parseMockTrendLookupKey(getSubjectTrendCohortLookupKey(point));
+    const outcomeAverage = parsed
+      ? resolveMockAverage(mockAverages, parsed.testName, parsed.subjectName)
+      : null;
+
+    return {
+      ...point,
+      [fieldName]: outcomeAverage,
+    };
+  });
+}
+
 function attachFailedNationalExamAveragesToPoints(
   points: SubjectTrendPoint[],
   failedRegularAverages: Map<string, number>,
   failedMockAverages: Map<string, number>,
 ) {
-  return points.map((point) => {
-    const lookupKey = getFailedNationalExamTrendLookupKey(point);
-    const failedCohortAverage =
-      lookupKey === null
-        ? null
-        : point.sourceType === "regular"
-          ? (failedRegularAverages.get(lookupKey) ?? null)
-          : (failedMockAverages.get(lookupKey) ?? null);
+  return attachNationalExamOutcomeAveragesToPoints(
+    points,
+    failedRegularAverages,
+    failedMockAverages,
+    "failed",
+  );
+}
 
-    return {
-      ...point,
-      failedCohortAverage,
-    };
-  });
+function attachPassedNationalExamAveragesToPoints(
+  points: SubjectTrendPoint[],
+  passedRegularAverages: Map<string, number>,
+  passedMockAverages: Map<string, number>,
+) {
+  return attachNationalExamOutcomeAveragesToPoints(
+    points,
+    passedRegularAverages,
+    passedMockAverages,
+    "passed",
+  );
 }
 
 export async function buildUnifiedSubjectTrend(
@@ -453,8 +545,14 @@ export async function buildUnifiedSubjectTrend(
     cohortContext.rows,
     cohortContext.nationalExamFailedAvailable,
   );
+  const { passedGakuseiIdSet, passedStudentIdSet } = buildAllNationalExamPassedStudentSets(
+    cohortContext.rows,
+    cohortContext.nationalExamPassedAvailable,
+  );
   const failedCohortAverageLabel =
     failedGakuseiIdSet.size > 0 ? FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL : null;
+  const passedCohortAverageLabel =
+    passedGakuseiIdSet.size > 0 ? PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL : null;
   const { terms } = await loadRegularExamTermsForCohort(supabase, cohortKey);
 
   let regularPoints: SubjectTrendPoint[] = [];
@@ -491,6 +589,7 @@ export async function buildUnifiedSubjectTrend(
       cohortContext.rows,
       cohortKey,
       cohortContext.nationalExamFailedAvailable,
+      cohortContext.nationalExamPassedAvailable,
     );
     const [regularScoreLists, mockScoreLists] = await Promise.all([
       loadRegularCohortAverages(supabase, gakuseiIdSet, regularSubjects),
@@ -525,11 +624,31 @@ export async function buildUnifiedSubjectTrend(
     );
   }
 
+  if (passedGakuseiIdSet.size > 0) {
+    const [passedRegularScoreLists, passedMockScoreLists] = await Promise.all([
+      loadRegularCohortAverages(supabase, passedGakuseiIdSet, regularSubjects),
+      loadPassedTestScoreAverages(
+        supabase,
+        passedStudentIdSet,
+        mockLabels,
+        cohortContext.studentLookupMaps,
+      ),
+    ]);
+    const passedRegularAverages = buildAverageMap(passedRegularScoreLists);
+    const passedMockAverages = buildAverageMap(passedMockScoreLists);
+    points = attachPassedNationalExamAveragesToPoints(
+      points,
+      passedRegularAverages,
+      passedMockAverages,
+    );
+  }
+
   return {
     subjectName,
     points,
     cohortAverageLabel,
     failedCohortAverageLabel,
+    passedCohortAverageLabel,
     summary: buildSubjectTrendSummary(points, {
       cohortKey,
       cohortLabel,
