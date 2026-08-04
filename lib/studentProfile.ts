@@ -1,3 +1,5 @@
+import type { NationalExamStatus } from "@/lib/nationalExamStatus";
+
 export type CognitiveScoreKey =
   | "camera"
   | "3d"
@@ -156,7 +158,7 @@ export type StudentProfileData = {
   parentEmail: string;
   hasStudentPassword: boolean;
   hasParentPassword: boolean;
-  nationalExamFailed: boolean;
+  nationalExamStatus: NationalExamStatus;
   pretestScore: number | null;
   supportArea: string | null;
   careerEducation: string | null;
@@ -174,7 +176,7 @@ export type StudentProfileFormState = {
   parentId: string;
   parentPassword: string;
   parentEmail: string;
-  nationalExamFailed: boolean;
+  nationalExamStatus: NationalExamStatus;
   pretestScore: string;
   supportArea: string;
   careerEducation: string;
@@ -217,7 +219,7 @@ export function buildProfileFormState(profile: StudentProfileData): StudentProfi
     parentId: profile.parentId,
     parentPassword: "",
     parentEmail: profile.parentEmail,
-    nationalExamFailed: profile.nationalExamFailed,
+    nationalExamStatus: profile.nationalExamStatus,
     pretestScore:
       profile.pretestScore === null || profile.pretestScore === undefined
         ? ""

@@ -19,6 +19,10 @@ import {
   type StudentProfileData,
   type StudentProfileFormState,
 } from "@/lib/studentProfile";
+import {
+  NATIONAL_EXAM_STATUS_LABELS,
+  type NationalExamStatus,
+} from "@/lib/nationalExamStatus";
 
 type StudentBasicInfoViewProps = {
   students: StudentRow[];
@@ -343,7 +347,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
           parentId: form.parentId,
           parentPassword: form.parentPassword,
           parentEmail: form.parentEmail,
-          nationalExamFailed: form.nationalExamFailed,
+          nationalExamStatus: form.nationalExamStatus,
           pretestScore: form.pretestScore,
           supportArea: form.supportArea,
           careerEducation: form.careerEducation,
@@ -651,17 +655,27 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         disabled={isLoading || isSaving}
                       />
                     </label>
-                    <label className="studentInfoField studentInfoFieldCheckbox studentInfoFieldFull">
-                      <input
-                        type="checkbox"
-                        checked={form.nationalExamFailed}
-                        onChange={(event) =>
-                          updateFormField("nationalExamFailed", event.target.checked)
-                        }
-                        disabled={isLoading || isSaving}
-                      />
-                      <span className="studentInfoFieldLabel">国家試験不合格（卒業生）</span>
-                    </label>
+                    <fieldset className="studentInfoField studentInfoFieldFull studentInfoRadioGroup">
+                      <legend className="studentInfoFieldLabel">国家試験合否（卒業生）</legend>
+                      {(
+                        Object.entries(NATIONAL_EXAM_STATUS_LABELS) as [
+                          NationalExamStatus,
+                          string,
+                        ][]
+                      ).map(([value, label]) => (
+                        <label key={value} className="studentInfoRadioOption">
+                          <input
+                            type="radio"
+                            name="nationalExamStatus"
+                            value={value}
+                            checked={form.nationalExamStatus === value}
+                            onChange={() => updateFormField("nationalExamStatus", value)}
+                            disabled={isLoading || isSaving}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
+                    </fieldset>
                   </div>
                 </section>
               </div>

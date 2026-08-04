@@ -21,6 +21,13 @@ import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { decryptStudentName } from "@/lib/studentNameCrypto.server";
 import { parseCohortKeyFromClass } from "@/lib/cohort";
 import { buildStudentProfileCohortAverages } from "@/lib/studentProfileCohortAverages.server";
+import {
+  buildNationalExamStatusDbUpdate,
+  isMissingNationalExamPassedColumn,
+  parseNationalExamStatusFromRow,
+  parseNationalExamStatusInput,
+  type NationalExamStatus,
+} from "@/lib/nationalExamStatus";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
 export const runtime = "nodejs";
@@ -49,6 +56,7 @@ type StudentRow = {
   learning_ability_data_reading?: number | string | null;
   medical_foundation_test_score?: number | string | null;
   national_exam_failed?: boolean | null;
+  national_exam_passed?: boolean | null;
 };
 
 type UpdateBody = {
@@ -59,6 +67,7 @@ type UpdateBody = {
   parentId?: unknown;
   parentPassword?: unknown;
   parentEmail?: unknown;
+  nationalExamStatus?: unknown;
   nationalExamFailed?: unknown;
   pretestScore?: unknown;
   supportArea?: unknown;
@@ -73,7 +82,7 @@ const MAX_PRETEST_SCORE = 9999.9;
 const MAX_COGNITIVE_SCORE = 999;
 
 const CORE_SELECT =
-  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail, national_exam_failed" as const;
+  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail, national_exam_failed, national_exam_passed" as const;
 
 const EXTENDED_SELECT = [
   "pretest_score",
@@ -97,6 +106,28 @@ function isMissingColumnError(message: string) {
   );
 }
 
+function resolveNationalExamStatusFromBody(
+  body: UpdateBody,
+): NationalExamStatus | "invalid" {
+  const parsedStatus = parseNationalExamStatusInput(body.nationalExamStatus);
+  if (parsedStatus) {
+    return parsedStatus;
+  }
+
+  if (body.nationalExamFailed === true) {
+    return "failed";
+  }
+  if (body.nationalExamFailed === false && body.nationalExamStatus === undefined) {
+    return "unset";
+  }
+
+  if (body.nationalExamStatus !== undefined) {
+    return "invalid";
+  }
+
+  return "unset";
+}
+
 function parseCognitiveScores(row: StudentRow): CognitiveScores {
   return parseCognitiveScoresFromRow(row, row.cognitive_scores);
 }
@@ -104,7 +135,14 @@ function parseCognitiveScores(row: StudentRow): CognitiveScores {
 function mapStudentProfile(
   row: StudentRow,
   extendedFieldsAvailable: boolean,
+  nationalExamStatusAvailable: boolean,
 ): Omit<StudentProfileData, "scoreCohortAverages"> {
+  const nationalExamStatus: NationalExamStatus = nationalExamStatusAvailable
+    ? parseNationalExamStatusFromRow(row)
+    : row.national_exam_failed === true
+      ? "failed"
+      : "unset";
+
   return {
     gakuseiId: row.gakusei_id,
     name: row.name?.trim() || "名前未設定",
@@ -114,7 +152,7 @@ function mapStudentProfile(
     parentEmail: row.mail?.trim() || "",
     hasStudentPassword: Boolean(row.gakusei_password),
     hasParentPassword: Boolean(row.hogosya_pass),
-    nationalExamFailed: Boolean(row.national_exam_failed),
+    nationalExamStatus,
     pretestScore:
       extendedFieldsAvailable && row.pretest_score !== null && row.pretest_score !== undefined
         ? Number(row.pretest_score)
@@ -402,7 +440,31 @@ async function fetchStudentRow(gakuseiId: string) {
     .eq("gakusei_id", gakuseiId)
     .maybeSingle();
 
-  if (coreResult.error) {
+  let nationalExamStatusAvailable = true;
+  let coreData = coreResult.data;
+
+  if (coreResult.error && isMissingNationalExamPassedColumn(coreResult.error.message)) {
+    nationalExamStatusAvailable = false;
+    const legacyCoreResult = await supabase
+      .from("students")
+      .select(
+        "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail, national_exam_failed",
+      )
+      .eq("gakusei_id", gakuseiId)
+      .maybeSingle();
+
+    if (legacyCoreResult.error) {
+      console.error("[student-profile] students core:", legacyCoreResult.error.message);
+      return {
+        error: NextResponse.json(
+          { message: "学生情報の取得中にエラーが発生しました。" },
+          { status: 500 },
+        ),
+      };
+    }
+
+    coreData = legacyCoreResult.data as typeof coreData;
+  } else if (coreResult.error) {
     console.error("[student-profile] students core:", coreResult.error.message);
     return {
       error: NextResponse.json(
@@ -412,7 +474,7 @@ async function fetchStudentRow(gakuseiId: string) {
     };
   }
 
-  if (!coreResult.data) {
+  if (!coreData) {
     return {
       error: NextResponse.json({ message: "学生が見つかりません。" }, { status: 404 }),
     };
@@ -439,7 +501,7 @@ async function fetchStudentRow(gakuseiId: string) {
   }
 
   const row = {
-    ...coreResult.data,
+    ...coreData,
     ...((extendedResult.data ?? {}) as Record<string, unknown>),
   } as StudentRow;
   row.name = await decryptStudentName(row.name);
@@ -453,7 +515,7 @@ async function fetchStudentRow(gakuseiId: string) {
 
   return {
     profile: {
-      ...mapStudentProfile(row, extendedFieldsAvailable),
+      ...mapStudentProfile(row, extendedFieldsAvailable, nationalExamStatusAvailable),
       scoreCohortAverages,
     },
   };
@@ -494,7 +556,14 @@ export async function PUT(request: Request) {
   const parentPassword =
     typeof body?.parentPassword === "string" ? body.parentPassword : "";
   const parentEmail = typeof body?.parentEmail === "string" ? body.parentEmail.trim() : "";
-  const nationalExamFailed = body?.nationalExamFailed === true;
+  const nationalExamStatus = resolveNationalExamStatusFromBody(body ?? {});
+
+  if (nationalExamStatus === "invalid") {
+    return NextResponse.json(
+      { message: "国家試験合否の指定が正しくありません。" },
+      { status: 400 },
+    );
+  }
 
   if (!gakuseiId) {
     return NextResponse.json({ message: "学生が選択されていません。" }, { status: 400 });
@@ -526,12 +595,33 @@ export async function PUT(request: Request) {
     );
   }
 
+  const passedColumnProbe = await supabase.from("students").select("national_exam_passed").limit(1);
+  const nationalExamStatusAvailable =
+    !passedColumnProbe.error ||
+    !isMissingNationalExamPassedColumn(passedColumnProbe.error.message);
+
+  if (!nationalExamStatusAvailable && nationalExamStatus === "passed") {
+    return NextResponse.json(
+      {
+        message:
+          "国家試験合格の保存には SQL マイグレーション（add-student-national-exam-passed.sql）の実行が必要です。",
+      },
+      { status: 400 },
+    );
+  }
+
+  const nationalExamUpdates: Partial<ReturnType<typeof buildNationalExamStatusDbUpdate>> =
+    buildNationalExamStatusDbUpdate(nationalExamStatus);
+  if (!nationalExamStatusAvailable) {
+    delete nationalExamUpdates.national_exam_passed;
+  }
+
   const updates: Record<string, string | boolean | null> = {
     nickname: nickname || null,
     class: className,
     hogosya_id: parentId || null,
     mail: parentEmail || null,
-    national_exam_failed: nationalExamFailed,
+    ...nationalExamUpdates,
   };
   if (studentPassword) {
     updates.gakusei_password = studentPassword;

@@ -10,12 +10,14 @@ import {
 } from "@/lib/studentProfile";
 import {
   buildPartialGroupUpdatePayload,
+  buildNationalExamStatusBulkValue,
   getStudentBulkGroup,
   type StudentBulkGroupKey,
   type StudentBulkRow,
   type StudentBulkRowValues,
   validateBulkGroupPartialValues,
 } from "@/lib/studentProfileBulk";
+import { isMissingNationalExamPassedColumn } from "@/lib/nationalExamStatus";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { decryptStudentRows } from "@/lib/studentNameCrypto.server";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
@@ -45,6 +47,8 @@ type DbStudentRow = {
   learning_ability_calculation?: number | string | null;
   learning_ability_data_reading?: number | string | null;
   medical_foundation_test_score?: number | string | null;
+  national_exam_failed?: boolean | null;
+  national_exam_passed?: boolean | null;
 };
 
 type BulkUpdateBody = {
@@ -61,10 +65,14 @@ const BULK_GROUP_KEYS = new Set<string>([
   "medicalFoundationTest",
   "parentAccount",
   "studentAccount",
+  "nationalExamStatus",
 ]);
 
 const CORE_SELECT =
-  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail" as const;
+  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail, national_exam_failed, national_exam_passed" as const;
+
+const LEGACY_CORE_SELECT =
+  "gakusei_id, name, class, nickname, gakusei_password, hogosya_id, hogosya_pass, mail, national_exam_failed" as const;
 
 const EXTENDED_BULK_SELECT = [
   "gakusei_id",
@@ -105,7 +113,11 @@ function formatBulkValue(value: number | string | null | undefined) {
   return String(value);
 }
 
-function mapBulkRow(row: DbStudentRow, extendedFieldsAvailable: boolean): StudentBulkRow {
+function mapBulkRow(
+  row: DbStudentRow,
+  extendedFieldsAvailable: boolean,
+  nationalExamStatusAvailable: boolean,
+): StudentBulkRow {
   const cognitiveScores = extendedFieldsAvailable
     ? parseCognitiveScoresFromRow(row, row.cognitive_scores)
     : {};
@@ -141,6 +153,11 @@ function mapBulkRow(row: DbStudentRow, extendedFieldsAvailable: boolean): Studen
       row.medical_foundation_test_score !== undefined
         ? formatBulkValue(row.medical_foundation_test_score)
         : "",
+    nationalExamStatus: nationalExamStatusAvailable
+      ? buildNationalExamStatusBulkValue(row)
+      : row.national_exam_failed === true
+        ? "failed"
+        : "",
   } as StudentBulkRow["values"];
 
   return {
@@ -167,17 +184,40 @@ export async function GET() {
     );
   }
 
+  let nationalExamStatusAvailable = true;
   const coreResult = await supabase
     .from("students")
     .select(CORE_SELECT)
     .order("name", { ascending: true });
 
-  if (coreResult.error) {
+  let coreRows: DbStudentRow[] | null = (coreResult.data ?? null) as DbStudentRow[] | null;
+
+  if (coreResult.error && isMissingNationalExamPassedColumn(coreResult.error.message)) {
+    nationalExamStatusAvailable = false;
+    const legacyCoreResult = await supabase
+      .from("students")
+      .select(LEGACY_CORE_SELECT)
+      .order("name", { ascending: true });
+
+    if (legacyCoreResult.error) {
+      console.error("[student-profiles-bulk] core:", legacyCoreResult.error.message);
+      return NextResponse.json(
+        { message: "学生情報の取得中にエラーが発生しました。" },
+        { status: 500 },
+      );
+    }
+
+    coreRows = (legacyCoreResult.data ?? null) as DbStudentRow[] | null;
+  } else if (coreResult.error) {
     console.error("[student-profiles-bulk] core:", coreResult.error.message);
     return NextResponse.json(
       { message: "学生情報の取得中にエラーが発生しました。" },
       { status: 500 },
     );
+  }
+
+  if (!coreRows) {
+    return NextResponse.json({ rows: [], extendedFieldsAvailable: true, nationalExamStatusAvailable });
   }
 
   let extendedResult = await supabase.from("students").select(EXTENDED_BULK_SELECT);
@@ -197,7 +237,7 @@ export async function GET() {
     extendedRows.map((row) => [String(row.gakusei_id), row]),
   );
 
-  const decryptedCore = await decryptStudentRows((coreResult.data ?? []) as DbStudentRow[]);
+  const decryptedCore = await decryptStudentRows(coreRows as DbStudentRow[]);
   const rows = decryptedCore
     .map((row) =>
       mapBulkRow(
@@ -206,11 +246,12 @@ export async function GET() {
           ...((extendedById.get(row.gakusei_id) ?? {}) as Record<string, unknown>),
         } as DbStudentRow,
         extendedFieldsAvailable,
+        nationalExamStatusAvailable,
       ),
     )
     .sort((a, b) => a.name.localeCompare(b.name, "ja"));
 
-  return NextResponse.json({ rows, extendedFieldsAvailable });
+  return NextResponse.json({ rows, extendedFieldsAvailable, nationalExamStatusAvailable });
 }
 
 export async function PUT(request: Request) {
@@ -283,6 +324,17 @@ export async function PUT(request: Request) {
         failures.push({
           gakuseiId,
           message: "スコア項目のカラムが未作成のため保存できません。",
+        });
+        continue;
+      }
+
+      if (
+        group.key === "nationalExamStatus" &&
+        isMissingNationalExamPassedColumn(error.message)
+      ) {
+        failures.push({
+          gakuseiId,
+          message: "国家試験合格カラムが未作成のため保存できません。",
         });
         continue;
       }

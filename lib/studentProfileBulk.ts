@@ -6,6 +6,13 @@ import {
   type CognitiveScoreKey,
   type LearningAbilityScoreKey,
 } from "@/lib/studentProfile";
+import {
+  NATIONAL_EXAM_BULK_SELECT_OPTIONS,
+  buildNationalExamStatusDbUpdate,
+  formatNationalExamStatusForBulk,
+  parseNationalExamStatusFromBulkValue,
+  parseNationalExamStatusFromRow,
+} from "@/lib/nationalExamStatus";
 
 export type StudentBulkFieldKey =
   | "nickname"
@@ -14,6 +21,7 @@ export type StudentBulkFieldKey =
   | "parentEmail"
   | "studentPassword"
   | "parentPassword"
+  | "nationalExamStatus"
   | "pretestScore"
   | "supportArea"
   | "careerEducation"
@@ -24,6 +32,7 @@ export type StudentBulkFieldKey =
 export type StudentBulkGroupKey =
   | "nickname"
   | "className"
+  | "nationalExamStatus"
   | "scoreSummary"
   | "cognitive"
   | "learningAbility"
@@ -37,6 +46,8 @@ export type StudentBulkColumnDef = {
   key: StudentBulkFieldKey;
   label: string;
   inputMode?: "text" | "decimal" | "numeric";
+  inputType?: "text" | "select";
+  selectOptions?: ReadonlyArray<{ value: string; label: string }>;
   placeholder?: string;
   isPassword?: boolean;
 };
@@ -67,6 +78,19 @@ export const STUDENT_BULK_GROUPS: StudentBulkGroupDef[] = [
     label: "クラス",
     section: "basic",
     columns: [{ key: "className", label: "クラス", placeholder: "未設定" }],
+  },
+  {
+    key: "nationalExamStatus",
+    label: "国家試験合否（卒業生）",
+    section: "basic",
+    columns: [
+      {
+        key: "nationalExamStatus",
+        label: "合否",
+        inputType: "select",
+        selectOptions: NATIONAL_EXAM_BULK_SELECT_OPTIONS,
+      },
+    ],
   },
   {
     key: "scoreSummary",
@@ -280,6 +304,9 @@ export function getBulkFieldDbColumn(field: StudentBulkFieldKey) {
   if (field === "medicalFoundationTestScore") {
     return "medical_foundation_test_score";
   }
+  if (field === "nationalExamStatus") {
+    return null;
+  }
   if (isCognitiveBulkField(field)) {
     return COGNITIVE_SCORE_ITEMS.find((item) => item.key === field)?.column ?? null;
   }
@@ -310,6 +337,14 @@ export function validateBulkFieldValue(field: StudentBulkFieldKey, rawValue: str
 
   if (field === "parentEmail" && trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     return "保護者メールアドレスの形式が正しくありません。";
+  }
+
+  if (field === "nationalExamStatus") {
+    const trimmed = rawValue.trim();
+    if (!trimmed || trimmed === "passed" || trimmed === "failed") {
+      return null;
+    }
+    return "国家試験合否は「合格」「不合格」または未設定を選択してください。";
   }
 
   if (field === "pretestScore") {
@@ -408,6 +443,10 @@ export function buildBulkFieldUpdatePayload(field: StudentBulkFieldKey, rawValue
     return { [column]: trimmed };
   }
 
+  if (field === "nationalExamStatus") {
+    return buildNationalExamStatusDbUpdate(parseNationalExamStatusFromBulkValue(rawValue));
+  }
+
   if (field === "pretestScore" || field === "medicalFoundationTestScore") {
     return { [column]: trimmed ? parsePretestScoreFormValue(trimmed) : null };
   }
@@ -421,6 +460,13 @@ export function buildBulkFieldUpdatePayload(field: StudentBulkFieldKey, rawValue
   }
 
   return { [column]: trimmed || null };
+}
+
+export function buildNationalExamStatusBulkValue(row: {
+  national_exam_failed?: boolean | null;
+  national_exam_passed?: boolean | null;
+}) {
+  return formatNationalExamStatusForBulk(parseNationalExamStatusFromRow(row));
 }
 
 export function getChangedGroupValues(
@@ -440,7 +486,7 @@ export function getChangedGroupValues(
 }
 
 export function buildPartialGroupUpdatePayload(changedValues: StudentBulkRowValues) {
-  const payload: Record<string, string | number | null> = {};
+  const payload: Record<string, string | number | boolean | null> = {};
 
   (Object.entries(changedValues) as [StudentBulkFieldKey, string | undefined][]).forEach(
     ([field, value]) => {

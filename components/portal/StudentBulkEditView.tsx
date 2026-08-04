@@ -53,6 +53,7 @@ export function StudentBulkEditView() {
   const csvImportInputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<StudentBulkRow[]>([]);
   const [extendedFieldsAvailable, setExtendedFieldsAvailable] = useState(true);
+  const [nationalExamStatusAvailable, setNationalExamStatusAvailable] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState<StudentBulkGroupKey>("nickname");
   const [editValues, setEditValues] = useState<Record<string, StudentBulkRowValues>>({});
   const [baselineValues, setBaselineValues] = useState<Record<string, StudentBulkRowValues>>({});
@@ -81,6 +82,7 @@ export function StudentBulkEditView() {
       const payload = (await response.json()) as {
         rows?: StudentBulkRow[];
         extendedFieldsAvailable?: boolean;
+        nationalExamStatusAvailable?: boolean;
         message?: string;
       };
 
@@ -91,6 +93,7 @@ export function StudentBulkEditView() {
       const nextRows = payload.rows ?? [];
       setRows(nextRows);
       setExtendedFieldsAvailable(Boolean(payload.extendedFieldsAvailable));
+      setNationalExamStatusAvailable(Boolean(payload.nationalExamStatusAvailable ?? true));
       return nextRows;
     } catch (loadError) {
       setRows([]);
@@ -195,7 +198,8 @@ export function StudentBulkEditView() {
 
   const fieldDisabled =
     isBusy ||
-    Boolean(selectedGroupDef?.requiresExtended && !extendedFieldsAvailable);
+    Boolean(selectedGroupDef?.requiresExtended && !extendedFieldsAvailable) ||
+    Boolean(selectedGroupDef?.key === "nationalExamStatus" && !nationalExamStatusAvailable);
 
   async function handleCsvImport(file: File) {
     if (!supportsCsvImport) {
@@ -381,7 +385,8 @@ export function StudentBulkEditView() {
                 {getStudentBulkGroupsBySection(section).map((group) => {
                   const isActive = group.key === selectedGroup;
                   const isUnavailable =
-                    group.requiresExtended && !extendedFieldsAvailable;
+                    (group.requiresExtended && !extendedFieldsAvailable) ||
+                    (group.key === "nationalExamStatus" && !nationalExamStatusAvailable);
                   return (
                     <button
                       key={group.key}
@@ -489,6 +494,12 @@ export function StudentBulkEditView() {
             </p>
           ) : null}
 
+          {selectedGroupDef?.key === "nationalExamStatus" && !nationalExamStatusAvailable ? (
+            <p className="studentInfoScoreHint">
+              国家試験合格カラムが未作成です。SQL マイグレーション後に編集できます。
+            </p>
+          ) : null}
+
           <input
             className="learningTimeSearch"
             type="search"
@@ -568,21 +579,42 @@ export function StudentBulkEditView() {
 
                           return (
                             <td key={column.key}>
-                              <input
-                                className="studentBulkTableInput"
-                                type={column.isPassword ? "password" : "text"}
-                                inputMode={column.inputMode}
-                                value={editValues[row.gakuseiId]?.[column.key] ?? ""}
-                                placeholder={placeholder}
-                                onChange={(event) =>
-                                  handleValueChange(
-                                    row.gakuseiId,
-                                    column.key,
-                                    event.target.value,
-                                  )
-                                }
-                                disabled={fieldDisabled}
-                              />
+                              {column.inputType === "select" ? (
+                                <select
+                                  className="studentBulkTableSelect"
+                                  value={editValues[row.gakuseiId]?.[column.key] ?? ""}
+                                  onChange={(event) =>
+                                    handleValueChange(
+                                      row.gakuseiId,
+                                      column.key,
+                                      event.target.value,
+                                    )
+                                  }
+                                  disabled={fieldDisabled}
+                                >
+                                  {(column.selectOptions ?? []).map((option) => (
+                                    <option key={option.value || "__unset__"} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  className="studentBulkTableInput"
+                                  type={column.isPassword ? "password" : "text"}
+                                  inputMode={column.inputMode}
+                                  value={editValues[row.gakuseiId]?.[column.key] ?? ""}
+                                  placeholder={placeholder}
+                                  onChange={(event) =>
+                                    handleValueChange(
+                                      row.gakuseiId,
+                                      column.key,
+                                      event.target.value,
+                                    )
+                                  }
+                                  disabled={fieldDisabled}
+                                />
+                              )}
                             </td>
                           );
                         })}
