@@ -158,11 +158,6 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
 
   const selectStudent = (gakuseiId: string) => {
     setSelectedGakuseiId(gakuseiId);
-    setIsFullscreenOpen(false);
-  };
-
-  const openStudentDetail = (gakuseiId: string) => {
-    setSelectedGakuseiId(gakuseiId);
     setIsFullscreenOpen(true);
   };
 
@@ -456,7 +451,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                     <button
                       type="button"
                       className="learningTimeStudentRowBtn"
-                      onClick={() => openStudentDetail(student.gakusei_id)}
+                      onClick={() => selectStudent(student.gakusei_id)}
                     >
                       詳細
                     </button>
