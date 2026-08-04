@@ -221,7 +221,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
     [radarScores],
   );
   const radarCohortScores = useMemo(() => {
-    if (!usesTestScoreFormat || !data?.cohortRadarScores) {
+    if (!data?.cohortRadarScores) {
       return null;
     }
 
@@ -237,9 +237,9 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
         notTaken: cohortRow?.score === null || cohortRow?.score === undefined,
       };
     });
-  }, [data?.cohortRadarScores, radarScores, usesTestScoreFormat]);
+  }, [data?.cohortRadarScores, radarScores]);
   const radarFailedCohortScores = useMemo(() => {
-    if (!usesTestScoreFormat || !data?.failedCohortRadarScores) {
+    if (!data?.failedCohortRadarScores) {
       return null;
     }
 
@@ -256,9 +256,9 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
           failedCohortRow?.score === null || failedCohortRow?.score === undefined,
       };
     });
-  }, [data?.failedCohortRadarScores, radarScores, usesTestScoreFormat]);
+  }, [data?.failedCohortRadarScores, radarScores]);
   const radarPassedCohortScores = useMemo(() => {
-    if (!usesTestScoreFormat || !data?.passedCohortRadarScores) {
+    if (!data?.passedCohortRadarScores) {
       return null;
     }
 
@@ -275,7 +275,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
           passedCohortRow?.score === null || passedCohortRow?.score === undefined,
       };
     });
-  }, [data?.passedCohortRadarScores, radarScores, usesTestScoreFormat]);
+  }, [data?.passedCohortRadarScores, radarScores]);
   const trackTotals = useMemo(
     () => (usesTestScoreFormat ? calculateExamTrackTotals(scores) : null),
     [scores, usesTestScoreFormat],

@@ -26,7 +26,10 @@ import {
 import {
   buildCohortRadarScoresForTest,
   buildFailedNationalExamRadarScoresForTest,
+  buildFailedNationalExamRegularRadarScoresForSession,
   buildPassedNationalExamRadarScoresForTest,
+  buildPassedNationalExamRegularRadarScoresForSession,
+  buildRegularCohortRadarScoresForSession,
 } from "@/lib/examCohortRadar.server";
 import { loadCohortStudentContext } from "@/lib/cohortStudents.server";
 import { formatCohortStudentLabel } from "@/lib/cohort";
@@ -339,15 +342,90 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json(
-    buildRegularExamResponse(
-      "regular",
-      (data ?? []) as ExamResultRow[],
-      sessionKey,
-      termsLoad.terms,
-      {
-        masterTableMissing: termsLoad.tableMissing,
-        resultsTableMissing: false,
-      },
+    await buildRegularExamResponseWithCohortRadar(
+      supabase,
+      gakuseiId,
+      buildRegularExamResponse(
+        "regular",
+        (data ?? []) as ExamResultRow[],
+        sessionKey,
+        termsLoad.terms,
+        {
+          masterTableMissing: termsLoad.tableMissing,
+          resultsTableMissing: false,
+        },
+      ),
     ),
   );
+}
+
+async function buildRegularExamResponseWithCohortRadar(
+  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>,
+  gakuseiId: string,
+  response: ReturnType<typeof buildRegularExamResponse>,
+) {
+  if (!supabase) {
+    return response;
+  }
+
+  const selectedSessionKey = response.selectedSessionKey?.trim() ?? "";
+  const subjectNames = response.scores.map((row) => row.subjectName);
+  if (!selectedSessionKey || subjectNames.length === 0) {
+    return response;
+  }
+
+  const cohortKey = await loadStudentCohortKey(supabase, gakuseiId);
+  const cohortContext = await loadCohortStudentContext(supabase);
+
+  let cohortRadarScores: Awaited<ReturnType<typeof buildRegularCohortRadarScoresForSession>> = [];
+  let cohortAverageLabel: string | null = null;
+  let failedCohortRadarScores: Awaited<
+    ReturnType<typeof buildFailedNationalExamRegularRadarScoresForSession>
+  > = [];
+  let failedCohortAverageLabel: string | null = null;
+  let passedCohortRadarScores: Awaited<
+    ReturnType<typeof buildPassedNationalExamRegularRadarScoresForSession>
+  > = [];
+  let passedCohortAverageLabel: string | null = null;
+
+  if (cohortKey) {
+    cohortRadarScores = await buildRegularCohortRadarScoresForSession(
+      supabase,
+      cohortKey,
+      selectedSessionKey,
+      subjectNames,
+      cohortContext,
+    );
+    cohortAverageLabel = `${formatCohortStudentLabel(cohortKey)}平均`;
+  }
+
+  failedCohortRadarScores = await buildFailedNationalExamRegularRadarScoresForSession(
+    supabase,
+    selectedSessionKey,
+    subjectNames,
+    cohortContext,
+  );
+  if (failedCohortRadarScores.some((row) => row.score !== null)) {
+    failedCohortAverageLabel = FAILED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL;
+  }
+
+  passedCohortRadarScores = await buildPassedNationalExamRegularRadarScoresForSession(
+    supabase,
+    selectedSessionKey,
+    subjectNames,
+    cohortContext,
+  );
+  if (passedCohortRadarScores.some((row) => row.score !== null)) {
+    passedCohortAverageLabel = PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL;
+  }
+
+  return {
+    ...response,
+    cohortRadarScores,
+    cohortAverageLabel,
+    failedCohortRadarScores,
+    failedCohortAverageLabel,
+    passedCohortRadarScores,
+    passedCohortAverageLabel,
+  };
 }

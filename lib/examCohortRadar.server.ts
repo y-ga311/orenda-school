@@ -4,11 +4,14 @@ import { TEST_SCORE_SUBJECTS } from "@/lib/examSubjects";
 import {
   buildAllNationalExamFailedStudentSets,
   buildAllNationalExamPassedStudentSets,
+  buildCohortStudentSets,
   isTestScoreRowInStudentIdSet,
   loadCohortStudentContext,
   loadCohortStudentIdSet,
   type CohortStudentContext,
 } from "@/lib/cohortStudents.server";
+import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
+import { normalizeStudentIdentifier } from "@/lib/studentIdentifier";
 import {
   getTestScoreKeyword,
   parseTestScoreRoundKey,
@@ -98,6 +101,168 @@ export async function buildCohortRadarScoresForTest(
       notTaken: average === null,
     };
   });
+}
+
+type RegularExamResultRow = {
+  gakusei_id: string | number;
+  session_key: string;
+  subject_name: string;
+  score: number | string;
+  exam_type: string;
+};
+
+async function loadRegularExamScoresBySubject(
+  supabase: SupabaseClient,
+  gakuseiIdSet: Set<string>,
+  sessionKey: string,
+  subjectNames: string[],
+): Promise<Map<string, number[]>> {
+  const scoresBySubject = new Map<string, number[]>();
+  const normalizedSessionKey = sessionKey.trim();
+  const subjectNameSet = new Set(subjectNames.map((name) => name.trim()).filter(Boolean));
+
+  if (normalizedSessionKey === "" || subjectNameSet.size === 0 || gakuseiIdSet.size === 0) {
+    return scoresBySubject;
+  }
+
+  const normalizedGakuseiIdSet = new Set(
+    [...gakuseiIdSet].map((gakuseiId) => normalizeStudentIdentifier(gakuseiId)),
+  );
+
+  const rows = await fetchAllRows<RegularExamResultRow>(
+    supabase,
+    "student_exam_results",
+    "gakusei_id, session_key, subject_name, score, exam_type",
+  );
+
+  rows.forEach((row) => {
+    if (String(row.exam_type).trim() !== "regular") {
+      return;
+    }
+
+    const gakuseiId = normalizeStudentIdentifier(String(row.gakusei_id));
+    const rowSessionKey = String(row.session_key).trim();
+    const subjectName = String(row.subject_name).trim();
+    const score = Number(row.score);
+
+    if (
+      !gakuseiId ||
+      !normalizedGakuseiIdSet.has(gakuseiId) ||
+      rowSessionKey !== normalizedSessionKey ||
+      !subjectNameSet.has(subjectName) ||
+      !Number.isFinite(score)
+    ) {
+      return;
+    }
+
+    const scores = scoresBySubject.get(subjectName) ?? [];
+    scores.push(score);
+    scoresBySubject.set(subjectName, scores);
+  });
+
+  return scoresBySubject;
+}
+
+function buildRegularExamRadarScores(
+  subjectNames: string[],
+  scoresBySubject: Map<string, number[]>,
+): ExamScoreRow[] {
+  return subjectNames.map((subjectName) => {
+    const average = roundSubjectTrendAverage(scoresBySubject.get(subjectName) ?? []);
+    return {
+      subjectName,
+      score: average,
+      notTaken: average === null,
+    };
+  });
+}
+
+/** 定期試験の同期（期）平均 */
+export async function buildRegularCohortRadarScoresForSession(
+  supabase: SupabaseClient,
+  cohortKey: string,
+  sessionKey: string,
+  subjectNames: string[],
+  context?: CohortStudentContext,
+): Promise<ExamScoreRow[]> {
+  const normalizedCohortKey = cohortKey.trim();
+  const normalizedSessionKey = sessionKey.trim();
+  if (!normalizedCohortKey || !normalizedSessionKey || subjectNames.length === 0) {
+    return [];
+  }
+
+  const cohortContext = context ?? (await loadCohortStudentContext(supabase));
+  const { gakuseiIdSet } = buildCohortStudentSets(
+    cohortContext.rows,
+    normalizedCohortKey,
+    cohortContext.nationalExamFailedAvailable,
+    cohortContext.nationalExamPassedAvailable,
+  );
+
+  const scoresBySubject = await loadRegularExamScoresBySubject(
+    supabase,
+    gakuseiIdSet,
+    normalizedSessionKey,
+    subjectNames,
+  );
+
+  return buildRegularExamRadarScores(subjectNames, scoresBySubject);
+}
+
+/** 定期試験の国家試験不合格者平均（全期・学期照合） */
+export async function buildFailedNationalExamRegularRadarScoresForSession(
+  supabase: SupabaseClient,
+  sessionKey: string,
+  subjectNames: string[],
+  context?: CohortStudentContext,
+): Promise<ExamScoreRow[]> {
+  const normalizedSessionKey = sessionKey.trim();
+  if (!normalizedSessionKey || subjectNames.length === 0) {
+    return [];
+  }
+
+  const cohortContext = context ?? (await loadCohortStudentContext(supabase));
+  const { failedGakuseiIdSet } = buildAllNationalExamFailedStudentSets(
+    cohortContext.rows,
+    cohortContext.nationalExamFailedAvailable,
+  );
+
+  const scoresBySubject = await loadRegularExamScoresBySubject(
+    supabase,
+    failedGakuseiIdSet,
+    normalizedSessionKey,
+    subjectNames,
+  );
+
+  return buildRegularExamRadarScores(subjectNames, scoresBySubject);
+}
+
+/** 定期試験の国家試験合格者平均（全期・学期照合） */
+export async function buildPassedNationalExamRegularRadarScoresForSession(
+  supabase: SupabaseClient,
+  sessionKey: string,
+  subjectNames: string[],
+  context?: CohortStudentContext,
+): Promise<ExamScoreRow[]> {
+  const normalizedSessionKey = sessionKey.trim();
+  if (!normalizedSessionKey || subjectNames.length === 0) {
+    return [];
+  }
+
+  const cohortContext = context ?? (await loadCohortStudentContext(supabase));
+  const { passedGakuseiIdSet } = buildAllNationalExamPassedStudentSets(
+    cohortContext.rows,
+    cohortContext.nationalExamPassedAvailable,
+  );
+
+  const scoresBySubject = await loadRegularExamScoresBySubject(
+    supabase,
+    passedGakuseiIdSet,
+    normalizedSessionKey,
+    subjectNames,
+  );
+
+  return buildRegularExamRadarScores(subjectNames, scoresBySubject);
 }
 
 /** 国家試験合否別の平均（全期・回次照合） */
