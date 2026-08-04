@@ -1789,6 +1789,146 @@ a {
   gap: 12px;
 }
 
+.examDetailHeaderActions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.examDetailExpandBtn,
+.examDetailCloseBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.examDetailExpandBtn {
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.examDetailExpandBtn:hover {
+  background: #dbeafe;
+}
+
+.examDetailExpandBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.examDetailExpandBtnHeader {
+  min-width: 88px;
+}
+
+.examDetailCloseBtn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.examDetailCloseBtn:hover {
+  background: #f8fafc;
+}
+
+.examStudentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+.examStudentRowSelected {
+  border-color: #99f6e4;
+  background: #e0f7f5;
+}
+
+.examStudentRowMain {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.examStudentRow .learningTimeStudentRowBtn {
+  border: none;
+  cursor: pointer;
+}
+
+.examDetailFullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  padding: clamp(12px, 2vw, 24px);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.examDetailFullscreenInner {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  max-height: 100%;
+  padding: clamp(16px, 2vw, 24px);
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.examDetailFullscreenBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.examDetailBodyCompact {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-y: auto;
+}
+
+.examDetailBodyFullscreen {
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  min-height: min(720px, 100%);
+}
+
+.examDetailCompactPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.examDetailBodyFullscreen .examRadarSection {
+  min-height: 400px;
+}
+
+.examDetailBodyFullscreen .examRadarChart {
+  max-height: min(72vh, 520px);
+}
+
 .examDetailName {
   margin: 0;
   color: #1f2937;
@@ -1939,6 +2079,11 @@ a {
   border-radius: 12px;
   background: #f8fafc;
   overflow: hidden;
+}
+
+.examPassRatePanelExpanded {
+  flex: 1;
+  max-height: none;
 }
 
 .examPassRateHeader {
@@ -2230,12 +2375,14 @@ a {
   justify-content: center;
   width: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .examRadarChart {
-  width: min(100%, 560px);
+  width: min(100%, 100%);
   height: auto;
-  max-height: min(68vh, 560px);
+  max-width: 100%;
+  max-height: min(100%, 480px);
 }
 
 .examRadarGridRing {
@@ -2290,9 +2437,18 @@ a {
 }
 
 @media (max-width: 1100px) {
-  .examDetailBody {
+  .examDetailBody,
+  .examDetailBodyFullscreen {
     grid-template-columns: 1fr;
     overflow-y: auto;
+  }
+
+  .examDetailFullscreen {
+    padding: 0;
+  }
+
+  .examDetailFullscreenInner {
+    border-radius: 0;
   }
 
   .examRadarSection {

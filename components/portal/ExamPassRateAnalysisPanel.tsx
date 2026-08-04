@@ -12,6 +12,7 @@ import {
 type ExamPassRateAnalysisPanelProps = {
   analysis: ExamPassRateAnalysis | null | undefined;
   isLoading?: boolean;
+  expanded?: boolean;
 };
 
 const ABCD_TONE: Record<
@@ -46,10 +47,13 @@ function formatMethodLabel(method: ExamPassRateAnalysis["method"]) {
 export function ExamPassRateAnalysisPanel({
   analysis,
   isLoading = false,
+  expanded = false,
 }: ExamPassRateAnalysisPanelProps) {
   if (isLoading) {
     return (
-      <section className="examPassRatePanel">
+      <section
+        className={`examPassRatePanel${expanded ? " examPassRatePanelExpanded" : ""}`}
+      >
         <h3 className="examScoreSectionTitle">国家試験合格率 ABCD 分析</h3>
         <p className="examPassRateEmpty">読み込み中...</p>
       </section>
@@ -68,7 +72,9 @@ export function ExamPassRateAnalysisPanel({
   const methodLabel = formatMethodLabel(analysis.method);
 
   return (
-    <section className="examPassRatePanel">
+    <section
+      className={`examPassRatePanel${expanded ? " examPassRatePanelExpanded" : ""}`}
+    >
       <div className="examPassRateHeader">
         <h3 className="examScoreSectionTitle">国家試験合格率 ABCD 分析</h3>
         <p className="examPassRateDescription">

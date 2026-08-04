@@ -25,6 +25,7 @@ type ExamRadarChartProps = {
     moxibustionist: ExamTrackTotal;
   } | null;
   scoreUnit?: "点" | "%";
+  chartSize?: number;
 };
 
 function polarToCartesian(
@@ -102,12 +103,14 @@ export function ExamRadarChart({
   passedCohortAverageLabel = null,
   trackTotals = null,
   scoreUnit = "%",
+  chartSize = 340,
 }: ExamRadarChartProps) {
   const { isVisible, toggle } = useChartLegendToggle();
-  const size = 340;
+  const size = chartSize;
   const center = size / 2;
-  const maxRadius = 118;
-  const labelRadius = maxRadius + (scores.length > 10 ? 34 : 28);
+  const scale = size / 340;
+  const maxRadius = 118 * scale;
+  const labelRadius = maxRadius + (scores.length > 10 ? 34 : 28) * scale;
   const gridLevels = [0.25, 0.5, 0.75, 1];
   const count = scores.length;
   const labelFontSize = count > 12 ? 8 : count > 8 ? 9 : 10;

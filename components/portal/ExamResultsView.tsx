@@ -1,19 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExamRadarChart } from "@/components/portal/ExamRadarChart";
-import { ExamPassRateAnalysisPanel } from "@/components/portal/ExamPassRateAnalysisPanel";
+import { createPortal } from "react-dom";
+import {
+  ExamDetailHeader,
+  ExamStudentDetailContent,
+} from "@/components/portal/ExamStudentDetailContent";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
   EXAM_TYPE_CONFIG,
   calculateAverageScore,
   calculateExamTrackTotals,
-  formatScoreDetail,
-  formatTestScoreDetail,
-  getNotTakenScoreTone,
-  getPercentScoreTone,
-  getScoreTone,
   isTakenExamScore,
   type ExamScoreRow,
   type ExamSessionOption,
@@ -74,6 +72,7 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
   const [data, setData] = useState<ExamResultsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
   const classFilterOptions = useMemo(() => {
     const classes = new Map<string, string>();
@@ -151,7 +150,33 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
 
   useEffect(() => {
     setActiveSessionKey(null);
+    setIsFullscreenOpen(false);
   }, [selectedGakuseiId, examType]);
+
+  useEffect(() => {
+    if (!isFullscreenOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFullscreenOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreenOpen]);
+
+  const openFullscreen = () => {
+    setIsFullscreenOpen(true);
+  };
 
   const usesTestScoreFormat = usesTestScoresTable(examType);
   const usesPointScoreFormat = !usesTestScoreFormat;
@@ -290,8 +315,67 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
   const currentSessionKey =
     activeSessionKey ?? data?.selectedSessionKey ?? sessions[0]?.sessionKey ?? "";
 
+  const detailContentProps = {
+    examType,
+    examLabel: examConfig.label,
+    sectionTitle,
+    isLoading,
+    usesPointScoreFormat,
+    usesTestScoreFormat,
+    scores,
+    hasTakenScores,
+    radarScores,
+    radarAverageScore,
+    radarCohortScores,
+    cohortAverageLabel: data?.cohortAverageLabel ?? null,
+    radarFailedCohortScores,
+    failedCohortAverageLabel: data?.failedCohortAverageLabel ?? null,
+    radarPassedCohortScores,
+    passedCohortAverageLabel: data?.passedCohortAverageLabel ?? null,
+    trackTotals,
+    passRateAnalysis: data?.passRateAnalysis,
+    tableMissing: data?.tableMissing,
+  };
+
+  const headerProps = selectedStudent
+    ? {
+        studentName: selectedStudent.name,
+        studentClass: selectedStudent.class ?? null,
+        examLabel: examConfig.label,
+        testDate,
+        sessions,
+        currentSessionKey,
+        onSessionChange: setActiveSessionKey,
+      }
+    : null;
+
+  const fullscreenOverlay =
+    isFullscreenOpen && selectedStudent && headerProps && typeof document !== "undefined"
+      ? createPortal(
+          <div className="examDetailFullscreen" role="dialog" aria-modal="true">
+            <div className="examDetailFullscreenInner">
+              <PortalLoadingOverlay active={isLoading} />
+              <ExamDetailHeader
+                {...headerProps}
+                isFullscreen
+                onCloseFullscreen={() => setIsFullscreenOpen(false)}
+              />
+              {error ? <p className="loginError">{error}</p> : null}
+              <div className="examDetailFullscreenBody">
+                <ExamStudentDetailContent
+                  {...detailContentProps}
+                  layout="fullscreen"
+                />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div className="learningTimePage">
+      {fullscreenOverlay}
       <header className="learningTimeHeader">
         <div>
           <h1 className="learningTimeTitle">{examConfig.label}</h1>
@@ -345,15 +429,28 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
               filteredStudents.map((student) => {
                 const isSelected = student.gakusei_id === selectedGakuseiId;
                 return (
-                  <button
+                  <div
                     key={student.gakusei_id}
-                    type="button"
-                    className={`learningTimeStudentRow${isSelected ? " learningTimeStudentRowSelected" : ""}`}
-                    onClick={() => setSelectedGakuseiId(student.gakusei_id)}
+                    className={`examStudentRow${isSelected ? " examStudentRowSelected" : ""}`}
                   >
-                    <span className="learningTimeStudentRowText">{student.name}</span>
-                    <span className="learningTimeStudentRowBtn">詳細</span>
-                  </button>
+                    <button
+                      type="button"
+                      className="examStudentRowMain"
+                      onClick={() => setSelectedGakuseiId(student.gakusei_id)}
+                    >
+                      <span className="learningTimeStudentRowText">{student.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="learningTimeStudentRowBtn"
+                      onClick={() => {
+                        setSelectedGakuseiId(student.gakusei_id);
+                        setIsFullscreenOpen(true);
+                      }}
+                    >
+                      詳細
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -366,31 +463,10 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
             <div className="learningTimeEmptyPanel">学生を選択してください。</div>
           ) : (
             <>
-              <div className="examDetailHeader">
-                <div>
-                  <h2 className="examDetailName">{selectedStudent.name}</h2>
-                  <p className="examDetailMeta">
-                    {selectedStudent.class ?? "クラス未設定"} · {examConfig.label}
-                    {testDate ? ` · 試験日 ${testDate}` : ""}
-                  </p>
-                </div>
-                {sessions.length > 0 ? (
-                  <label className="examSessionSelectWrap">
-                    <select
-                      className="examSessionSelect"
-                      value={currentSessionKey}
-                      onChange={(event) => setActiveSessionKey(event.target.value)}
-                      aria-label="試験回次"
-                    >
-                      {sessions.map((session) => (
-                        <option key={session.sessionKey} value={session.sessionKey}>
-                          {session.sessionLabel}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
+              <ExamDetailHeader
+                {...headerProps!}
+                onOpenFullscreen={openFullscreen}
+              />
 
               {error ? <p className="loginError">{error}</p> : null}
 
@@ -408,102 +484,11 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                 </p>
               ) : null}
 
-              <div className="examDetailBody">
-                <section className="examScoreSection">
-                  <h3 className="examScoreSectionTitle">
-                    {isLoading
-                      ? "読み込み中..."
-                      : (sectionTitle ?? `${examConfig.label}成績`)}
-                  </h3>
-
-                  <div className="examScoreListWrap">
-                    {isLoading ? (
-                      <p className="learningTimeEmpty">読み込み中...</p>
-                    ) : data?.tableMissing && !usesPointScoreFormat ? (
-                      <p className="learningTimeEmpty">
-                        test_scores テーブルが未作成です。データ登録後に表示されます。
-                      </p>
-                    ) : scores.length === 0 ? (
-                      <p className="learningTimeEmpty">
-                        この試験の成績データがありません。
-                      </p>
-                    ) : (
-                      <>
-                        <div className="examScoreList">
-                          {scores.map((row) => {
-                            const isNotTaken = !isTakenExamScore(row);
-                            const tone = isNotTaken
-                              ? getNotTakenScoreTone()
-                              : usesPointScoreFormat
-                                ? getScoreTone(row.score ?? 0)
-                                : getPercentScoreTone(row.score ?? 0);
-                            const label = usesPointScoreFormat
-                              ? formatScoreDetail(row)
-                              : formatTestScoreDetail(row);
-
-                            return (
-                              <div key={row.subjectName} className="examScoreRow">
-                                <span className="examScoreSubject">
-                                  {row.subjectName}
-                                </span>
-                                <span
-                                  className="examScoreValue"
-                                  style={{
-                                    backgroundColor: tone.boxBackground,
-                                    borderColor: tone.boxBorder,
-                                    color: tone.textColor,
-                                  }}
-                                >
-                                  {label}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {!hasTakenScores ? (
-                          <p className="examScoreNotice">
-                            実施済みの科目がありません。
-                          </p>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-
-                  <p className="examScoreHint">
-                    {usesPointScoreFormat
-                      ? "未実施科目は「-」表示。実施科目は100点満点の得点で表示します。80点以上は緑、60点以上は黄、60点未満は赤です。"
-                      : "未実施科目は「-」表示。実施科目は正解数/問題数（正解率%）で表示します。40%以下は赤、60%未満は黄、60%以上は緑です。"}
-                  </p>
-                </section>
-
-                <div className="examDetailVisualColumn">
-                  <section className="examRadarSection">
-                    {isLoading ? (
-                      <p className="learningTimeEmpty">読み込み中...</p>
-                    ) : (
-                      <ExamRadarChart
-                        scores={radarScores}
-                        averageScore={radarAverageScore}
-                        cohortScores={radarCohortScores}
-                        cohortAverageLabel={data?.cohortAverageLabel ?? null}
-                        failedCohortScores={radarFailedCohortScores}
-                        failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
-                        passedCohortScores={radarPassedCohortScores}
-                        passedCohortAverageLabel={data?.passedCohortAverageLabel ?? null}
-                        trackTotals={trackTotals}
-                        scoreUnit={usesPointScoreFormat ? "点" : "%"}
-                      />
-                    )}
-                  </section>
-
-                  {usesTestScoreFormat ? (
-                    <ExamPassRateAnalysisPanel
-                      analysis={data?.passRateAnalysis}
-                      isLoading={isLoading}
-                    />
-                  ) : null}
-                </div>
-              </div>
+              <ExamStudentDetailContent
+                {...detailContentProps}
+                layout="compact"
+                onOpenFullscreen={openFullscreen}
+              />
             </>
           )}
         </section>
