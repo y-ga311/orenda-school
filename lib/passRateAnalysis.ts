@@ -47,26 +47,57 @@ export type ExamPassRateAnalysis = {
 };
 
 export const PASS_RATE_ABCD_THRESHOLDS = {
-  A: 0.8,
-  B: 0.6,
-  C: 0.4,
+  A: 0.85,
+  B: 0.68,
+  C: 0.48,
 } as const;
 
 export const SUBJECT_APPROACH_FOCUS_GAP = -15;
 export const SUBJECT_APPROACH_MAINTAIN_SCORE = 60;
 export const LOGISTIC_MIN_SAMPLES_PER_GROUP = 5;
 
-export function classifyPassRateAbcd(probability: number): PassRateAbcdGrade {
+export function classifyPassRateAbcd(
+  probability: number,
+  features?: ExamSnapshotFeatures,
+  benchmarks?: { passedMean: number; failedMean: number },
+): PassRateAbcdGrade {
+  let grade: PassRateAbcdGrade = "D";
   if (probability >= PASS_RATE_ABCD_THRESHOLDS.A) {
-    return "A";
+    grade = "A";
+  } else if (probability >= PASS_RATE_ABCD_THRESHOLDS.B) {
+    grade = "B";
+  } else if (probability >= PASS_RATE_ABCD_THRESHOLDS.C) {
+    grade = "C";
   }
-  if (probability >= PASS_RATE_ABCD_THRESHOLDS.B) {
-    return "B";
+
+  if (!features || !benchmarks) {
+    return grade;
   }
-  if (probability >= PASS_RATE_ABCD_THRESHOLDS.C) {
-    return "C";
+
+  const midpoint = (benchmarks.passedMean + benchmarks.failedMean) / 2;
+  const downgrade = (current: PassRateAbcdGrade, steps: number): PassRateAbcdGrade => {
+    const order: PassRateAbcdGrade[] = ["A", "B", "C", "D"];
+    const index = Math.min(order.length - 1, order.indexOf(current) + steps);
+    return order[index];
+  };
+
+  if (features.totalAverage < benchmarks.failedMean || features.minSubjectScore < 30) {
+    grade = downgrade(grade, 1);
   }
-  return "D";
+  if (features.totalAverage < benchmarks.failedMean - 5 || features.minSubjectScore < 25) {
+    grade = downgrade(grade, 1);
+  }
+  if (features.weakSubjectCount >= 10) {
+    grade = downgrade(grade, 1);
+  }
+  if (grade === "A" && features.totalAverage < midpoint + 3) {
+    grade = "B";
+  }
+  if (grade === "B" && features.totalAverage < benchmarks.failedMean) {
+    grade = "C";
+  }
+
+  return grade;
 }
 
 export function formatPassRateProbability(probability: number | null) {
@@ -140,16 +171,54 @@ export function computeSimplePassProbability(
     return null;
   }
 
-  const threshold = (passedMean + failedMean) / 2;
-  const pooled = [
-    ...passedAverages.map((value) => value - passedMean),
-    ...failedAverages.map((value) => value - failedMean),
-  ];
-  const sd = standardDeviation(pooled) ?? 8;
-  const scale = Math.max(sd * 2, 4);
-  const logisticInput = (studentTotalAverage - threshold) / scale;
-  const probability = 1 / (1 + Math.exp(-logisticInput));
-  return Math.max(0, Math.min(1, probability));
+  const range = Math.max(passedMean - failedMean, 12);
+  let probability: number;
+
+  if (studentTotalAverage <= failedMean) {
+    const ratio = Math.max(0, studentTotalAverage / Math.max(failedMean, 1));
+    probability = 0.05 + 0.2 * ratio;
+  } else if (studentTotalAverage <= passedMean) {
+    const position = (studentTotalAverage - failedMean) / range;
+    probability = 0.25 + 0.45 * position ** 1.35;
+  } else {
+    const excess = (studentTotalAverage - passedMean) / Math.max(range * 0.25, 5);
+    probability = 0.7 + 0.25 * Math.min(1, excess);
+  }
+
+  return Math.max(0.02, Math.min(0.98, probability));
+}
+
+function applyPassProbabilityGuards(
+  probability: number,
+  features: ExamSnapshotFeatures,
+  passedMean: number,
+  failedMean: number,
+) {
+  let adjusted = probability;
+
+  if (features.totalAverage < failedMean) {
+    adjusted = Math.min(adjusted, 0.32);
+  }
+  if (features.totalAverage < failedMean - 5) {
+    adjusted = Math.min(adjusted, 0.2);
+  }
+  if (features.minSubjectScore < 40) {
+    adjusted = Math.min(adjusted, 0.38);
+  }
+  if (features.minSubjectScore < 30) {
+    adjusted = Math.min(adjusted, 0.22);
+  }
+  if (features.weakSubjectCount >= 8) {
+    adjusted *= 0.88;
+  }
+  if (features.weakSubjectCount >= 12) {
+    adjusted *= 0.82;
+  }
+  if (features.totalAverage < passedMean - 8) {
+    adjusted = Math.min(adjusted, 0.55);
+  }
+
+  return Math.max(0.02, Math.min(0.98, adjusted));
 }
 
 function sigmoid(value: number) {
@@ -377,6 +446,8 @@ export function buildExamPassRateAnalysis(input: {
 
   const passedAverages = input.passedSamples.map((sample) => sample.features.totalAverage);
   const failedAverages = input.failedSamples.map((sample) => sample.features.totalAverage);
+  const passedAverageTotal = mean(passedAverages);
+  const failedAverageTotal = mean(failedAverages);
   const passProbabilitySimple = computeSimplePassProbability(
     studentFeatures.totalAverage,
     passedAverages,
@@ -392,19 +463,37 @@ export function buildExamPassRateAnalysis(input: {
     passedCount,
     failedCount,
   );
+  const guardedProbability =
+    blended.probability !== null &&
+    passedAverageTotal !== null &&
+    failedAverageTotal !== null
+      ? applyPassProbabilityGuards(
+          blended.probability,
+          studentFeatures,
+          passedAverageTotal,
+          failedAverageTotal,
+        )
+      : blended.probability;
 
   return {
-    available: blended.probability !== null,
-    reason: blended.probability === null ? "合格確率を算出できませんでした。" : null,
+    available: guardedProbability !== null,
+    reason: guardedProbability === null ? "合格確率を算出できませんでした。" : null,
     abcdGrade:
-      blended.probability === null ? null : classifyPassRateAbcd(blended.probability),
-    passProbability: blended.probability,
+      guardedProbability === null ||
+      passedAverageTotal === null ||
+      failedAverageTotal === null
+        ? null
+        : classifyPassRateAbcd(guardedProbability, studentFeatures, {
+            passedMean: passedAverageTotal,
+            failedMean: failedAverageTotal,
+          }),
+    passProbability: guardedProbability,
     passProbabilitySimple,
     passProbabilityModel,
     method: blended.method,
     studentTotalAverage: studentFeatures.totalAverage,
-    passedAverageTotal: mean(passedAverages),
-    failedAverageTotal: mean(failedAverages),
+    passedAverageTotal,
+    failedAverageTotal,
     graduateSampleCount: { passed: passedCount, failed: failedCount },
     subjectApproaches: buildSubjectApproachItems(
       input.studentScores,

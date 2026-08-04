@@ -476,31 +476,33 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                   </p>
                 </section>
 
-                <section className="examRadarSection">
-                  {isLoading ? (
-                    <p className="learningTimeEmpty">読み込み中...</p>
-                  ) : (
-                    <ExamRadarChart
-                      scores={radarScores}
-                      averageScore={radarAverageScore}
-                      cohortScores={radarCohortScores}
-                      cohortAverageLabel={data?.cohortAverageLabel ?? null}
-                      failedCohortScores={radarFailedCohortScores}
-                      failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
-                      passedCohortScores={radarPassedCohortScores}
-                      passedCohortAverageLabel={data?.passedCohortAverageLabel ?? null}
-                      trackTotals={trackTotals}
-                      scoreUnit={usesPointScoreFormat ? "点" : "%"}
-                    />
-                  )}
-                </section>
+                <div className="examDetailVisualColumn">
+                  <section className="examRadarSection">
+                    {isLoading ? (
+                      <p className="learningTimeEmpty">読み込み中...</p>
+                    ) : (
+                      <ExamRadarChart
+                        scores={radarScores}
+                        averageScore={radarAverageScore}
+                        cohortScores={radarCohortScores}
+                        cohortAverageLabel={data?.cohortAverageLabel ?? null}
+                        failedCohortScores={radarFailedCohortScores}
+                        failedCohortAverageLabel={data?.failedCohortAverageLabel ?? null}
+                        passedCohortScores={radarPassedCohortScores}
+                        passedCohortAverageLabel={data?.passedCohortAverageLabel ?? null}
+                        trackTotals={trackTotals}
+                        scoreUnit={usesPointScoreFormat ? "点" : "%"}
+                      />
+                    )}
+                  </section>
 
-                {usesTestScoreFormat ? (
-                  <ExamPassRateAnalysisPanel
-                    analysis={data?.passRateAnalysis}
-                    isLoading={isLoading}
-                  />
-                ) : null}
+                  {usesTestScoreFormat ? (
+                    <ExamPassRateAnalysisPanel
+                      analysis={data?.passRateAnalysis}
+                      isLoading={isLoading}
+                    />
+                  ) : null}
+                </div>
               </div>
             </>
           )}

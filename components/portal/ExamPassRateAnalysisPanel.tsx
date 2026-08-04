@@ -127,13 +127,6 @@ export function ExamPassRateAnalysisPanel({
                 : "—"}
             </span>
           </div>
-          <div className="examPassRateMetricCard">
-            <span className="examPassRateMetricLabel">卒業生サンプル</span>
-            <strong className="examPassRateMetricValue">
-              合格 {analysis.graduateSampleCount.passed} / 不合格{" "}
-              {analysis.graduateSampleCount.failed}
-            </strong>
-          </div>
         </div>
       )}
 

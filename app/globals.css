@@ -1821,9 +1821,19 @@ a {
 .examDetailBody {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
+  overflow: hidden;
+}
+
+.examDetailVisualColumn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -1919,11 +1929,16 @@ a {
 
 .examPassRatePanel {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  max-height: min(42vh, 360px);
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  overflow: hidden;
 }
 
 .examPassRateHeader {
@@ -1944,7 +1959,7 @@ a {
 
 .examPassRateSummaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1987,8 +2002,11 @@ a {
 
 .examPassRateSubjectSection {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .examPassRateSubjectTitle {
@@ -2055,8 +2073,10 @@ a {
 }
 
 .examRadarSection {
+  flex: 1;
   align-items: stretch;
   justify-content: flex-start;
+  min-height: 320px;
 }
 
 .examRadarPanel {
@@ -2213,8 +2233,9 @@ a {
 }
 
 .examRadarChart {
-  width: min(100%, 340px);
+  width: min(100%, 560px);
   height: auto;
+  max-height: min(68vh, 560px);
 }
 
 .examRadarGridRing {
