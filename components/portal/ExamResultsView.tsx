@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ExamRadarChart } from "@/components/portal/ExamRadarChart";
+import { ExamPassRateAnalysisPanel } from "@/components/portal/ExamPassRateAnalysisPanel";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
 import {
@@ -19,6 +20,7 @@ import {
   type ExamType,
 } from "@/lib/examResults";
 import { usesTestScoresTable } from "@/lib/testScores";
+import type { ExamPassRateAnalysis } from "@/lib/passRateAnalysis";
 
 type ExamResultsViewProps = {
   examType: ExamType;
@@ -44,6 +46,7 @@ type ExamResultsData = {
   failedCohortAverageLabel?: string | null;
   passedCohortRadarScores?: ExamScoreRow[];
   passedCohortAverageLabel?: string | null;
+  passRateAnalysis?: ExamPassRateAnalysis | null;
 };
 
 function getExamResultsErrorMessage(status: number, message?: string) {
@@ -491,6 +494,13 @@ export function ExamResultsView({ examType, students }: ExamResultsViewProps) {
                     />
                   )}
                 </section>
+
+                {usesTestScoreFormat ? (
+                  <ExamPassRateAnalysisPanel
+                    analysis={data?.passRateAnalysis}
+                    isLoading={isLoading}
+                  />
+                ) : null}
               </div>
             </>
           )}

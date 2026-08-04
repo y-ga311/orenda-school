@@ -1917,6 +1917,120 @@ a {
   font-weight: 500;
 }
 
+.examPassRatePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.examPassRateHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.examPassRateDescription,
+.examPassRateSubjectDescription,
+.examPassRateFocusNote,
+.examPassRateEmpty {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.examPassRateSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.examPassRateAbcdCard,
+.examPassRateMetricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.examPassRateAbcdCard {
+  align-items: center;
+  justify-content: center;
+}
+
+.examPassRateAbcdLabel,
+.examPassRateMetricLabel {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.examPassRateAbcdValue,
+.examPassRateMetricValue {
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.examPassRateMetricSub {
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.examPassRateSubjectSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.examPassRateSubjectTitle {
+  margin: 0;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.examPassRateSubjectTableWrap {
+  overflow-x: auto;
+}
+
+.examPassRateSubjectTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.examPassRateSubjectTable th,
+.examPassRateSubjectTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.examPassRateSubjectTable th {
+  color: #475569;
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.examPassRateApproachBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .examRegularPendingPanel {
   flex: 1;
   align-items: center;
@@ -2162,6 +2276,10 @@ a {
 
   .examRadarSection {
     min-height: 360px;
+  }
+
+  .examPassRateSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .studentInfoScoreRowPrimary,

@@ -38,6 +38,7 @@ import {
   PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL,
 } from "@/lib/subjectTrend";
 import { sortRegularExamTerms } from "@/lib/regularExam";
+import { buildTestScoreExamPassRateAnalysis } from "@/lib/passRateAnalysis.server";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
@@ -260,6 +261,8 @@ export async function GET(request: Request) {
       ReturnType<typeof buildPassedNationalExamRadarScoresForTest>
     > = [];
     let passedCohortAverageLabel: string | null = null;
+    let passRateAnalysis: Awaited<ReturnType<typeof buildTestScoreExamPassRateAnalysis>> | null =
+      null;
 
     if (selectedTestName) {
       const cohortContext = await loadCohortStudentContext(supabase);
@@ -291,6 +294,18 @@ export async function GET(request: Request) {
       if (passedCohortRadarScores.some((row) => row.score !== null)) {
         passedCohortAverageLabel = PASSED_NATIONAL_EXAM_COHORT_AVERAGE_LABEL;
       }
+
+      const takenScores = response.scores.filter(
+        (row) => !row.notTaken && row.score !== null && row.score !== undefined,
+      );
+      if (takenScores.length > 0) {
+        passRateAnalysis = await buildTestScoreExamPassRateAnalysis(
+          supabase,
+          selectedTestName,
+          response.scores,
+          cohortContext,
+        );
+      }
     }
 
     return NextResponse.json({
@@ -302,6 +317,7 @@ export async function GET(request: Request) {
       failedCohortAverageLabel,
       passedCohortRadarScores,
       passedCohortAverageLabel,
+      passRateAnalysis,
     });
   }
 
