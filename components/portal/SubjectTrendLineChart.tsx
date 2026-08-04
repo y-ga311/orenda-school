@@ -58,14 +58,16 @@ export function SubjectTrendLineChart({
   cohortAverageLabel,
   failedCohortAverageLabel,
   passedCohortAverageLabel,
-  compact = false,
+  variant = "default",
 }: {
   points: SubjectTrendPoint[];
   cohortAverageLabel: string | null;
   failedCohortAverageLabel: string | null;
   passedCohortAverageLabel: string | null;
-  compact?: boolean;
+  variant?: "default" | "compact" | "fullscreen";
 }) {
+  const compact = variant === "compact";
+  const fullscreen = variant === "fullscreen";
   const { isVisible, toggle } = useChartLegendToggle();
   const showRegular = isVisible("regular");
   const showMock = isVisible("mock");
@@ -75,12 +77,14 @@ export function SubjectTrendLineChart({
   const showFailed = isVisible("failed");
 
   const chartPoints = points.filter((point) => !point.notTaken && point.chartValue !== null);
-  const pointSpacing = compact ? 56 : 72;
-  const width = Math.max(compact ? 560 : 720, chartPoints.length * pointSpacing);
-  const height = compact ? 200 : 300;
-  const padding = compact
-    ? { top: 16, right: 20, bottom: 52, left: 36 }
-    : { top: 24, right: 24, bottom: 72, left: 44 };
+  const pointSpacing = fullscreen ? 64 : compact ? 56 : 72;
+  const width = Math.max(fullscreen ? 640 : compact ? 560 : 720, chartPoints.length * pointSpacing);
+  const height = fullscreen ? 380 : compact ? 200 : 300;
+  const padding = fullscreen
+    ? { top: 20, right: 24, bottom: 64, left: 40 }
+    : compact
+      ? { top: 16, right: 20, bottom: 52, left: 36 }
+      : { top: 24, right: 24, bottom: 72, left: 44 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -134,7 +138,15 @@ export function SubjectTrendLineChart({
   const hasPassedCohortAverage = points.some((point) => point.passedCohortAverage !== null);
 
   return (
-    <div className={`subjectTrendChartWrap${compact ? " subjectTrendChartWrapCompact" : ""}`}>
+    <div
+      className={`subjectTrendChartWrap${
+        fullscreen
+          ? " subjectTrendChartWrapFullscreen"
+          : compact
+            ? " subjectTrendChartWrapCompact"
+            : ""
+      }`}
+    >
       <div className="subjectTrendLegend">
         <ChartLegendToggleButton
           seriesKey="regular"
@@ -210,7 +222,13 @@ export function SubjectTrendLineChart({
         ) : null}
       </div>
       <svg
-        className={`subjectTrendChart${compact ? " subjectTrendChartCompact" : ""}`}
+        className={`subjectTrendChart${
+          fullscreen
+            ? " subjectTrendChartFullscreen"
+            : compact
+              ? " subjectTrendChartCompact"
+              : ""
+        }`}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="科目別成績推移グラフ（日程順）"

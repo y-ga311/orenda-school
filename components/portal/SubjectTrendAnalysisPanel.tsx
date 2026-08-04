@@ -130,23 +130,6 @@ export function SubjectTrendAnalysisPanel({
               ) : null}
             </div>
             <div className="examPassRateMetricCard">
-              <span className="examPassRateMetricLabel">最新成績</span>
-              <strong className="examPassRateMetricValue">
-                {analysis.latestDisplay ?? "—"}
-              </strong>
-              <span className="examPassRateMetricSub">
-                合格者平均{" "}
-                {analysis.passedAverageAtLatest !== null
-                  ? `${Math.round(analysis.passedAverageAtLatest * 10) / 10}%`
-                  : "—"}
-                {" / "}
-                ギャップ{" "}
-                {analysis.latestGap !== null
-                  ? `${analysis.latestGap > 0 ? "+" : ""}${Math.round(analysis.latestGap * 10) / 10}pt`
-                  : "—"}
-              </span>
-            </div>
-            <div className="examPassRateMetricCard">
               <span className="examPassRateMetricLabel">推移アプローチ</span>
               {analysis.trendApproach !== null && approachTone ? (
                 <span

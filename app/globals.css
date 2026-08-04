@@ -6161,15 +6161,38 @@ a {
 }
 
 .subjectTrendFullscreenChartSection {
-  flex: 0 0 auto;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-height: clamp(260px, 46vh, 520px);
+  overflow: hidden;
+}
+
+.subjectTrendFullscreenChartBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-height: 0;
-  max-height: 280px;
 }
 
 .subjectTrendFullscreenChartSection .subjectTrendChartWrap {
-  max-height: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.subjectTrendChartWrapFullscreen {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
+}
+
+.subjectTrendChartFullscreen {
+  display: block;
+  width: 100%;
+  min-width: 640px;
+  height: 100%;
+  min-height: clamp(220px, 38vh, 460px);
+  max-height: 100%;
 }
 
 .subjectTrendChartWrapCompact {
@@ -6185,9 +6208,17 @@ a {
   min-width: 0;
 }
 
+.subjectTrendFullscreenBottomRow {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  min-height: 200px;
+  max-height: min(42vh, 360px);
+}
+
 .subjectTrendAnalysisSummaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -6206,23 +6237,29 @@ a {
 }
 
 .subjectTrendFullscreenAnalysisSection {
-  flex: 0 0 auto;
+  display: flex;
+  flex: 1 1 42%;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 .subjectTrendFullscreenTableSection {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 58%;
   flex-direction: column;
-  min-height: 120px;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
 .subjectTrendFullscreenTableWrap {
   flex: 1;
   min-height: 0;
-  max-height: 220px;
+  max-height: none;
   overflow: auto;
 }
 
@@ -6263,7 +6300,18 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .subjectTrendFullscreenBottomRow {
+    flex-direction: column;
+    max-height: none;
+  }
+
+  .subjectTrendFullscreenAnalysisSection,
+  .subjectTrendFullscreenTableSection {
+    flex-basis: auto;
+    max-height: 280px;
+  }
+
   .subjectTrendAnalysisSummaryGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }

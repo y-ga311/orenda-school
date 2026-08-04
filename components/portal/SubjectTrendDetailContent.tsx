@@ -47,63 +47,67 @@ export function SubjectTrendDetailContent({
       <section className="subjectTrendFullscreenChartSection">
         <h3 className="examScoreSectionTitle">成績推移（日程順）</h3>
         <p className="subjectTrendChartSubject">{subjectName}</p>
-        <SubjectTrendLineChart
-          points={points}
-          cohortAverageLabel={cohortAverageLabel}
-          failedCohortAverageLabel={failedCohortAverageLabel}
-          passedCohortAverageLabel={passedCohortAverageLabel}
-          compact
-        />
-      </section>
-
-      <section className="subjectTrendFullscreenAnalysisSection">
-        {notices.map((notice) => (
-          <p key={notice} className="examScoreNotice">
-            {notice}
-          </p>
-        ))}
-        <SubjectTrendAnalysisPanel
-          analysis={subjectAnalysis}
-          subjectName={subjectName}
-          isLoading={isLoading}
-          expanded
-        />
-      </section>
-
-      <section className="subjectTrendFullscreenTableSection">
-        <h3 className="examScoreSectionTitle">試験別スコア一覧</h3>
-        <div className="subjectTrendTableWrap subjectTrendFullscreenTableWrap">
-          <table className="subjectTrendTable">
-            <thead>
-              <tr>
-                <th>実施日</th>
-                <th>試験</th>
-                <th>種別</th>
-                <th>成績</th>
-                <th>前回比</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point, index, rows) => {
-                const previous = rows
-                  .slice(0, index)
-                  .reverse()
-                  .find((item) => !item.notTaken && item.chartValue !== null);
-
-                return (
-                  <tr key={point.sessionKey}>
-                    <td>{point.examDateLabel ?? "未設定"}</td>
-                    <td>{point.sessionLabel}</td>
-                    <td>{point.sourceType === "regular" ? "定期" : "模擬"}</td>
-                    <td>{point.displayValue}</td>
-                    <td>{buildDeltaLabel(point, previous)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="subjectTrendFullscreenChartBody">
+          <SubjectTrendLineChart
+            points={points}
+            cohortAverageLabel={cohortAverageLabel}
+            failedCohortAverageLabel={failedCohortAverageLabel}
+            passedCohortAverageLabel={passedCohortAverageLabel}
+            variant="fullscreen"
+          />
         </div>
       </section>
+
+      <div className="subjectTrendFullscreenBottomRow">
+        <section className="subjectTrendFullscreenAnalysisSection">
+          {notices.map((notice) => (
+            <p key={notice} className="examScoreNotice">
+              {notice}
+            </p>
+          ))}
+          <SubjectTrendAnalysisPanel
+            analysis={subjectAnalysis}
+            subjectName={subjectName}
+            isLoading={isLoading}
+            expanded
+          />
+        </section>
+
+        <section className="subjectTrendFullscreenTableSection">
+          <h3 className="examScoreSectionTitle">試験別スコア一覧</h3>
+          <div className="subjectTrendTableWrap subjectTrendFullscreenTableWrap">
+            <table className="subjectTrendTable">
+              <thead>
+                <tr>
+                  <th>実施日</th>
+                  <th>試験</th>
+                  <th>種別</th>
+                  <th>成績</th>
+                  <th>前回比</th>
+                </tr>
+              </thead>
+              <tbody>
+                {points.map((point, index, rows) => {
+                  const previous = rows
+                    .slice(0, index)
+                    .reverse()
+                    .find((item) => !item.notTaken && item.chartValue !== null);
+
+                  return (
+                    <tr key={point.sessionKey}>
+                      <td>{point.examDateLabel ?? "未設定"}</td>
+                      <td>{point.sessionLabel}</td>
+                      <td>{point.sourceType === "regular" ? "定期" : "模擬"}</td>
+                      <td>{point.displayValue}</td>
+                      <td>{buildDeltaLabel(point, previous)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
