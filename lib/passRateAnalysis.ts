@@ -47,9 +47,9 @@ export type ExamPassRateAnalysis = {
 };
 
 export const PASS_RATE_ABCD_THRESHOLDS = {
-  A: 0.85,
-  B: 0.68,
-  C: 0.48,
+  A: 0.82,
+  B: 0.64,
+  C: 0.44,
 } as const;
 
 export const SUBJECT_APPROACH_FOCUS_GAP = -15;
@@ -81,20 +81,17 @@ export function classifyPassRateAbcd(
     return order[index];
   };
 
-  if (features.totalAverage < benchmarks.failedMean || features.minSubjectScore < 30) {
+  if (features.totalAverage < benchmarks.failedMean - 3 || features.minSubjectScore < 28) {
     grade = downgrade(grade, 1);
   }
-  if (features.totalAverage < benchmarks.failedMean - 5 || features.minSubjectScore < 25) {
+  if (features.totalAverage < benchmarks.failedMean - 8 || features.minSubjectScore < 22) {
     grade = downgrade(grade, 1);
   }
-  if (features.weakSubjectCount >= 10) {
+  if (features.weakSubjectCount >= 12) {
     grade = downgrade(grade, 1);
   }
-  if (grade === "A" && features.totalAverage < midpoint + 3) {
+  if (grade === "A" && features.totalAverage < midpoint) {
     grade = "B";
-  }
-  if (grade === "B" && features.totalAverage < benchmarks.failedMean) {
-    grade = "C";
   }
 
   return grade;
@@ -176,13 +173,13 @@ export function computeSimplePassProbability(
 
   if (studentTotalAverage <= failedMean) {
     const ratio = Math.max(0, studentTotalAverage / Math.max(failedMean, 1));
-    probability = 0.05 + 0.2 * ratio;
+    probability = 0.08 + 0.24 * ratio;
   } else if (studentTotalAverage <= passedMean) {
     const position = (studentTotalAverage - failedMean) / range;
-    probability = 0.25 + 0.45 * position ** 1.35;
+    probability = 0.28 + 0.5 * position ** 1.2;
   } else {
     const excess = (studentTotalAverage - passedMean) / Math.max(range * 0.25, 5);
-    probability = 0.7 + 0.25 * Math.min(1, excess);
+    probability = 0.72 + 0.26 * Math.min(1, excess);
   }
 
   return Math.max(0.02, Math.min(0.98, probability));
@@ -197,25 +194,25 @@ function applyPassProbabilityGuards(
   let adjusted = probability;
 
   if (features.totalAverage < failedMean) {
-    adjusted = Math.min(adjusted, 0.32);
-  }
-  if (features.totalAverage < failedMean - 5) {
-    adjusted = Math.min(adjusted, 0.2);
-  }
-  if (features.minSubjectScore < 40) {
     adjusted = Math.min(adjusted, 0.38);
   }
-  if (features.minSubjectScore < 30) {
-    adjusted = Math.min(adjusted, 0.22);
+  if (features.totalAverage < failedMean - 5) {
+    adjusted = Math.min(adjusted, 0.28);
   }
-  if (features.weakSubjectCount >= 8) {
+  if (features.minSubjectScore < 40) {
+    adjusted = Math.min(adjusted, 0.45);
+  }
+  if (features.minSubjectScore < 30) {
+    adjusted = Math.min(adjusted, 0.3);
+  }
+  if (features.weakSubjectCount >= 9) {
+    adjusted *= 0.92;
+  }
+  if (features.weakSubjectCount >= 13) {
     adjusted *= 0.88;
   }
-  if (features.weakSubjectCount >= 12) {
-    adjusted *= 0.82;
-  }
   if (features.totalAverage < passedMean - 8) {
-    adjusted = Math.min(adjusted, 0.55);
+    adjusted = Math.min(adjusted, 0.62);
   }
 
   return Math.max(0.02, Math.min(0.98, adjusted));
