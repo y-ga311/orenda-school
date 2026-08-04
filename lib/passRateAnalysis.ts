@@ -423,7 +423,7 @@ export function buildSubjectApproachItems(
 
   items.forEach((item, index) => {
     item.priorityRank = index + 1;
-    if (item.gap !== null && item.gap < SUBJECT_APPROACH_FOCUS_GAP && index < 5) {
+    if (item.gap !== null && item.gap < SUBJECT_APPROACH_FOCUS_GAP) {
       item.level = "focus";
     }
   });

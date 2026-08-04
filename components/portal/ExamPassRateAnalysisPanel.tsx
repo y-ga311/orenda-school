@@ -67,7 +67,7 @@ export function ExamPassRateAnalysisPanel({
   const focusSubjects = analysis.subjectApproaches.filter(
     (item) => item.level === "focus",
   );
-  const topApproaches = analysis.subjectApproaches.slice(0, 5);
+  const subjectApproaches = analysis.subjectApproaches;
   const abcdTone = analysis.abcdGrade ? ABCD_TONE[analysis.abcdGrade] : null;
   const methodLabel = formatMethodLabel(analysis.method);
 
@@ -136,11 +136,11 @@ export function ExamPassRateAnalysisPanel({
         </div>
       )}
 
-      {topApproaches.length > 0 ? (
+      {subjectApproaches.length > 0 ? (
         <div className="examPassRateSubjectSection">
           <h4 className="examPassRateSubjectTitle">科目別アプローチ優先度</h4>
           <p className="examPassRateSubjectDescription">
-            合格者平均との差が大きい科目ほど優先度が高くなります。
+            全科目を合格者平均との差が大きい順に表示しています。
           </p>
           <div className="examPassRateSubjectTableWrap">
             <table className="examPassRateSubjectTable">
@@ -155,7 +155,7 @@ export function ExamPassRateAnalysisPanel({
                 </tr>
               </thead>
               <tbody>
-                {topApproaches.map((item) => {
+                {subjectApproaches.map((item) => {
                   const tone = APPROACH_TONE[item.level];
                   return (
                     <tr key={item.subjectName}>

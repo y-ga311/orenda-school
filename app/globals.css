@@ -2258,7 +2258,10 @@ a {
 }
 
 .examPassRateSubjectTableWrap {
-  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .examPassRateSubjectTable {
