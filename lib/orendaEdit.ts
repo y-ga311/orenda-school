@@ -3,7 +3,8 @@ export type OrendaEditTabKey =
   | "teacherQuest"
   | "studentSubmitted"
   | "medalSettings"
-  | "nationalExamSchedule";
+  | "nationalExamSchedule"
+  | "classAppFeatures";
 
 export type OrendaEditTab = {
   key: OrendaEditTabKey;
@@ -16,6 +17,7 @@ export const ORENDA_EDIT_TABS: OrendaEditTab[] = [
   { key: "studentSubmitted", label: "学生投稿問題" },
   { key: "medalSettings", label: "メダル設定" },
   { key: "nationalExamSchedule", label: "国家試験日程登録" },
+  { key: "classAppFeatures", label: "学生アプリメニュー" },
 ];
 
 export const DEFAULT_ORENDA_EDIT_TAB: OrendaEditTabKey = "multipleChoice";

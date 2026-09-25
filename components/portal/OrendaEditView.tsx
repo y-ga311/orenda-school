@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ClassAppFeaturesView } from "@/components/portal/ClassAppFeaturesView";
 import { MedalSettingsView } from "@/components/portal/MedalSettingsView";
 import { MultipleChoiceQuestionsView } from "@/components/portal/MultipleChoiceQuestionsView";
 import { NationalExamScheduleView } from "@/components/portal/NationalExamScheduleView";
@@ -65,6 +66,8 @@ export function OrendaEditView() {
             <MedalSettingsView />
           ) : activeTab === "nationalExamSchedule" ? (
             <NationalExamScheduleView />
+          ) : activeTab === "classAppFeatures" ? (
+            <ClassAppFeaturesView />
           ) : (
             <OrendaEditTabPlaceholder tabLabel={activeTabDef?.label ?? "Orenda編集"} />
           )}
