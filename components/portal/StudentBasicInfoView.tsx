@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import type { StudentRow } from "@/components/portal/LearningTimeView";
@@ -85,6 +86,8 @@ function ScoreBadgeInput({
 }
 
 export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
+  const router = useRouter();
+  const [studentList, setStudentList] = useState(students);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [classFilter, setClassFilter] = useState("all");
@@ -95,14 +98,20 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
   const [form, setForm] = useState<StudentProfileFormState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setStudentList(students);
+  }, [students]);
 
   const classFilterOptions = useMemo(() => {
     const classes = new Map<string, string>();
     let hasUnset = false;
 
-    students.forEach((student) => {
+    studentList.forEach((student) => {
       const trimmed = student.class?.trim();
       if (trimmed) {
         classes.set(trimmed, trimmed);
@@ -123,11 +132,11 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
     }
 
     return options;
-  }, [students]);
+  }, [studentList]);
 
   const filteredStudents = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    const list = students.filter((student) => {
+    const list = studentList.filter((student) => {
       if (classFilter !== "all") {
         const trimmedClass = student.class?.trim();
         if (classFilter === "__unset__") {
@@ -153,7 +162,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
       const result = a.name.localeCompare(b.name, "ja");
       return sortOrder === "asc" ? result : -result;
     });
-  }, [classFilter, search, sortOrder, students]);
+  }, [classFilter, search, sortOrder, studentList]);
 
   useEffect(() => {
     if (filteredStudents.length === 0) {
@@ -185,6 +194,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
       setIsLoading(true);
       setError(null);
       setSaveMessage(null);
+      setDeleteConfirmId("");
 
       try {
         const response = await fetch(
@@ -377,6 +387,60 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
     }
   }
 
+  async function handleDeleteAccount() {
+    if (!selectedGakuseiId || !profile || isDeleting) {
+      return;
+    }
+
+    const typed = deleteConfirmId.trim();
+    if (typed !== selectedGakuseiId) {
+      setError(`下の入力欄に学籍番号「${selectedGakuseiId}」を入力してください。`);
+      setSaveMessage(null);
+      return;
+    }
+
+    const studentName = profile.name || "この学生";
+    const confirmed = window.confirm(
+      `${studentName}（学籍番号 ${selectedGakuseiId}）のアカウントと関連データを削除します。この操作は元に戻せません。`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setError(null);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch("/api/student-profile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gakuseiId: selectedGakuseiId,
+          confirmGakuseiId: typed,
+        }),
+      });
+      const payload = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        setError(getProfileErrorMessage(response.status, payload.message));
+        return;
+      }
+
+      setStudentList((current) =>
+        current.filter((student) => student.gakusei_id !== selectedGakuseiId),
+      );
+      setProfile(null);
+      setForm(null);
+      setSaveMessage(payload.message ?? "学生アカウントと関連データを削除しました。");
+      router.refresh();
+    } catch {
+      setError("学生アカウントの削除に失敗しました。");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div className="learningTimePage">
       <header className="learningTimeHeader">
@@ -451,7 +515,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
         </section>
 
         <section className="learningTimeDetail studentInfoDetailPanel">
-          <PortalLoadingOverlay active={isLoading} />
+          <PortalLoadingOverlay active={isLoading || isDeleting} />
           {!selectedGakuseiId || !form ? (
             <div className="learningTimeEmptyPanel">学生を選択してください。</div>
           ) : (
@@ -678,6 +742,43 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                     </fieldset>
                   </div>
                 </section>
+
+                <div className="studentInfoDangerZone">
+                  <div className="studentInfoDangerCopy">
+                    <p className="studentInfoDangerTitle">アカウント削除</p>
+                    <p className="studentInfoDangerText">
+                      ログイン情報、成績、学習時間、クエスト履歴、メダル、コレクションを削除します。下の欄に学籍番号「{selectedGakuseiId}」を入力してから削除してください。
+                    </p>
+                    <label className="studentInfoDangerField">
+                      <span className="studentInfoFieldLabel">確認用の学籍番号</span>
+                      <input
+                        className="studentInfoFieldInput"
+                        type="text"
+                        value={deleteConfirmId}
+                        placeholder={selectedGakuseiId}
+                        autoComplete="off"
+                        onChange={(event) => {
+                          setDeleteConfirmId(event.target.value);
+                          setError(null);
+                        }}
+                        disabled={isLoading || isSaving || isDeleting}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="studentInfoDeleteBtn"
+                    onClick={() => void handleDeleteAccount()}
+                    disabled={
+                      isLoading ||
+                      isSaving ||
+                      isDeleting ||
+                      deleteConfirmId.trim() !== selectedGakuseiId
+                    }
+                  >
+                    {isDeleting ? "削除中..." : "アカウントを削除"}
+                  </button>
+                </div>
               </div>
 
               <div className="studentInfoFooter">
@@ -685,7 +786,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                   type="button"
                   className="studentInfoCancelBtn"
                   onClick={handleCancel}
-                  disabled={isLoading || isSaving}
+                  disabled={isLoading || isSaving || isDeleting}
                 >
                   キャンセル
                 </button>
@@ -693,7 +794,7 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                   type="button"
                   className="studentInfoSaveBtn"
                   onClick={() => void handleSave()}
-                  disabled={isLoading || isSaving}
+                  disabled={isLoading || isSaving || isDeleting}
                 >
                   {isSaving ? "保存中..." : "保存"}
                 </button>

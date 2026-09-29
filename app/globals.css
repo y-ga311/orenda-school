@@ -2948,6 +2948,9 @@ a {
   flex-shrink: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  margin-top: auto;
+  padding-top: 4px;
+  background: #ffffff;
 }
 
 .studentInfoCancelBtn,
@@ -2972,9 +2975,64 @@ a {
 }
 
 .studentInfoCancelBtn:disabled,
-.studentInfoSaveBtn:disabled {
+.studentInfoSaveBtn:disabled,
+.studentInfoDeleteBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.studentInfoDangerZone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff7f7;
+}
+
+.studentInfoDangerTitle {
+  margin: 0;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.studentInfoDangerText {
+  margin: 4px 0 0;
+  color: #7f1d1d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.studentInfoDangerCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: min(100%, 280px);
+}
+
+.studentInfoDangerField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 280px;
+}
+
+.studentInfoDeleteBtn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 @media (max-width: 900px) {

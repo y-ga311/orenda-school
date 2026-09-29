@@ -28,6 +28,7 @@ import {
   parseNationalExamStatusInput,
   type NationalExamStatus,
 } from "@/lib/nationalExamStatus";
+import { deleteStudentAccount } from "@/lib/studentDeletion.server";
 import { TEACHER_SESSION_COOKIE } from "@/lib/teacherSession";
 
 export const runtime = "nodejs";
@@ -652,4 +653,55 @@ export async function PUT(request: Request) {
   }
 
   return NextResponse.json(result.profile);
+}
+
+type DeleteStudentBody = {
+  gakuseiId?: unknown;
+  confirmGakuseiId?: unknown;
+};
+
+export async function DELETE(request: Request) {
+  const cookieStore = await cookies();
+  const teacherId = cookieStore.get(TEACHER_SESSION_COOKIE)?.value?.trim();
+
+  if (!teacherId) {
+    return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => null)) as DeleteStudentBody | null;
+  const gakuseiId = typeof body?.gakuseiId === "string" ? body.gakuseiId.trim() : "";
+  const confirmGakuseiId =
+    typeof body?.confirmGakuseiId === "string" ? body.confirmGakuseiId.trim() : "";
+
+  if (!gakuseiId || gakuseiId !== confirmGakuseiId) {
+    return NextResponse.json(
+      { message: "確認用の学籍番号が一致しません。" },
+      { status: 400 },
+    );
+  }
+
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { message: "Supabase接続情報が未設定です。" },
+      { status: 500 },
+    );
+  }
+
+  const result = await deleteStudentAccount(supabase, gakuseiId);
+  if (!result.ok) {
+    return NextResponse.json({ message: result.message }, { status: result.status });
+  }
+
+  console.info("[student-profile] deleted", {
+    gakuseiId: result.gakuseiId,
+    teacherId,
+    deleted: result.deleted,
+  });
+
+  return NextResponse.json({
+    message: "学生アカウントと関連データを削除しました。",
+    gakuseiId: result.gakuseiId,
+    deleted: result.deleted,
+  });
 }
