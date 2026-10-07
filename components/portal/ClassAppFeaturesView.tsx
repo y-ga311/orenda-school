@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PortalLoadingOverlay } from "@/components/portal/PortalLoadingOverlay";
 import {
-  CLASS_APP_FEATURE_DEFINITIONS,
   CLASS_APP_FEATURE_KEYS,
   countEnabledClassAppFeatures,
   createDefaultClassAppFeatures,
+  DEFAULT_MENU_ORDER,
+  getClassAppFeatureDefinition,
+  moveMenuOrderItem,
   type ClassAppFeatureKey,
   type ClassAppFeatures,
   type ClassAppFeaturesRow,
@@ -48,6 +50,8 @@ export function ClassAppFeaturesView() {
   const [classNames, setClassNames] = useState<string[]>([]);
   const [selectedClassName, setSelectedClassName] = useState("");
   const [features, setFeatures] = useState<ClassAppFeatures>(createDefaultClassAppFeatures());
+  const [menuOrder, setMenuOrder] = useState<ClassAppFeatureKey[]>([...DEFAULT_MENU_ORDER]);
+  const [dragKey, setDragKey] = useState<ClassAppFeatureKey | null>(null);
   const [existsInDb, setExistsInDb] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [tableMissing, setTableMissing] = useState(false);
@@ -67,6 +71,7 @@ export function ClassAppFeaturesView() {
   const applyDetail = useCallback((detail: ClassAppFeaturesRow) => {
     setSelectedClassName(detail.className);
     setFeatures(detail.features);
+    setMenuOrder(detail.menuOrder);
     setExistsInDb(detail.existsInDb);
     setUpdatedAt(detail.updatedAt);
     setIsDirty(false);
@@ -114,6 +119,7 @@ export function ClassAppFeaturesView() {
         applyDetail({
           className: result.classNames[0],
           features: createDefaultClassAppFeatures(),
+          menuOrder: [...DEFAULT_MENU_ORDER],
           updatedAt: null,
           updatedBy: null,
           existsInDb: false,
@@ -141,6 +147,7 @@ export function ClassAppFeaturesView() {
     applyDetail({
       className,
       features: createDefaultClassAppFeatures(),
+      menuOrder: [...DEFAULT_MENU_ORDER],
       updatedAt: null,
       updatedBy: null,
       existsInDb: false,
@@ -149,6 +156,40 @@ export function ClassAppFeaturesView() {
 
   function handleToggle(key: ClassAppFeatureKey, enabled: boolean) {
     setFeatures((current) => ({ ...current, [key]: enabled }));
+    setIsDirty(true);
+    setMessage(null);
+  }
+
+  function handleMove(key: ClassAppFeatureKey, direction: -1 | 1) {
+    setMenuOrder((current) => moveMenuOrderItem(current, key, direction));
+    setIsDirty(true);
+    setMessage(null);
+  }
+
+  function handleDrop(targetKey: ClassAppFeatureKey) {
+    if (!dragKey || dragKey === targetKey) {
+      setDragKey(null);
+      return;
+    }
+
+    setMenuOrder((current) => {
+      const next = [...current];
+      const fromIndex = next.indexOf(dragKey);
+      const toIndex = next.indexOf(targetKey);
+      if (fromIndex < 0 || toIndex < 0) {
+        return current;
+      }
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return next;
+    });
+    setDragKey(null);
+    setIsDirty(true);
+    setMessage(null);
+  }
+
+  function handleResetOrder() {
+    setMenuOrder([...DEFAULT_MENU_ORDER]);
     setIsDirty(true);
     setMessage(null);
   }
@@ -186,6 +227,7 @@ export function ClassAppFeaturesView() {
         body: JSON.stringify({
           className: selectedClassName,
           features,
+          menuOrder,
         }),
       });
       const payload = (await response.json()) as DetailResponse;
@@ -226,21 +268,22 @@ export function ClassAppFeaturesView() {
         <div>
           <h2 className="cafTitle">学生アプリメニュー設定</h2>
           <p className="cafDescription">
-            クラス単位で Orenda（学生アプリ）のメニュー表示を ON/OFF します。保存後、学生が再ログインすると反映されます。
+            クラス単位で Orenda（学生アプリ）のホームメニュー表示と上からの並びを設定します。保存後、学生が再ログインすると反映されます。
           </p>
         </div>
       </header>
 
       {tableMissing ? (
         <p className="examScoreNotice">
-          class_app_features テーブルが未作成です。docs/sql/create-class-app-features.sql を
-          Supabase で実行してください。
+          class_app_features のテーブル、または menu_order 列が未作成です。新規なら
+          docs/sql/create-class-app-features.sql、既存テーブルなら
+          docs/sql/add-class-app-features-menu-order.sql を Supabase で実行してください。
         </p>
       ) : null}
 
       <p className="cafHint">
         設定のクラス名は <code>students.class</code> と<strong>完全一致</strong>する必要があります（前後の空白に注意）。
-        未保存のクラスは全機能 ON 扱いです。
+        未保存のクラスは全機能 ON・既定順です。下部ナビの並びは変わりません。
       </p>
 
       {error ? <p className="loginError">{error}</p> : null}
@@ -297,6 +340,14 @@ export function ClassAppFeaturesView() {
                   <button
                     type="button"
                     className="cafSecondaryBtn"
+                    onClick={handleResetOrder}
+                    disabled={isBusy}
+                  >
+                    既定順
+                  </button>
+                  <button
+                    type="button"
+                    className="cafSecondaryBtn"
                     onClick={handleEnableAll}
                     disabled={isBusy}
                   >
@@ -321,28 +372,66 @@ export function ClassAppFeaturesView() {
                 </div>
               </div>
 
-              <p className="cafEnabledCount">表示中: {enabledCount} / 6</p>
+              <p className="cafEnabledCount">
+                表示中: {enabledCount} / 6　上からこの順でホームメニューに出ます。行をドラッグするか、上下ボタンで並べ替えてください。
+              </p>
 
               <div className="cafFeatureList">
-                {CLASS_APP_FEATURE_DEFINITIONS.map((definition) => (
-                  <label key={definition.key} className="cafFeatureRow">
-                    <span className="cafFeatureText">
-                      <span className="cafFeatureLabel">{definition.label}</span>
-                      <span className="cafFeatureDescription">{definition.description}</span>
-                    </span>
-                    <span className="nesActiveToggle">
-                      <input
-                        type="checkbox"
-                        checked={features[definition.key]}
-                        onChange={(event) =>
-                          handleToggle(definition.key, event.target.checked)
-                        }
-                        disabled={isBusy || tableMissing}
-                      />
-                      {features[definition.key] ? "ON" : "OFF"}
-                    </span>
-                  </label>
-                ))}
+                {menuOrder.map((key, index) => {
+                  const definition = getClassAppFeatureDefinition(key);
+                  if (!definition) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      key={key}
+                      className={`cafFeatureRow${dragKey === key ? " cafFeatureRowDragging" : ""}`}
+                      draggable={!isBusy && !tableMissing}
+                      onDragStart={() => setDragKey(key)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => handleDrop(key)}
+                      onDragEnd={() => setDragKey(null)}
+                    >
+                      <span className="cafFeatureOrder">{index + 1}</span>
+                      <span className="cafFeatureText">
+                        <span className="cafFeatureLabel">{definition.label}</span>
+                        <span className="cafFeatureDescription">{definition.description}</span>
+                      </span>
+                      <span className="cafFeatureOrderActions">
+                        <button
+                          type="button"
+                          className="cafOrderBtn"
+                          aria-label={`${definition.label}を上へ`}
+                          onClick={() => handleMove(key, -1)}
+                          disabled={isBusy || tableMissing || index === 0}
+                        >
+                          上
+                        </button>
+                        <button
+                          type="button"
+                          className="cafOrderBtn"
+                          aria-label={`${definition.label}を下へ`}
+                          onClick={() => handleMove(key, 1)}
+                          disabled={
+                            isBusy || tableMissing || index === menuOrder.length - 1
+                          }
+                        >
+                          下
+                        </button>
+                      </span>
+                      <label className="nesActiveToggle">
+                        <input
+                          type="checkbox"
+                          checked={features[key]}
+                          onChange={(event) => handleToggle(key, event.target.checked)}
+                          disabled={isBusy || tableMissing}
+                        />
+                        {features[key] ? "ON" : "OFF"}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

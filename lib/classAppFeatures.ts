@@ -11,6 +11,16 @@ export type ClassAppFeatureKey = (typeof CLASS_APP_FEATURE_KEYS)[number];
 
 export type ClassAppFeatures = Record<ClassAppFeatureKey, boolean>;
 
+/** ホームメニューの上からの既定順 */
+export const DEFAULT_MENU_ORDER: ClassAppFeatureKey[] = [
+  "timer",
+  "quest",
+  "record",
+  "collection",
+  "ranking",
+  "mypage",
+];
+
 export type ClassAppFeatureDefinition = {
   key: ClassAppFeatureKey;
   label: string;
@@ -53,6 +63,7 @@ export const CLASS_APP_FEATURE_DEFINITIONS: ClassAppFeatureDefinition[] = [
 export type ClassAppFeaturesRow = {
   className: string;
   features: ClassAppFeatures;
+  menuOrder: ClassAppFeatureKey[];
   updatedAt: string | null;
   updatedBy: string | null;
   existsInDb: boolean;
@@ -87,11 +98,62 @@ export function normalizeClassAppFeatures(raw: unknown): ClassAppFeatures {
   return normalized;
 }
 
+function isClassAppFeatureKey(value: unknown): value is ClassAppFeatureKey {
+  return (
+    typeof value === "string" &&
+    (CLASS_APP_FEATURE_KEYS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * menu_order を正規化する。
+ * 未知キーは無視し、重複は先頭だけ残し、欠落キーは既定順の末尾に補う。
+ */
+export function normalizeMenuOrder(raw: unknown): ClassAppFeatureKey[] {
+  const seen = new Set<ClassAppFeatureKey>();
+  const ordered: ClassAppFeatureKey[] = [];
+
+  if (Array.isArray(raw)) {
+    raw.forEach((entry) => {
+      if (!isClassAppFeatureKey(entry) || seen.has(entry)) {
+        return;
+      }
+      seen.add(entry);
+      ordered.push(entry);
+    });
+  }
+
+  DEFAULT_MENU_ORDER.forEach((key) => {
+    if (!seen.has(key)) {
+      ordered.push(key);
+    }
+  });
+
+  return ordered;
+}
+
+export function moveMenuOrderItem(
+  order: ClassAppFeatureKey[],
+  key: ClassAppFeatureKey,
+  direction: -1 | 1,
+) {
+  const next = normalizeMenuOrder(order);
+  const index = next.indexOf(key);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= next.length) {
+    return next;
+  }
+  const [item] = next.splice(index, 1);
+  next.splice(target, 0, item);
+  return next;
+}
+
 export function parseClassAppFeaturesPayload(input: {
   className?: unknown;
   features?: unknown;
+  menuOrder?: unknown;
 }):
-  | { ok: true; className: string; features: ClassAppFeatures }
+  | { ok: true; className: string; features: ClassAppFeatures; menuOrder: ClassAppFeatureKey[] }
   | { ok: false; message: string } {
   const className = typeof input.className === "string" ? input.className.trim() : "";
   if (!className) {
@@ -112,6 +174,22 @@ export function parseClassAppFeaturesPayload(input: {
     }
   }
 
+  if (!Array.isArray(input.menuOrder)) {
+    return {
+      ok: false,
+      message: "表示順は6項目すべての feature key を含む配列で送ってください。",
+    };
+  }
+
+  const menuOrder = normalizeMenuOrder(input.menuOrder);
+  const providedKeys = new Set(input.menuOrder.filter(isClassAppFeatureKey));
+  if (providedKeys.size !== CLASS_APP_FEATURE_KEYS.length) {
+    return {
+      ok: false,
+      message: "表示順は6項目すべての feature key を含む配列で送ってください。",
+    };
+  }
+
   return {
     ok: true,
     className,
@@ -123,7 +201,12 @@ export function parseClassAppFeaturesPayload(input: {
       ranking: source.ranking as boolean,
       mypage: source.mypage as boolean,
     },
+    menuOrder,
   };
+}
+
+export function getClassAppFeatureDefinition(key: ClassAppFeatureKey) {
+  return CLASS_APP_FEATURE_DEFINITIONS.find((item) => item.key === key);
 }
 
 export function countEnabledClassAppFeatures(features: ClassAppFeatures) {

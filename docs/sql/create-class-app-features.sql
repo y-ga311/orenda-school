@@ -1,6 +1,6 @@
 -- 学生アプリ（Orenda）のクラス別メニュー表示設定
 -- students.class と class_name は完全一致させること（前後空白に注意）
--- 行が無いクラスは Orenda 側で全機能 ON 扱い
+-- 行が無いクラスは Orenda 側で全機能 ON・既定順
 
 CREATE TABLE IF NOT EXISTS public.class_app_features (
   class_name text PRIMARY KEY,
@@ -12,6 +12,14 @@ CREATE TABLE IF NOT EXISTS public.class_app_features (
     "ranking": true,
     "mypage": true
   }'::jsonb,
+  menu_order jsonb NOT NULL DEFAULT '[
+    "timer",
+    "quest",
+    "record",
+    "collection",
+    "ranking",
+    "mypage"
+  ]'::jsonb,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by text
 );
@@ -24,3 +32,6 @@ COMMENT ON COLUMN public.class_app_features.class_name IS
 
 COMMENT ON COLUMN public.class_app_features.features IS
   'JSON: timer/quest/record/collection/ranking/mypage の boolean';
+
+COMMENT ON COLUMN public.class_app_features.menu_order IS
+  'ホームメニューの上からの表示順（feature key の JSON 配列）。欠落キーはアプリ側で末尾に補完。';

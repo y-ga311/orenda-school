@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createDefaultClassAppFeatures,
+  DEFAULT_MENU_ORDER,
   normalizeClassAppFeatures,
+  normalizeMenuOrder,
+  type ClassAppFeatureKey,
   type ClassAppFeatures,
   type ClassAppFeaturesRow,
 } from "@/lib/classAppFeatures";
@@ -10,20 +13,33 @@ import { listStudentClassNames } from "@/lib/nationalExamSchedule.server";
 type DbClassAppFeaturesRow = {
   class_name: string;
   features: unknown;
+  menu_order?: unknown;
   updated_at: string | null;
   updated_by: string | null;
 };
 
-const SELECT_COLUMNS = "class_name, features, updated_at, updated_by" as const;
+const SELECT_COLUMNS = "class_name, features, menu_order, updated_at, updated_by" as const;
 
 function isMissingTableError(message: string) {
-  return message.includes("does not exist") || message.includes("42P01");
+  return (
+    (message.includes("does not exist") || message.includes("42P01")) &&
+    !message.includes("menu_order")
+  );
+}
+
+function isMissingMenuOrderColumn(message: string, code?: string) {
+  return (
+    code === "42703" ||
+    (message.includes("menu_order") &&
+      (message.includes("does not exist") || message.includes("schema cache")))
+  );
 }
 
 function mapRow(row: DbClassAppFeaturesRow): ClassAppFeaturesRow {
   return {
     className: String(row.class_name ?? "").trim(),
     features: normalizeClassAppFeatures(row.features),
+    menuOrder: normalizeMenuOrder(row.menu_order ?? DEFAULT_MENU_ORDER),
     updatedAt: row.updated_at,
     updatedBy: row.updated_by,
     existsInDb: true,
@@ -34,6 +50,7 @@ function emptyRow(className: string): ClassAppFeaturesRow {
   return {
     className,
     features: createDefaultClassAppFeatures(),
+    menuOrder: [...DEFAULT_MENU_ORDER],
     updatedAt: null,
     updatedBy: null,
     existsInDb: false,
@@ -64,7 +81,7 @@ export async function listClassAppFeatureSettings(
     .order("class_name", { ascending: true });
 
   if (error) {
-    if (isMissingTableError(error.message)) {
+    if (isMissingTableError(error.message) || isMissingMenuOrderColumn(error.message, error.code)) {
       return {
         items: classNamesResult.classNames.map(emptyRow),
         classNames: classNamesResult.classNames,
@@ -127,7 +144,7 @@ export async function getClassAppFeatures(
     .maybeSingle();
 
   if (error) {
-    if (isMissingTableError(error.message)) {
+    if (isMissingTableError(error.message) || isMissingMenuOrderColumn(error.message, error.code)) {
       return { detail: emptyRow(trimmed), tableMissing: true, error: null };
     }
     return { detail: null, tableMissing: false, error: error.message };
@@ -149,6 +166,7 @@ export async function upsertClassAppFeatures(
   input: {
     className: string;
     features: ClassAppFeatures;
+    menuOrder: ClassAppFeatureKey[];
     updatedBy: string;
   },
 ): Promise<{
@@ -160,6 +178,7 @@ export async function upsertClassAppFeatures(
   const payload = {
     class_name: className,
     features: input.features,
+    menu_order: input.menuOrder,
     updated_at: new Date().toISOString(),
     updated_by: input.updatedBy,
   };
@@ -171,6 +190,14 @@ export async function upsertClassAppFeatures(
     .single();
 
   if (error) {
+    if (isMissingMenuOrderColumn(error.message, error.code)) {
+      return {
+        detail: null,
+        tableMissing: true,
+        error:
+          "menu_order 列が未作成です。docs/sql/add-class-app-features-menu-order.sql を Supabase で実行してください。",
+      };
+    }
     if (isMissingTableError(error.message)) {
       return {
         detail: null,

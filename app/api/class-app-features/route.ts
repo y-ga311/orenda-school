@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 type WriteBody = {
   className?: unknown;
   features?: unknown;
+  menuOrder?: unknown;
 };
 
 async function requireTeacher() {
@@ -90,6 +91,7 @@ export async function PUT(request: Request) {
   const parsed = parseClassAppFeaturesPayload({
     className: body?.className,
     features: body?.features,
+    menuOrder: body?.menuOrder,
   });
 
   if (!parsed.ok) {
@@ -99,6 +101,7 @@ export async function PUT(request: Request) {
   const result = await upsertClassAppFeatures(supabaseResult.supabase, {
     className: parsed.className,
     features: parsed.features,
+    menuOrder: parsed.menuOrder,
     updatedBy: auth.teacherId,
   });
 

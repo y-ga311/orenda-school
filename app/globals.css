@@ -6563,13 +6563,54 @@ a {
 .cafFeatureRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   background: #f8fafc;
+  cursor: grab;
+}
+
+.cafFeatureRowDragging {
+  opacity: 0.55;
+  border-color: #93c5fd;
+}
+
+.cafFeatureOrder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cafFeatureOrderActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cafOrderBtn {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.cafOrderBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .cafFeatureText {
