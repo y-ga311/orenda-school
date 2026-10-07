@@ -194,7 +194,7 @@ export function StudentSubmittedQuestionsView() {
         </section>
 
         <section className="mcqEditPanel" aria-label="投稿問題の確認と訂正">
-          {isBusy ? <PortalLoadingOverlay /> : null}
+          <PortalLoadingOverlay active={isBusy} label={isSaving ? "保存中..." : "読み込み中..."} />
           {selectedId ? (
             <>
               <div className="mcqEditHeader">
