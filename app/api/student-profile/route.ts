@@ -151,6 +151,8 @@ function mapStudentProfile(
     className: row.class?.trim() || "",
     parentId: row.hogosya_id?.trim() || "",
     parentEmail: row.mail?.trim() || "",
+    studentPassword: row.gakusei_password ?? "",
+    parentPassword: row.hogosya_pass ?? "",
     hasStudentPassword: Boolean(row.gakusei_password),
     hasParentPassword: Boolean(row.hogosya_pass),
     nationalExamStatus,

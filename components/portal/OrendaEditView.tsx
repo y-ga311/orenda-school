@@ -5,6 +5,7 @@ import { ClassAppFeaturesView } from "@/components/portal/ClassAppFeaturesView";
 import { MedalSettingsView } from "@/components/portal/MedalSettingsView";
 import { MultipleChoiceQuestionsView } from "@/components/portal/MultipleChoiceQuestionsView";
 import { NationalExamScheduleView } from "@/components/portal/NationalExamScheduleView";
+import { StudentSubmittedQuestionsView } from "@/components/portal/StudentSubmittedQuestionsView";
 import { TeacherQuestView } from "@/components/portal/TeacherQuestView";
 import {
   DEFAULT_ORENDA_EDIT_TAB,
@@ -62,6 +63,8 @@ export function OrendaEditView() {
             <MultipleChoiceQuestionsView />
           ) : activeTab === "teacherQuest" ? (
             <TeacherQuestView />
+          ) : activeTab === "studentSubmitted" ? (
+            <StudentSubmittedQuestionsView />
           ) : activeTab === "medalSettings" ? (
             <MedalSettingsView />
           ) : activeTab === "nationalExamSchedule" ? (

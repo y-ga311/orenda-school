@@ -373,7 +373,7 @@ export function ClassAppFeaturesView() {
               </div>
 
               <p className="cafEnabledCount">
-                表示中: {enabledCount} / 6　上からこの順でホームメニューに出ます。行をドラッグするか、上下ボタンで並べ替えてください。
+                表示中: {enabledCount} / {CLASS_APP_FEATURE_KEYS.length}　上からこの順でホームメニューに出ます。行をドラッグするか、上下ボタンで並べ替えてください。
               </p>
 
               <div className="cafFeatureList">

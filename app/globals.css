@@ -2943,6 +2943,43 @@ a {
   background: #ffffff;
 }
 
+.studentInfoPasswordWrap {
+  position: relative;
+}
+
+.studentInfoPasswordInput {
+  padding-right: 42px;
+}
+
+.studentInfoPasswordReveal {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.studentInfoPasswordReveal:hover,
+.studentInfoPasswordReveal[aria-pressed="true"] {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.studentInfoPasswordReveal:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .studentInfoFooter {
   display: grid;
   flex-shrink: 0;
@@ -4682,6 +4719,29 @@ a {
   font-weight: 600;
 }
 
+.spqListItemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spqMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.spqReadonly {
+  display: block;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+  color: #0f172a;
+  font-size: 12px;
+}
+
 .mcqListItemMeta {
   color: #64748b;
   font-size: 10px;
@@ -4828,7 +4888,8 @@ a {
   }
 
   .mcqChoiceGrid,
-  .mcqMetaGrid {
+  .mcqMetaGrid,
+  .spqMetaGrid {
     grid-template-columns: 1fr;
   }
 }

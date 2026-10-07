@@ -7,6 +7,11 @@ CREATE TABLE IF NOT EXISTS public.class_app_features (
   features jsonb NOT NULL DEFAULT '{
     "timer": true,
     "quest": true,
+    "student_quest": true,
+    "tsubotomy": true,
+    "grades": true,
+    "portfolio": true,
+    "links": true,
     "record": true,
     "collection": true,
     "ranking": true,
@@ -15,6 +20,11 @@ CREATE TABLE IF NOT EXISTS public.class_app_features (
   menu_order jsonb NOT NULL DEFAULT '[
     "timer",
     "quest",
+    "student_quest",
+    "tsubotomy",
+    "grades",
+    "portfolio",
+    "links",
     "record",
     "collection",
     "ranking",
@@ -31,7 +41,7 @@ COMMENT ON COLUMN public.class_app_features.class_name IS
   'students.class と完全一致するクラス名';
 
 COMMENT ON COLUMN public.class_app_features.features IS
-  'JSON: timer/quest/record/collection/ranking/mypage の boolean';
+  'JSON boolean: timer/quest/student_quest/tsubotomy/grades/portfolio/links/record/collection/ranking/mypage';
 
 COMMENT ON COLUMN public.class_app_features.menu_order IS
   'ホームメニューの上からの表示順（feature key の JSON 配列）。欠落キーはアプリ側で末尾に補完。';

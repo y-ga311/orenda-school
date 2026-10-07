@@ -1,6 +1,11 @@
 export const CLASS_APP_FEATURE_KEYS = [
   "timer",
   "quest",
+  "student_quest",
+  "tsubotomy",
+  "grades",
+  "portfolio",
+  "links",
   "record",
   "collection",
   "ranking",
@@ -12,14 +17,7 @@ export type ClassAppFeatureKey = (typeof CLASS_APP_FEATURE_KEYS)[number];
 export type ClassAppFeatures = Record<ClassAppFeatureKey, boolean>;
 
 /** ホームメニューの上からの既定順 */
-export const DEFAULT_MENU_ORDER: ClassAppFeatureKey[] = [
-  "timer",
-  "quest",
-  "record",
-  "collection",
-  "ranking",
-  "mypage",
-];
+export const DEFAULT_MENU_ORDER: ClassAppFeatureKey[] = [...CLASS_APP_FEATURE_KEYS];
 
 export type ClassAppFeatureDefinition = {
   key: ClassAppFeatureKey;
@@ -35,8 +33,33 @@ export const CLASS_APP_FEATURE_DEFINITIONS: ClassAppFeatureDefinition[] = [
   },
   {
     key: "quest",
-    label: "クエスト",
-    description: "問題クエスト一式",
+    label: "４択クエスト",
+    description: "過去問・教員クエスト",
+  },
+  {
+    key: "student_quest",
+    label: "投稿問題",
+    description: "メニュー表示のみ",
+  },
+  {
+    key: "tsubotomy",
+    label: "ツボトミー",
+    description: "メニュー表示のみ",
+  },
+  {
+    key: "grades",
+    label: "成績",
+    description: "メニュー表示のみ",
+  },
+  {
+    key: "portfolio",
+    label: "ポートフォリオ",
+    description: "メニュー表示のみ",
+  },
+  {
+    key: "links",
+    label: "各種リンク",
+    description: "メニュー表示のみ",
   },
   {
     key: "record",
@@ -73,6 +96,11 @@ export function createDefaultClassAppFeatures(): ClassAppFeatures {
   return {
     timer: true,
     quest: true,
+    student_quest: true,
+    tsubotomy: true,
+    grades: true,
+    portfolio: true,
+    links: true,
     record: true,
     collection: true,
     ranking: true,
@@ -107,7 +135,8 @@ function isClassAppFeatureKey(value: unknown): value is ClassAppFeatureKey {
 
 /**
  * menu_order を正規化する。
- * 未知キーは無視し、重複は先頭だけ残し、欠落キーは既定順の末尾に補う。
+ * 未知キーは無視し、重複は先頭だけ残す。
+ * 欠落キーは既定順上の直前項目の直後へ挿入する（例: quest の直後に student_quest）。
  */
 export function normalizeMenuOrder(raw: unknown): ClassAppFeatureKey[] {
   const seen = new Set<ClassAppFeatureKey>();
@@ -123,10 +152,20 @@ export function normalizeMenuOrder(raw: unknown): ClassAppFeatureKey[] {
     });
   }
 
-  DEFAULT_MENU_ORDER.forEach((key) => {
-    if (!seen.has(key)) {
-      ordered.push(key);
+  DEFAULT_MENU_ORDER.forEach((key, defaultIndex) => {
+    if (seen.has(key)) {
+      return;
     }
+
+    let insertAt = 0;
+    DEFAULT_MENU_ORDER.slice(0, defaultIndex).forEach((predecessor) => {
+      const index = ordered.indexOf(predecessor);
+      if (index >= 0) {
+        insertAt = index + 1;
+      }
+    });
+    ordered.splice(insertAt, 0, key);
+    seen.add(key);
   });
 
   return ordered;
@@ -169,7 +208,7 @@ export function parseClassAppFeaturesPayload(input: {
     if (typeof source[key] !== "boolean") {
       return {
         ok: false,
-        message: `機能「${key}」の値が不正です。6項目すべてを boolean で送ってください。`,
+        message: `機能「${key}」の値が不正です。${CLASS_APP_FEATURE_KEYS.length}項目すべてを boolean で送ってください。`,
       };
     }
   }
@@ -177,7 +216,7 @@ export function parseClassAppFeaturesPayload(input: {
   if (!Array.isArray(input.menuOrder)) {
     return {
       ok: false,
-      message: "表示順は6項目すべての feature key を含む配列で送ってください。",
+      message: `表示順は${CLASS_APP_FEATURE_KEYS.length}項目すべての feature key を含む配列で送ってください。`,
     };
   }
 
@@ -186,21 +225,19 @@ export function parseClassAppFeaturesPayload(input: {
   if (providedKeys.size !== CLASS_APP_FEATURE_KEYS.length) {
     return {
       ok: false,
-      message: "表示順は6項目すべての feature key を含む配列で送ってください。",
+      message: `表示順は${CLASS_APP_FEATURE_KEYS.length}項目すべての feature key を含む配列で送ってください。`,
     };
   }
+
+  const features = {} as ClassAppFeatures;
+  CLASS_APP_FEATURE_KEYS.forEach((key) => {
+    features[key] = source[key] as boolean;
+  });
 
   return {
     ok: true,
     className,
-    features: {
-      timer: source.timer as boolean,
-      quest: source.quest as boolean,
-      record: source.record as boolean,
-      collection: source.collection as boolean,
-      ranking: source.ranking as boolean,
-      mypage: source.mypage as boolean,
-    },
+    features,
     menuOrder,
   };
 }

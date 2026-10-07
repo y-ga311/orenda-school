@@ -8,6 +8,11 @@ UPDATE public.class_app_features
 SET menu_order = '[
   "timer",
   "quest",
+  "student_quest",
+  "tsubotomy",
+  "grades",
+  "portfolio",
+  "links",
   "record",
   "collection",
   "ranking",
@@ -19,6 +24,11 @@ ALTER TABLE public.class_app_features
   ALTER COLUMN menu_order SET DEFAULT '[
     "timer",
     "quest",
+    "student_quest",
+    "tsubotomy",
+    "grades",
+    "portfolio",
+    "links",
     "record",
     "collection",
     "ranking",

@@ -45,6 +45,77 @@ function getProfileErrorMessage(status: number, message?: string) {
   return message ?? "学生情報の取得に失敗しました。";
 }
 
+function PasswordRevealIcon({ revealed }: { revealed: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        d="M2.5 12S6.2 6.5 12 6.5 21.5 12 21.5 12 17.8 17.5 12 17.5 2.5 12 2.5 12Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="12" cy="12" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      {revealed ? null : (
+        <path d="M5 19 19 5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      )}
+    </svg>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [revealed, setRevealed] = useState(false);
+
+  function hidePassword() {
+    setRevealed(false);
+  }
+
+  return (
+    <div className="studentInfoField">
+      <span className="studentInfoFieldLabel">{label}</span>
+      <div className="studentInfoPasswordWrap">
+        <input
+          className="studentInfoFieldInput studentInfoPasswordInput"
+          type={revealed ? "text" : "password"}
+          value={value}
+          placeholder={placeholder}
+          autoComplete="off"
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+        />
+        <button
+          type="button"
+          className="studentInfoPasswordReveal"
+          aria-label={revealed ? "パスワードを隠す" : "押している間パスワードを表示"}
+          aria-pressed={revealed}
+          disabled={disabled}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            setRevealed(true);
+          }}
+          onPointerUp={hidePassword}
+          onPointerLeave={hidePassword}
+          onPointerCancel={hidePassword}
+          onBlur={hidePassword}
+        >
+          <PasswordRevealIcon revealed={revealed} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ScoreBadgeInput({
   label,
   value,
@@ -672,19 +743,13 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         readOnly
                       />
                     </label>
-                    <label className="studentInfoField">
-                      <span className="studentInfoFieldLabel">学生パスワード</span>
-                      <input
-                        className="studentInfoFieldInput"
-                        type="password"
-                        value={form.studentPassword}
-                        placeholder={profile?.hasStudentPassword ? "********" : "未設定"}
-                        onChange={(event) =>
-                          updateFormField("studentPassword", event.target.value)
-                        }
-                        disabled={isLoading || isSaving}
-                      />
-                    </label>
+                    <PasswordField
+                      label="学生パスワード"
+                      value={form.studentPassword}
+                      placeholder={profile?.hasStudentPassword ? "********" : "未設定"}
+                      onChange={(value) => updateFormField("studentPassword", value)}
+                      disabled={isLoading || isSaving}
+                    />
                     <label className="studentInfoField">
                       <span className="studentInfoFieldLabel">保護者ID</span>
                       <input
@@ -695,19 +760,13 @@ export function StudentBasicInfoView({ students }: StudentBasicInfoViewProps) {
                         disabled={isLoading || isSaving}
                       />
                     </label>
-                    <label className="studentInfoField">
-                      <span className="studentInfoFieldLabel">保護者パスワード</span>
-                      <input
-                        className="studentInfoFieldInput"
-                        type="password"
-                        value={form.parentPassword}
-                        placeholder={profile?.hasParentPassword ? "********" : "未設定"}
-                        onChange={(event) =>
-                          updateFormField("parentPassword", event.target.value)
-                        }
-                        disabled={isLoading || isSaving}
-                      />
-                    </label>
+                    <PasswordField
+                      label="保護者パスワード"
+                      value={form.parentPassword}
+                      placeholder={profile?.hasParentPassword ? "********" : "未設定"}
+                      onChange={(value) => updateFormField("parentPassword", value)}
+                      disabled={isLoading || isSaving}
+                    />
                     <label className="studentInfoField studentInfoFieldFull">
                       <span className="studentInfoFieldLabel">保護者メールアドレス</span>
                       <input

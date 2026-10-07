@@ -156,6 +156,8 @@ export type StudentProfileData = {
   className: string;
   parentId: string;
   parentEmail: string;
+  studentPassword: string;
+  parentPassword: string;
   hasStudentPassword: boolean;
   hasParentPassword: boolean;
   nationalExamStatus: NationalExamStatus;
@@ -215,9 +217,9 @@ export function buildProfileFormState(profile: StudentProfileData): StudentProfi
   return {
     nickname: profile.nickname,
     className: profile.className,
-    studentPassword: "",
+    studentPassword: profile.studentPassword ?? "",
     parentId: profile.parentId,
-    parentPassword: "",
+    parentPassword: profile.parentPassword ?? "",
     parentEmail: profile.parentEmail,
     nationalExamStatus: profile.nationalExamStatus,
     pretestScore:
